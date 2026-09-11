@@ -39,6 +39,15 @@ export interface Messages {
   'calendar.allCategories': string;
   'calendar.onlyFree': string;
   'calendar.changeMunicipality': string;
+  'calendar.viewList': string;
+  'calendar.viewMonth': string;
+  'calendar.previousMonth': string;
+  'calendar.nextMonth': string;
+  'calendar.backToThisMonth': string;
+  'calendar.nothingOnThisDay': string;
+  'calendar.dayWithEvents': string;
+  'calendar.dayWithoutEvents': string;
+  'calendar.weekdayInitials': string;
 
   'event.cancelled': string;
   'event.organisedBy': string;
@@ -106,6 +115,16 @@ const es: Messages = {
   'calendar.allCategories': 'Todo',
   'calendar.onlyFree': 'Gratis',
   'calendar.changeMunicipality': 'Cambiar de municipio',
+  'calendar.viewList': 'Lista',
+  'calendar.viewMonth': 'Mes',
+  'calendar.previousMonth': 'Mes anterior',
+  'calendar.nextMonth': 'Mes siguiente',
+  'calendar.backToThisMonth': 'Volver a este mes',
+  'calendar.nothingOnThisDay': 'Este día no hay nada.',
+  'calendar.dayWithEvents': '{date}, {count} eventos',
+  'calendar.dayWithoutEvents': '{date}, sin eventos',
+  // One letter per weekday, Monday first, separated by spaces.
+  'calendar.weekdayInitials': 'L M X J V S D',
 
   'event.cancelled': 'Cancelado',
   'event.organisedBy': 'Organiza {name}',
@@ -174,6 +193,15 @@ const en: Messages = {
   'calendar.allCategories': 'All',
   'calendar.onlyFree': 'Free',
   'calendar.changeMunicipality': 'Change town',
+  'calendar.viewList': 'List',
+  'calendar.viewMonth': 'Month',
+  'calendar.previousMonth': 'Previous month',
+  'calendar.nextMonth': 'Next month',
+  'calendar.backToThisMonth': 'Back to this month',
+  'calendar.nothingOnThisDay': 'Nothing on this day.',
+  'calendar.dayWithEvents': '{date}, {count} events',
+  'calendar.dayWithoutEvents': '{date}, no events',
+  'calendar.weekdayInitials': 'M T W T F S S',
 
   'event.cancelled': 'Cancelled',
   'event.organisedBy': 'Organised by {name}',

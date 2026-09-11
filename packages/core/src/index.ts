@@ -14,6 +14,7 @@ export * from './geo';
 export * from './grouping';
 export * from './links';
 export * from './live-session';
+export * from './month';
 export * from './municipality';
 export * from './organization';
 export * from './time';

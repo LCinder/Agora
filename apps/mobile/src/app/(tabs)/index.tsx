@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { EventCard } from '../../components/event-card';
+import { MonthView } from '../../components/month-view';
 import { Caption, Chip, Display, EmptyState, Loading, Screen, Subtitle } from '../../components/ui';
 import { useMunicipalityData } from '../../hooks/use-municipality-data';
 import { useApp } from '../../providers/app-provider';
@@ -22,6 +23,7 @@ export default function CalendarScreen() {
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [freeOnly, setFreeOnly] = useState(false);
+  const [view, setView] = useState<'list' | 'month'>('list');
 
   const filtered = useMemo(
     () =>
@@ -72,11 +74,27 @@ export default function CalendarScreen() {
           <Caption tone="primary">{t('calendar.changeMunicipality')}</Caption>
           <Ionicons name="chevron-forward" size={14} color={theme.colors.primary} />
         </Pressable>
+
+        <View style={{ flexDirection: 'row', gap: theme.spacing(2), marginTop: theme.spacing(2) }}>
+          <Chip
+            label={t('calendar.viewList')}
+            selected={view === 'list'}
+            onPress={() => setView('list')}
+          />
+          <Chip
+            label={t('calendar.viewMonth')}
+            selected={view === 'month'}
+            onPress={() => setView('month')}
+          />
+        </View>
       </View>
 
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        // Without this the filter row stretches to fill whatever space the
+        // content below leaves, and the chips come out as tall ovals.
+        style={styles.filters}
         contentContainerStyle={{
           gap: theme.spacing(2),
           paddingHorizontal: theme.spacing(5),
@@ -116,23 +134,32 @@ export default function CalendarScreen() {
           contentContainerStyle={{
             gap: theme.spacing(4),
             paddingBottom: theme.spacing(10),
-            paddingHorizontal: theme.spacing(5),
+            // The grid wants the wider canvas; the list reads better inset.
+            paddingHorizontal: theme.spacing(view === 'month' ? 3 : 5),
           }}
         >
-          <Section title={t('calendar.today')} events={groups.today} categories={categories} />
-          <Section
-            title={t('calendar.thisWeekend')}
-            events={groups.thisWeekend}
-            categories={categories}
-          />
-          <Section
-            title={t('calendar.upcoming')}
-            events={groups.upcoming}
-            categories={categories}
-          />
+          {view === 'month' ? (
+            <MonthView events={filtered} categories={categories} />
+          ) : (
+            <>
+              <Section title={t('calendar.today')} events={groups.today} categories={categories} />
+              <Section
+                title={t('calendar.thisWeekend')}
+                events={groups.thisWeekend}
+                categories={categories}
+              />
+              <Section
+                title={t('calendar.upcoming')}
+                events={groups.upcoming}
+                categories={categories}
+              />
 
-          {hasAnything ? null : (
-            <EmptyState title={isFiltered ? t('calendar.emptyFiltered') : t('calendar.empty')} />
+              {hasAnything ? null : (
+                <EmptyState
+                  title={isFiltered ? t('calendar.emptyFiltered') : t('calendar.empty')}
+                />
+              )}
+            </>
           )}
         </ScrollView>
       )}
@@ -168,5 +195,6 @@ function Section({
 }
 
 const styles = StyleSheet.create({
+  filters: { flexGrow: 0, flexShrink: 0 },
   row: { alignItems: 'center', flexDirection: 'row', gap: 4 },
 });

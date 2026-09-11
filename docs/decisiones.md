@@ -240,3 +240,22 @@ El panel hace ahora las dos direcciones del cartel. Leerlo, que ya estaba, y dib
 Se ha aceptado a sabiendas para Fase 0 y Fase 1, porque en una demo no hay datos de nadie y porque quita fricción para probarlo. **Antes de que un ayuntamiento lo use de verdad hay que pasar a nivel de pago**, donde Google no entrena con lo enviado: es activar la facturación, la misma clave y ni una línea de código distinta. El coste es despreciable —unos pocos carteles al mes por municipio— y cabe de sobra en el objetivo de pocos euros al mes por municipio.
 
 **Y no cierra la elección de proveedor:** son una llamada HTTP y una variable de entorno. Cambiar a otro modelo de imagen es reescribir esa llamada, no tocar el panel.
+
+---
+
+## D-019 — Vista de mes: rejilla con puntos, no una agenda en miniatura
+**Fecha:** 2026-09-11 · **Estado:** aceptada
+
+La agenda tiene ahora un conmutador «Lista / Mes». La lista sigue siendo lo que se abre por defecto.
+
+**Por qué existe:** la lista responde a «qué hay pronto», que es para lo que un vecino abre la app. El mes responde a «qué hay cuando yo esté libre», que es lo que pregunta quien organiza un finde o viene de fuera a las fiestas. Y es la forma en la que el ayuntamiento ya publica su programación, así que es la vista que un concejal reconoce de un vistazo.
+
+**Puntos, no números:** cada día muestra hasta tres puntos con el color de la categoría, no un contador. De un vistazo lo que se quiere saber es si hay algo, y contar viene después. Ningún significado depende solo del color: cada día dice en voz alta su fecha y cuántos eventos tiene para los lectores de pantalla, que es lo que exige el RD 1112/2018.
+
+**De lunes a domingo**, porque es un calendario para España. Las iniciales de los días viven en `@agora/i18n`, así que el inglés no hereda «L M X J V S D».
+
+**El día elegido se despliega debajo** con las mismas tarjetas de la lista, en vez de abrir otra pantalla. Un mes sin poder ver qué hay en un día es una decoración.
+
+**La lógica está en `@agora/core`**, con 13 pruebas: una rejilla de calendario es engañosa en los finales de mes, los años bisiestos y el vecino que abre la app desde el extranjero, y nada de eso es algo que apetezca depurar mirando un móvil. Los días se calculan en la zona horaria del municipio, nunca en la del dispositivo, igual que la agrupación: una verbena que acaba a la 01:30 sale en los dos días, y un evento de varios días sale en todos ellos.
+
+**De paso:** la fila de filtros se estiraba en vertical cuando el contenido de debajo era corto, y los chips salían como óvalos altos. Existía desde antes; la vista de mes, con un mes vacío, lo dejó a la vista.
