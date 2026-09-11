@@ -13,6 +13,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useApp } from '../providers/app-provider';
+import { FONTS } from '../theme/theme';
 import { EventCard } from './event-card';
 import { Caption, Subtitle } from './ui';
 
@@ -108,7 +109,7 @@ export function MonthView({
                   style={{
                     color: theme.colors.textMuted,
                     fontSize: theme.fontSize.caption,
-                    fontWeight: '700',
+                    fontFamily: FONTS.bold,
                     textAlign: 'center',
                   }}
                 >
@@ -248,7 +249,7 @@ function Day({
               ? theme.colors.text
               : theme.colors.textMuted,
           fontSize: theme.fontSize.body,
-          fontWeight: day.isToday || selected ? '800' : '500',
+          fontFamily: day.isToday || selected ? FONTS.black : FONTS.medium,
           textAlign: 'center',
         }}
       >

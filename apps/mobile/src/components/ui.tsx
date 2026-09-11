@@ -14,6 +14,7 @@ import {
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
 import { useTheme } from '../providers/app-provider';
+import { FONTS } from '../theme/theme';
 
 /**
  * The small set of primitives every screen is built from.
@@ -80,7 +81,11 @@ export function Display({ children, tone = 'default', style }: TypeProps) {
     <Text
       accessibilityRole="header"
       style={[
-        { color: toneColor(tone, theme), fontSize: theme.fontSize.display, fontWeight: '700' },
+        {
+          color: toneColor(tone, theme),
+          fontFamily: FONTS.black,
+          fontSize: theme.fontSize.display,
+        },
         style,
       ]}
     >
@@ -95,7 +100,7 @@ export function Title({ children, tone = 'default', style, numberOfLines }: Type
     <Text
       numberOfLines={numberOfLines}
       style={[
-        { color: toneColor(tone, theme), fontSize: theme.fontSize.title, fontWeight: '600' },
+        { color: toneColor(tone, theme), fontFamily: FONTS.bold, fontSize: theme.fontSize.title },
         style,
       ]}
     >
@@ -110,7 +115,11 @@ export function Subtitle({ children, tone = 'default', style, numberOfLines }: T
     <Text
       numberOfLines={numberOfLines}
       style={[
-        { color: toneColor(tone, theme), fontSize: theme.fontSize.subtitle, fontWeight: '600' },
+        {
+          color: toneColor(tone, theme),
+          fontFamily: FONTS.semibold,
+          fontSize: theme.fontSize.subtitle,
+        },
         style,
       ]}
     >
@@ -125,7 +134,12 @@ export function Body({ children, tone = 'default', style, numberOfLines }: TypeP
     <Text
       numberOfLines={numberOfLines}
       style={[
-        { color: toneColor(tone, theme), fontSize: theme.fontSize.body, lineHeight: 24 },
+        {
+          color: toneColor(tone, theme),
+          fontFamily: FONTS.regular,
+          fontSize: theme.fontSize.body,
+          lineHeight: 24,
+        },
         style,
       ]}
     >
@@ -139,7 +153,14 @@ export function Caption({ children, tone = 'muted', style, numberOfLines }: Type
   return (
     <Text
       numberOfLines={numberOfLines}
-      style={[{ color: toneColor(tone, theme), fontSize: theme.fontSize.caption }, style]}
+      style={[
+        {
+          color: toneColor(tone, theme),
+          fontFamily: FONTS.regular,
+          fontSize: theme.fontSize.caption,
+        },
+        style,
+      ]}
     >
       {children}
     </Text>
@@ -233,7 +254,7 @@ export function Button({
         style={{
           color: isPrimary ? theme.colors.onPrimary : theme.colors.text,
           fontSize: theme.fontSize.body,
-          fontWeight: '600',
+          fontFamily: FONTS.semibold,
         }}
       >
         {label}
@@ -279,7 +300,7 @@ export function Chip({
         style={{
           color: selected ? readableTextOn(accent) : theme.colors.textMuted,
           fontSize: theme.fontSize.caption,
-          fontWeight: selected ? '700' : '600',
+          fontFamily: selected ? FONTS.bold : FONTS.semibold,
         }}
       >
         {label}
@@ -301,7 +322,7 @@ export function Badge({ label, color }: { label: string; color: string }) {
         paddingVertical: theme.spacing(1),
       }}
     >
-      <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '700' }}>{label}</Text>
+      <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12 }}>{label}</Text>
     </View>
   );
 }

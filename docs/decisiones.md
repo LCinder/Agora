@@ -282,3 +282,24 @@ La app pasa de parecer un formulario a parecer un cartel. De las tres direccione
 **La celosía se dibuja con vistas, no con SVG.** Una rejilla de rombos son unas cuantas `View` giradas 45°; traer un renderizador nativo de SVG costaría una dependencia y una recompilación a todos los municipios.
 
 **Lo que queda con el aspecto anterior:** la pantalla de bienvenida, el directo y el mapa heredan la paleta nueva pero no se han recompuesto.
+
+---
+
+## D-021 — Tipografía propia y los detalles que separan «tematizado» de «diseñado»
+**Fecha:** 2026-09-11 · **Estado:** aceptada · **Ref.:** remata D-020
+
+D-020 dejó la app coherente pero todavía se leía como una app de React Native bien tematizada. Cinco cosas lo delataban, y las cinco eran de oficio, no de dirección.
+
+**1. La fuente del sistema.** Era lo que más cantaba. Ahora la app trae **Archivo** empaquetada, en cinco pesos, cargada con `expo-font` antes del primer fotograma: una app que enseña la fuente del sistema y luego reflowa es lo más barato que se puede hacer. Archivo es una grotesca con un negro muy pesado; aguanta un titular de cartel y también compone una línea de detalle de 15px.
+
+Detalle que se come a mucha gente: **React Native no sintetiza pesos de una fuente empaquetada**. Cada peso es su propia familia y `fontWeight` no se usa nunca con ellas, porque en Android cae en silencio a la fuente del sistema. Por eso `theme.fonts` expone los cinco nombres y no queda ni un `fontWeight` en la app. La auditoría encontró además `Body` y `Caption` sin familia, que es el clásico fallo de fuentes mezcladas: titulares en Archivo y cuerpo en la del sistema.
+
+**2. Dos filas de pastillas apiladas.** El conmutador Lista/Mes y los filtros tenían la misma forma, así que ninguno de los dos se leía como una elección. El conmutador pasa a ser un control segmentado en la cabecera, y el nombre del municipio se convierte en el propio control para cambiar de pueblo —como en cualquier app con selector de ubicación—, lo que elimina una fila entera.
+
+**3. Un panel opaco sobre el destacado.** Un rectángulo de borde duro encima de un cartel parece una pegatina pegada por encima. Ahora es un degradado (`expo-linear-gradient`), y el destacado baja de 296 a 264 px porque sobraba aire en medio.
+
+**4. Filas flotando.** Un filete entre eventos para que la lista se lea como una lista.
+
+**5. Iconos siempre rellenos** en la barra inferior. Contorno cuando está inactivo y relleno cuando está activo, que es la convención de las dos plataformas.
+
+**Y dos de tipografía fina:** el nombre del municipio llevaba un tracking de -0,9 que cerraba «LA ZUBIA» en una sola palabra, y la meta de cada fila gastaba la hora de fin, que empujaba el lugar fuera de pantalla. El lugar es lo que un vecino busca; la hora de fin no.

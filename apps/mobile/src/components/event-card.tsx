@@ -1,10 +1,19 @@
-import { formatTime, formatWhen, readableOn, type Event, type EventCategory } from '@agora/core';
+import {
+  formatRelativeDay,
+  formatTime,
+  formatWhen,
+  readableOn,
+  type Event,
+  type EventCategory,
+} from '@agora/core';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useApp } from '../providers/app-provider';
 import { EventCover } from './event-cover';
+import { FONTS } from '../theme/theme';
 
 /**
  * One event in a list.
@@ -20,7 +29,7 @@ import { EventCover } from './event-cover';
 
 const SCREEN_PADDING = 20;
 const STAMP = 92;
-const HERO_HEIGHT = 296;
+const HERO_HEIGHT = 264;
 
 export function EventCard({
   event,
@@ -77,7 +86,13 @@ export function EventCard({
             height={HERO_HEIGHT}
           />
 
-          <View style={[styles.heroText, { padding: theme.spacing(4) }]}>
+          {/* A gradient, not a slab: a hard-edged panel over a poster reads
+              like a sticker stuck on top of it. */}
+          <LinearGradient
+            colors={['rgba(18,18,17,0)', 'rgba(18,18,17,0.72)', 'rgba(18,18,17,0.94)']}
+            locations={[0, 0.55, 1]}
+            style={[styles.heroText, { padding: theme.spacing(4), paddingTop: theme.spacing(10) }]}
+          >
             <View style={[styles.row, { gap: theme.spacing(2), marginBottom: theme.spacing(2) }]}>
               {event.isFeatured && !cancelled ? (
                 <View
@@ -116,7 +131,7 @@ export function EventCard({
               ) : null}
               {saved ? <Ionicons name="heart" size={17} color="#FFFFFF" /> : null}
             </View>
-          </View>
+          </LinearGradient>
         </View>
       </Pressable>
     );
@@ -139,8 +154,11 @@ export function EventCard({
         <Text numberOfLines={2} style={[styles.rowTitle, { color: theme.colors.text }]}>
           {event.title}
         </Text>
+        {/* Start time only: a row that spells out the end as well pushes the
+            place off the edge, and the place is what a neighbour scans for. */}
         <Text numberOfLines={1} style={[styles.rowMeta, { color: theme.colors.textMuted }]}>
-          {when} · {event.location.name}
+          {formatRelativeDay(event.startAt, context)} · {formatTime(event.startAt, context)} ·{' '}
+          {event.location.name}
         </Text>
       </View>
 
@@ -150,14 +168,13 @@ export function EventCard({
 }
 
 const styles = StyleSheet.create({
-  eyebrow: { fontSize: 11, fontWeight: '700', letterSpacing: 1.4 },
+  eyebrow: { fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 1.4 },
   featured: { paddingHorizontal: 9, paddingVertical: 3 },
-  free: { color: '#A7F3B4', fontWeight: '700' },
+  free: { color: '#A7F3B4', fontFamily: FONTS.bold },
   grow: { flex: 1 },
-  heroDot: { color: 'rgba(255,255,255,0.55)', fontSize: 15 },
-  heroMeta: { color: 'rgba(255,255,255,0.92)', fontSize: 15 },
+  heroDot: { color: 'rgba(255,255,255,0.55)', fontFamily: FONTS.regular, fontSize: 15 },
+  heroMeta: { color: 'rgba(255,255,255,0.92)', fontFamily: FONTS.regular, fontSize: 15 },
   heroText: {
-    backgroundColor: 'rgba(18,18,17,0.82)',
     bottom: 0,
     left: 0,
     position: 'absolute',
@@ -166,12 +183,12 @@ const styles = StyleSheet.create({
   heroTitle: {
     color: '#FFFFFF',
     fontSize: 27,
-    fontWeight: '900',
+    fontFamily: FONTS.black,
     letterSpacing: -0.7,
     lineHeight: 29,
   },
   onCover: { color: 'rgba(255,255,255,0.85)' },
   row: { alignItems: 'center', flexDirection: 'row' },
-  rowMeta: { fontSize: 15 },
-  rowTitle: { fontSize: 19, fontWeight: '700', letterSpacing: -0.3, lineHeight: 22 },
+  rowMeta: { fontFamily: FONTS.regular, fontSize: 15 },
+  rowTitle: { fontFamily: FONTS.bold, fontSize: 19, letterSpacing: -0.3, lineHeight: 22 },
 });

@@ -26,9 +26,31 @@ export function isAppearance(value: unknown): value is Appearance {
   return typeof value === 'string' && (APPEARANCES as readonly string[]).includes(value);
 }
 
+/**
+ * One family, five weights.
+ *
+ * React Native does not synthesise weights for a bundled face, so every
+ * weight is its own family name and `fontWeight` is never used with them —
+ * setting it would silently fall back to the system font on Android.
+ *
+ * Archivo is a grotesque with a very heavy black cut: it holds a poster
+ * headline and still sets a 15px line of detail underneath. Loaded from the
+ * bundle rather than a font service, so the app works with no network.
+ */
+export const FONTS = {
+  regular: 'Archivo_400Regular',
+  medium: 'Archivo_500Medium',
+  semibold: 'Archivo_600SemiBold',
+  bold: 'Archivo_700Bold',
+  black: 'Archivo_900Black',
+} as const;
+
+export type Fonts = typeof FONTS;
+
 export interface Theme {
   /** Which palette is actually painted, once `system` has been resolved. */
   scheme: 'dark' | 'light';
+  fonts: Fonts;
   colors: {
     background: string;
     surface: string;
@@ -104,6 +126,7 @@ export function createTheme(
 
   return {
     scheme,
+    fonts: FONTS,
     colors: {
       ...palette,
       primary: primaryColor,

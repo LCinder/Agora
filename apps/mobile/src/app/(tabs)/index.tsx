@@ -1,6 +1,7 @@
 import { filterEvents, groupEvents, type Event, type EventCategory } from '@agora/core';
 import { Redirect, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { EventCard } from '../../components/event-card';
@@ -8,6 +9,7 @@ import { MonthView } from '../../components/month-view';
 import { Chip, EmptyState, Loading, Screen } from '../../components/ui';
 import { useMunicipalityData } from '../../hooks/use-municipality-data';
 import { useApp } from '../../providers/app-provider';
+import { FONTS } from '../../theme/theme';
 
 /**
  * The calendar: the screen the whole product is judged on.
@@ -63,46 +65,34 @@ export default function CalendarScreen() {
 
   return (
     <Screen>
-      <View style={{ gap: theme.spacing(1), paddingHorizontal: theme.spacing(5) }}>
+      {/* Masthead. The town name is the control that changes town, the way a
+          location picker is its own title in every app that has one — a
+          separate "Cambiar" button was a second row for nothing. */}
+      <View style={{ gap: theme.spacing(3), paddingHorizontal: theme.spacing(5) }}>
         <View style={[styles.row, { gap: theme.spacing(3) }]}>
-          <View style={styles.grow}>
-            <Text style={[styles.eyebrow, { color: theme.colors.textMuted }]}>
-              {t('calendar.municipalAgenda').toUpperCase()}
-            </Text>
-            <Text style={[styles.town, { color: theme.colors.text }]} numberOfLines={2}>
-              {municipality.name.toUpperCase()}
-            </Text>
-          </View>
           <Pressable
             onPress={() => router.push('/welcome')}
             accessibilityRole="button"
             accessibilityLabel={t('calendar.changeMunicipality')}
-            style={({ pressed }) => [
-              styles.change,
-              {
-                borderColor: theme.colors.border,
-                borderRadius: theme.radius.pill,
-                opacity: pressed ? 0.7 : 1,
-              },
-            ]}
+            style={({ pressed }) => [styles.grow, { opacity: pressed ? 0.6 : 1 }]}
           >
-            <Text style={{ color: theme.colors.textMuted, fontSize: 14, fontWeight: '600' }}>
-              {t('calendar.change')}
+            <Text style={[styles.eyebrow, { color: theme.colors.textMuted }]}>
+              {t('calendar.municipalAgenda').toUpperCase()}
             </Text>
+            <View style={styles.row}>
+              <Text style={[styles.town, { color: theme.colors.text }]} numberOfLines={1}>
+                {municipality.name.toUpperCase()}
+              </Text>
+              <Ionicons
+                name="chevron-down"
+                size={22}
+                color={theme.colors.textMuted}
+                style={{ marginLeft: theme.spacing(1), marginTop: theme.spacing(1) }}
+              />
+            </View>
           </Pressable>
-        </View>
 
-        <View style={{ flexDirection: 'row', gap: theme.spacing(2), marginTop: theme.spacing(2) }}>
-          <Chip
-            label={t('calendar.viewList')}
-            selected={view === 'list'}
-            onPress={() => setView('list')}
-          />
-          <Chip
-            label={t('calendar.viewMonth')}
-            selected={view === 'month'}
-            onPress={() => setView('month')}
-          />
+          <SegmentedView value={view} onChange={setView} />
         </View>
       </View>
 
@@ -192,6 +182,69 @@ export default function CalendarScreen() {
 }
 
 /**
+ * List or month.
+ *
+ * A segmented control rather than two more pills: the screen already has a row
+ * of pill-shaped filters under it, and two rows of the same shape make neither
+ * of them read as a choice.
+ */
+function SegmentedView({
+  value,
+  onChange,
+}: {
+  value: 'list' | 'month';
+  onChange: (next: 'list' | 'month') => void;
+}) {
+  const { t, theme } = useApp();
+
+  const options: { id: 'list' | 'month'; label: string }[] = [
+    { id: 'list', label: t('calendar.viewList') },
+    { id: 'month', label: t('calendar.viewMonth') },
+  ];
+
+  return (
+    <View
+      style={{
+        backgroundColor: theme.colors.surfaceMuted,
+        borderRadius: theme.radius.pill,
+        flexDirection: 'row',
+        padding: 3,
+      }}
+    >
+      {options.map((option) => {
+        const selected = value === option.id;
+
+        return (
+          <Pressable
+            key={option.id}
+            onPress={() => onChange(option.id)}
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+            style={{
+              backgroundColor: selected ? theme.colors.contrast : 'transparent',
+              borderRadius: theme.radius.pill,
+              justifyContent: 'center',
+              minHeight: 38,
+              paddingHorizontal: theme.spacing(4),
+            }}
+          >
+            <Text
+              style={{
+                color: selected ? theme.colors.onContrast : theme.colors.textMuted,
+                fontFamily: selected ? FONTS.bold : FONTS.semibold,
+                fontSize: 14,
+              }}
+            >
+              {option.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/**
  * One block of the calendar.
  *
  * `leads` marks the block that opens the screen: its first event — the
@@ -229,25 +282,33 @@ function Section({
 
       {lead ? <EventCard event={lead} category={categoryOf(lead)} variant="hero" /> : null}
 
-      {rest.map((event) => (
-        <EventCard key={event.id} event={event} category={categoryOf(event)} />
+      {rest.map((event, index) => (
+        <View
+          key={event.id}
+          style={
+            index === 0 && !lead
+              ? undefined
+              : {
+                  borderTopColor: theme.colors.surfaceMuted,
+                  borderTopWidth: 1,
+                  paddingTop: theme.spacing(4),
+                }
+          }
+        >
+          <EventCard event={event} category={categoryOf(event)} />
+        </View>
       ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  change: {
-    alignItems: 'center',
-    borderWidth: 1,
-    height: 40,
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-  },
-  eyebrow: { fontSize: 11, fontWeight: '700', letterSpacing: 1.5 },
+  eyebrow: { fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 1.5 },
   filters: { flexGrow: 0, flexShrink: 0 },
   grow: { flex: 1 },
   row: { alignItems: 'center', flexDirection: 'row', gap: 4 },
   rule: { flex: 1, height: 1 },
-  town: { fontSize: 34, fontWeight: '900', letterSpacing: -1, lineHeight: 34 },
+  // Archivo Black is tight enough on its own; any more and a two-word name
+  // closes up into one.
+  town: { fontFamily: FONTS.black, fontSize: 30, letterSpacing: -0.3, lineHeight: 32 },
 });

@@ -9,6 +9,7 @@ import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { useApp } from '../providers/app-provider';
+import { FONTS } from '../theme/theme';
 
 /**
  * The poster, drawn by the app.
@@ -175,7 +176,7 @@ export function EventCover({
 const styles = StyleSheet.create({
   day: {
     color: '#FFFFFF',
-    fontWeight: '900',
+    fontFamily: FONTS.black,
     letterSpacing: -1.5,
   },
   end: { alignItems: 'flex-start', justifyContent: 'flex-end' },
@@ -183,13 +184,13 @@ const styles = StyleSheet.create({
   middle: { alignItems: 'center', justifyContent: 'center' },
   month: {
     color: 'rgba(255,255,255,0.92)',
-    fontWeight: '700',
+    fontFamily: FONTS.bold,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
   shout: {
     color: '#FFFFFF',
-    fontWeight: '900',
+    fontFamily: FONTS.black,
     letterSpacing: -1.4,
   },
   topEnd: { alignItems: 'flex-end', justifyContent: 'flex-start' },
