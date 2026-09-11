@@ -1,0 +1,211 @@
+/**
+ * User-facing copy.
+ *
+ * Keys are flat and explicit so a missing translation is a type error rather
+ * than a string that silently falls back to its key at runtime. Spanish is the
+ * source language; English exists from the start because retrofitting it once
+ * fifty screens exist is a rewrite, not a translation.
+ */
+export interface Messages {
+  'common.loading': string;
+  'common.retry': string;
+  'common.cancel': string;
+  'common.free': string;
+
+  'welcome.title': string;
+  'welcome.subtitle': string;
+  'welcome.searchPlaceholder': string;
+  'welcome.useLocation': string;
+  'welcome.locating': string;
+  'welcome.detected': string;
+  'welcome.detectedConfirm': string;
+  'welcome.detectedDismiss': string;
+  'welcome.locationDenied': string;
+  'welcome.locationUnavailable': string;
+  'welcome.noResults': string;
+  'welcome.notAvailableTitle': string;
+  'welcome.notAvailableBody': string;
+  'welcome.notifyMe': string;
+  'welcome.notifyDone': string;
+  'welcome.inhabitants': string;
+
+  'calendar.tab': string;
+  'calendar.today': string;
+  'calendar.thisWeekend': string;
+  'calendar.upcoming': string;
+  'calendar.featured': string;
+  'calendar.empty': string;
+  'calendar.emptyFiltered': string;
+  'calendar.allCategories': string;
+  'calendar.onlyFree': string;
+  'calendar.changeMunicipality': string;
+
+  'event.cancelled': string;
+  'event.organisedBy': string;
+  'event.byTownHall': string;
+  'event.interested': string;
+  'event.interestedDone': string;
+  'event.addToCalendar': string;
+  'event.share': string;
+  'event.watchLive': string;
+  'event.priceFree': string;
+  'event.notFound': string;
+
+  'myEvents.title': string;
+  'myEvents.empty': string;
+  'myEvents.emptyHint': string;
+  'myEvents.past': string;
+
+  'live.title': string;
+  'live.lastUpdate': string;
+  'live.stale': string;
+  'live.notStarted': string;
+  'live.finished': string;
+  'live.plannedRoute': string;
+
+  'settings.title': string;
+  'settings.municipality': string;
+  'settings.language': string;
+  'settings.privacy': string;
+  'settings.deleteData': string;
+  'settings.deleteDataBody': string;
+  'settings.demoNotice': string;
+}
+
+const es: Messages = {
+  'common.loading': 'Cargando…',
+  'common.retry': 'Reintentar',
+  'common.cancel': 'Cancelar',
+  'common.free': 'Gratis',
+
+  'welcome.title': '¿De qué pueblo quieres ver la agenda?',
+  'welcome.subtitle': 'Puedes cambiarlo cuando quieras y seguir más de uno.',
+  'welcome.searchPlaceholder': 'Busca tu municipio',
+  'welcome.useLocation': 'Usar mi ubicación',
+  'welcome.locating': 'Buscando tu municipio…',
+  'welcome.detected': '¿Estás en {name}?',
+  'welcome.detectedConfirm': 'Sí, es mi pueblo',
+  'welcome.detectedDismiss': 'No, elijo otro',
+  'welcome.locationDenied': 'Sin problema: busca tu municipio en la lista.',
+  'welcome.locationUnavailable': 'No hemos podido saber dónde estás. Búscalo en la lista.',
+  'welcome.noResults': 'No encontramos ese municipio',
+  'welcome.notAvailableTitle': 'Todavía no está disponible',
+  'welcome.notAvailableBody':
+    'Tu ayuntamiento aún no tiene la app. Si nos lo dices, se lo haremos saber.',
+  'welcome.notifyMe': 'Avisadme cuando esté',
+  'welcome.notifyDone': 'Gracias. Te avisaremos.',
+  'welcome.inhabitants': '{count} habitantes',
+
+  'calendar.tab': 'Agenda',
+  'calendar.today': 'Hoy',
+  'calendar.thisWeekend': 'Este finde',
+  'calendar.upcoming': 'Próximos',
+  'calendar.featured': 'Destacado',
+  'calendar.empty': 'Todavía no hay eventos publicados.',
+  'calendar.emptyFiltered': 'No hay eventos con estos filtros.',
+  'calendar.allCategories': 'Todo',
+  'calendar.onlyFree': 'Gratis',
+  'calendar.changeMunicipality': 'Cambiar de municipio',
+
+  'event.cancelled': 'Cancelado',
+  'event.organisedBy': 'Organiza {name}',
+  'event.byTownHall': 'Organiza el Ayuntamiento',
+  'event.interested': 'Me interesa',
+  'event.interestedDone': 'Te interesa',
+  'event.addToCalendar': 'Añadir a mi calendario',
+  'event.share': 'Compartir',
+  'event.watchLive': 'Ver en directo',
+  'event.priceFree': 'Entrada gratuita',
+  'event.notFound': 'No encontramos este evento.',
+
+  'myEvents.title': 'Mis eventos',
+  'myEvents.empty': 'Todavía no te interesa ningún evento.',
+  'myEvents.emptyHint': 'Marca «Me interesa» en un evento y aparecerá aquí.',
+  'myEvents.past': 'Ya pasaron',
+
+  'live.title': 'En directo',
+  'live.lastUpdate': 'Actualizado hace {minutes} min',
+  'live.stale': 'Sin señal desde hace {minutes} min',
+  'live.notStarted': 'El directo todavía no ha empezado.',
+  'live.finished': 'El directo ha terminado.',
+  'live.plannedRoute': 'Recorrido previsto',
+
+  'settings.title': 'Ajustes',
+  'settings.municipality': 'Municipio',
+  'settings.language': 'Idioma',
+  'settings.privacy': 'Privacidad',
+  'settings.deleteData': 'Borrar mis datos',
+  'settings.deleteDataBody':
+    'Se borrarán los eventos que te interesan y el municipio elegido. No guardamos nada más.',
+  'settings.demoNotice': 'Versión de demostración con datos de ejemplo.',
+};
+
+const en: Messages = {
+  'common.loading': 'Loading…',
+  'common.retry': 'Try again',
+  'common.cancel': 'Cancel',
+  'common.free': 'Free',
+
+  'welcome.title': 'Which town do you want to follow?',
+  'welcome.subtitle': 'You can change it any time, and follow more than one.',
+  'welcome.searchPlaceholder': 'Search for your town',
+  'welcome.useLocation': 'Use my location',
+  'welcome.locating': 'Looking for your town…',
+  'welcome.detected': 'Are you in {name}?',
+  'welcome.detectedConfirm': 'Yes, that is my town',
+  'welcome.detectedDismiss': 'No, let me choose',
+  'welcome.locationDenied': 'No problem: find your town in the list.',
+  'welcome.locationUnavailable': 'We could not tell where you are. Find your town in the list.',
+  'welcome.noResults': 'We could not find that town',
+  'welcome.notAvailableTitle': 'Not available yet',
+  'welcome.notAvailableBody':
+    'Your town hall does not have the app yet. Tell us and we will let them know.',
+  'welcome.notifyMe': 'Let me know when it is ready',
+  'welcome.notifyDone': 'Thank you. We will let you know.',
+  'welcome.inhabitants': '{count} inhabitants',
+
+  'calendar.tab': 'What is on',
+  'calendar.today': 'Today',
+  'calendar.thisWeekend': 'This weekend',
+  'calendar.upcoming': 'Coming up',
+  'calendar.featured': 'Featured',
+  'calendar.empty': 'No events published yet.',
+  'calendar.emptyFiltered': 'No events match these filters.',
+  'calendar.allCategories': 'All',
+  'calendar.onlyFree': 'Free',
+  'calendar.changeMunicipality': 'Change town',
+
+  'event.cancelled': 'Cancelled',
+  'event.organisedBy': 'Organised by {name}',
+  'event.byTownHall': 'Organised by the town hall',
+  'event.interested': 'I am interested',
+  'event.interestedDone': 'Interested',
+  'event.addToCalendar': 'Add to my calendar',
+  'event.share': 'Share',
+  'event.watchLive': 'Watch live',
+  'event.priceFree': 'Free entry',
+  'event.notFound': 'We could not find this event.',
+
+  'myEvents.title': 'My events',
+  'myEvents.empty': 'You are not interested in any event yet.',
+  'myEvents.emptyHint': 'Mark an event as interesting and it will show up here.',
+  'myEvents.past': 'Already happened',
+
+  'live.title': 'Live',
+  'live.lastUpdate': 'Updated {minutes} min ago',
+  'live.stale': 'No signal for {minutes} min',
+  'live.notStarted': 'The live tracking has not started yet.',
+  'live.finished': 'The live tracking has finished.',
+  'live.plannedRoute': 'Planned route',
+
+  'settings.title': 'Settings',
+  'settings.municipality': 'Town',
+  'settings.language': 'Language',
+  'settings.privacy': 'Privacy',
+  'settings.deleteData': 'Delete my data',
+  'settings.deleteDataBody':
+    'This removes the events you marked and the town you chose. We store nothing else.',
+  'settings.demoNotice': 'Demo version with example data.',
+};
+
+export const MESSAGES = { es, en } as const;

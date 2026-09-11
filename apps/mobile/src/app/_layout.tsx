@@ -2,17 +2,26 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { AppProvider } from '../providers/app-provider';
+
 /**
- * Root navigation layout.
+ * Root layout.
  *
- * The municipality selector becomes the entry point in step 3 of the phase 0
- * plan; until then the calendar placeholder is the only route.
+ * Screens are pushed on a plain stack; the tab bar lives inside the `(tabs)`
+ * group so the municipality selector and the event detail can cover it.
  */
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <Stack screenOptions={{ headerShown: false }} />
-      <StatusBar style="auto" />
+      <AppProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
+          <Stack.Screen name="event/[id]" options={{ presentation: 'card' }} />
+          <Stack.Screen name="live/[id]" options={{ presentation: 'card' }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </AppProvider>
     </SafeAreaProvider>
   );
 }

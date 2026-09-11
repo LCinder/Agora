@@ -120,3 +120,25 @@ pnpm 12 rechaza por defecto cualquier paquete publicado en las últimas 24 horas
 **Por qué es temporal:** en cuanto esas versiones tengan más de 24 horas, la excepción deja de hacer falta. Conviene quitarla en la próxima revisión de dependencias.
 
 **Además:** el script de instalación de `unrs-resolver` (binario nativo que usa ESLint) está aprobado explícitamente en `allowBuilds`. Ningún otro paquete puede ejecutar scripts de instalación.
+
+---
+
+## D-011 — Rutas tipadas de expo-router desactivadas
+**Fecha:** 2026-09-11 · **Estado:** aceptada, revisable
+
+El experimento `typedRoutes` de expo-router genera tipos de ruta a partir del árbol de ficheros y, en este monorepo, incluía rutas inventadas a partir de las importaciones de los paquetes compartidos, haciendo fallar la comprobación de tipos con errores que no correspondían a ningún error real.
+
+**Qué se ha hecho:** `experiments.typedRoutes: false` en `app.json`.
+
+**Por qué:** el coste de pelearse con la generación de tipos supera lo que aporta en un proyecto con doce rutas. Conviene reintentarlo en una versión posterior del SDK.
+
+---
+
+## D-012 — Mapas: MapLibre nativo y MapLibre GL JS en web
+**Fecha:** 2026-09-11 · **Estado:** aceptada
+
+`components/map.tsx` usa el módulo nativo `@maplibre/maplibre-react-native`; `components/map.web.tsx` usa `maplibre-gl` en el navegador. Ambas implementaciones comparten props y origen de teselas en `map-shared.ts`.
+
+**Por qué:** el módulo nativo no funciona en el navegador, y la compilación web es lo que permite enseñar la demo desde un portátil en una sala de reuniones sin depender de que el móvil tenga la build instalada. Además da una comprobación automática real: si algo se rompe, la exportación web falla.
+
+**Teselas:** OpenStreetMap en lugar de Google Maps, porque el producto tiene que costar unos pocos euros al mes por municipio y el precio por carga de Google no sobrevive a una procesión que mira medio pueblo. Para producción hay que contratar un proveedor de teselas: mandar ese pico de tráfico a los servidores de la fundación OSM no es aceptable.
