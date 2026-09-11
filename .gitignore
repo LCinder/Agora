@@ -24,6 +24,11 @@ web-build/
 apps/mobile/android/
 apps/mobile/ios/
 
+# The design canvas is assembled from .design/*.dc.html on demand: the
+# assembled file is 2.5 MB of packaged editor, and no version of it is content.
+.design/*.html
+!.design/*.dc.html
+
 # Environment
 .env
 .env.local

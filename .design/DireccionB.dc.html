@@ -1,0 +1,131 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700;800&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Libre Franklin', system-ui, sans-serif; background: #F6F7F8; color: #14181B; -webkit-font-smoothing: antialiased; }
+    a { color: #1B5E20; text-decoration: none; } a:hover { color: #14481a; }
+    .cat { font-size: 12px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; }
+    .item { display: flex; gap: 16px; padding: 18px 0; border-top: 1px solid #E3E6E8; }
+    .rail { width: 58px; flex: none; display: flex; flex-direction: column; gap: 2px; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; display: flex; flex-direction: column; background: #F6F7F8; overflow: hidden">
+
+  <div style="display: flex; flex-direction: column; gap: 16px; padding: 30px 22px 0 22px">
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #5A646B">Ayuntamiento de</span>
+        <h1 style="margin: 0; font-size: 30px; font-weight: 800; line-height: 1.05; letter-spacing: -0.02em">La Zubia</h1>
+      </div>
+      <div style="width: 48px; height: 48px; border-radius: 10px; background: #1B5E20; display: flex; align-items: center; justify-content: center">
+        <span style="font-size: 17px; font-weight: 800; color: #FFFFFF">LZ</span>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 0; border-bottom: 2px solid #E3E6E8">
+      <div style="padding: 0 2px 10px 2px; margin-right: 22px; border-bottom: 2px solid #1B5E20; margin-bottom: -2px">
+        <span style="font-size: 16px; font-weight: 700; color: #1B5E20">Lista</span>
+      </div>
+      <div style="padding: 0 2px 10px 2px">
+        <span style="font-size: 16px; font-weight: 600; color: #5A646B">Mes</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 7px; padding: 14px 22px 0 22px; overflow: hidden">
+    <div style="height: 38px; padding: 0 15px; display: flex; align-items: center; border-radius: 6px; background: #14181B; flex: none">
+      <span style="font-size: 14px; font-weight: 600; color: #FFFFFF">Todo</span>
+    </div>
+    <div style="height: 38px; padding: 0 15px; display: flex; align-items: center; border-radius: 6px; border: 1px solid #D4D9DC; flex: none">
+      <span style="font-size: 14px; font-weight: 600">Gratis</span>
+    </div>
+    <div style="height: 38px; padding: 0 15px; display: flex; align-items: center; border-radius: 6px; border: 1px solid #D4D9DC; flex: none">
+      <span style="font-size: 14px; font-weight: 600">Fiestas</span>
+    </div>
+    <div style="height: 38px; padding: 0 15px; display: flex; align-items: center; border-radius: 6px; border: 1px solid #D4D9DC; flex: none">
+      <span style="font-size: 14px; font-weight: 600">Cultura</span>
+    </div>
+  </div>
+
+  <div style="flex: 1; padding: 22px 22px 0 22px; overflow: hidden">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 10px">
+      <h2 style="margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -0.01em">Hoy</h2>
+      <span style="font-size: 14px; color: #5A646B">Viernes 11 de septiembre</span>
+    </div>
+
+    <div class="item" style="border-top-width: 2px; border-top-color: #14181B">
+      <div class="rail">
+        <span style="font-size: 20px; font-weight: 800; line-height: 1.1">18:00</span>
+        <span style="font-size: 13px; color: #5A646B">20:00</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0">
+        <span class="cat" style="color: #A16207">Mayores</span>
+        <h3 style="margin: 0; font-size: 19px; font-weight: 700; line-height: 1.25; letter-spacing: -0.01em">Taller de cerámica para mayores</h3>
+        <span style="font-size: 15px; color: #5A646B">Centro de Mayores</span>
+        <span style="font-size: 14px; font-weight: 700; color: #1B5E20">Gratis</span>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="rail">
+        <span style="font-size: 20px; font-weight: 800; line-height: 1.1">22:00</span>
+        <span style="font-size: 13px; color: #5A646B">23:45</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0">
+        <div style="display: flex; align-items: center; gap: 8px">
+          <span class="cat" style="color: #6D28D9">Cultura</span>
+          <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #FFFFFF; background: #1B5E20; padding: 2px 7px; border-radius: 4px">Destacado</span>
+        </div>
+        <h3 style="margin: 0; font-size: 19px; font-weight: 700; line-height: 1.25; letter-spacing: -0.01em">Cine a la fresca: proyección al aire libre</h3>
+        <span style="font-size: 15px; color: #5A646B">Parque de la Encina</span>
+        <span style="font-size: 14px; font-weight: 700; color: #1B5E20">Gratis</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 18px 0 10px 0">
+      <h2 style="margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -0.01em">Este finde</h2>
+    </div>
+
+    <div class="item" style="border-top-width: 2px; border-top-color: #14181B">
+      <div class="rail">
+        <span style="font-size: 20px; font-weight: 800; line-height: 1.1">18:00</span>
+        <span style="font-size: 13px; color: #5A646B">Sáb</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0">
+        <span class="cat" style="color: #0369A1">Infantil</span>
+        <h3 style="margin: 0; font-size: 19px; font-weight: 700; line-height: 1.25; letter-spacing: -0.01em">Cuentacuentos en la biblioteca</h3>
+        <span style="font-size: 15px; color: #5A646B">Biblioteca Municipal</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex: none; display: flex; background: #FFFFFF; border-top: 1px solid #E3E6E8; padding: 8px 0 18px 0">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1B5E20" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+      <span style="font-size: 12px; font-weight: 700; color: #1B5E20">Agenda</span>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5A646B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5l-1.4-1.3C5.4 14.5 2.5 11.9 2.5 8.7 2.5 6.1 4.6 4 7.2 4c1.5 0 2.9.7 3.8 1.8L12 6.9l1-1.1C13.9 4.7 15.3 4 16.8 4c2.6 0 4.7 2.1 4.7 4.7 0 3.2-2.9 5.8-8.1 10.5z"/></svg>
+      <span style="font-size: 12px; font-weight: 600; color: #5A646B">Mis eventos</span>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5A646B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8 2 2 0 11-2.7 2.7 1.6 1.6 0 00-1.8.3 1.6 1.6 0 00-1 1.5 2 2 0 11-4 0 1.6 1.6 0 00-1-1.5 1.6 1.6 0 00-1.8-.3 2 2 0 11-2.7-2.7 1.6 1.6 0 00.3-1.8 1.6 1.6 0 00-1.5-1 2 2 0 110-4 1.6 1.6 0 001.5-1 1.6 1.6 0 00-.3-1.8 2 2 0 112.7-2.7 1.6 1.6 0 001.8.3 1.6 1.6 0 001-1.5 2 2 0 114 0 1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3 2 2 0 112.7 2.7 1.6 1.6 0 00-.3 1.8 1.6 1.6 0 001.5 1 2 2 0 110 4 1.6 1.6 0 00-1.5 1z"/></svg>
+      <span style="font-size: 12px; font-weight: 600; color: #5A646B">Ajustes</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

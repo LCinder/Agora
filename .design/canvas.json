@@ -1,0 +1,52 @@
+{
+  "pages": [
+    { "id": "page-1", "name": "App — dirección A" },
+    { "id": "page-2", "name": "Otras direcciones" }
+  ],
+  "artboards": [
+    { "file": "Selector.dc.html", "title": "Selector de municipio", "page": "page-1", "x": 0, "y": 0, "w": 390, "h": 844 },
+    { "file": "Main.dc.html", "title": "Agenda", "page": "page-1", "x": 500, "y": 0, "w": 390, "h": 844 },
+    { "file": "Mes.dc.html", "title": "Vista de mes", "page": "page-1", "x": 1000, "y": 0, "w": 390, "h": 844 },
+    { "file": "Evento.dc.html", "title": "Detalle de evento", "page": "page-1", "x": 0, "y": 1000, "w": 390, "h": 844 },
+    { "file": "MisEventos.dc.html", "title": "Mis eventos", "page": "page-1", "x": 500, "y": 1000, "w": 390, "h": 844 },
+    { "file": "Directo.dc.html", "title": "Directo", "page": "page-1", "x": 1000, "y": 1000, "w": 390, "h": 844 },
+
+    { "file": "DireccionB.dc.html", "title": "B — Servicio público", "page": "page-2", "x": 0, "y": 0, "w": 390, "h": 844 },
+    { "file": "DireccionC.dc.html", "title": "C — Cartel", "page": "page-2", "x": 500, "y": 0, "w": 390, "h": 844 }
+  ],
+  "annotations": [
+    {
+      "id": "dir-a",
+      "page": "page-1",
+      "x": 0,
+      "y": -210,
+      "w": 890,
+      "text": "Dirección A — «Programa de fiestas»\n\nLa metáfora es el programa de fiestas impreso que ya edita cada ayuntamiento: papel cálido, titulares en serif de cartel, el color de cada categoría como lomo del evento. Diferencia frente a Bandomóvil sin perder legibilidad para mayores.\n\nA cambio: es la más arriesgada de las tres si el concejal espera algo «de administración». En la página 2 están las otras dos direcciones."
+    },
+    {
+      "id": "tokens",
+      "page": "page-1",
+      "x": 1000,
+      "y": -210,
+      "w": 390,
+      "text": "Sobre el sistema actual: radios 6/12/20, objetivo táctil 48dp, cuerpo 16-17px y los ocho colores de categoría de content/shared/categories.json, sin tocar. Lo que cambia es el papel, la tipografía y la jerarquía.\n\nEl color verde es el de La Zubia; la pastilla «Marca» de cada pantalla prueba otro municipio."
+    },
+    {
+      "id": "dir-b",
+      "page": "page-2",
+      "x": 0,
+      "y": -230,
+      "w": 390,
+      "text": "B — «Servicio público»\n\nSin serif y sin tarjetas: una sola familia, horario en columna izquierda y filas separadas por reglas. Se lee como un horario bien compuesto.\n\nA favor: es la que mejor envejece y la que menos discute un técnico municipal. En contra: se parece más a lo que ya existe, y el argumento comercial es diferenciarse."
+    },
+    {
+      "id": "dir-c",
+      "page": "page-2",
+      "x": 500,
+      "y": -230,
+      "w": 390,
+      "text": "C — «Cartel»\n\nOscura y con la imagen por delante: cada evento entra por su cartel. Es la que más partido saca del generador de carteles que acaba de entrar en el panel.\n\nA favor: es la más moderna de las tres. En contra: depende de que haya cartel —hoy casi ningún evento semilla tiene imagen— y el fondo oscuro no es el mejor amigo de un vecino de 70 años."
+    }
+  ],
+  "launch": { "view": "canvas", "page": "page-1" }
+}
