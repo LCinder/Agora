@@ -1,5 +1,4 @@
-import { CORE_PACKAGE_NAME } from '@agora/core';
-import { DATA_PACKAGE_NAME } from '@agora/data';
+import { DEFAULT_TIME_ZONE } from '@agora/core';
 import { DEFAULT_LOCALE } from '@agora/i18n';
 
 /**
@@ -16,11 +15,9 @@ export default function Home() {
         Andamiaje del monorepo listo. Las pantallas del panel llegan en el paso 6 del plan de
         Fase&nbsp;0.
       </p>
-      <ul className="text-sm text-gray-500">
-        <li>core: {CORE_PACKAGE_NAME}</li>
-        <li>data: {DATA_PACKAGE_NAME}</li>
-        <li>locale: {DEFAULT_LOCALE}</li>
-      </ul>
+      <p className="text-sm text-gray-500">
+        {DEFAULT_TIME_ZONE} &middot; {DEFAULT_LOCALE}
+      </p>
     </main>
   );
 }

@@ -1,8 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { CORE_PACKAGE_NAME } from '@agora/core';
-import { DATA_PACKAGE_NAME } from '@agora/data';
+import { DEFAULT_TIME_ZONE } from '@agora/core';
 import { DEFAULT_LOCALE } from '@agora/i18n';
 
 /**
@@ -19,9 +18,9 @@ export default function HomeScreen() {
         <Text style={styles.body}>
           Andamiaje del monorepo listo. El calendario llega en el paso 4 del plan de Fase 0.
         </Text>
-        <Text style={styles.meta}>core: {CORE_PACKAGE_NAME}</Text>
-        <Text style={styles.meta}>data: {DATA_PACKAGE_NAME}</Text>
-        <Text style={styles.meta}>locale: {DEFAULT_LOCALE}</Text>
+        <Text style={styles.meta}>
+          {DEFAULT_TIME_ZONE} · {DEFAULT_LOCALE}
+        </Text>
       </View>
     </SafeAreaView>
   );
