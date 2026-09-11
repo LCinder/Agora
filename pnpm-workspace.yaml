@@ -1,0 +1,15 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# pnpm quarantines anything published in the last 24 h as a supply-chain guard.
+# The Expo SDK 57 patch set was released the same day this repo was scaffolded,
+# so the whole Expo scope is exempted. See docs/decisiones.md, D-010: revisit and
+# drop this exemption once the versions have aged.
+minimumReleaseAgeExclude:
+  - expo
+  - 'expo-*'
+  - '@expo/*'
+
+allowBuilds:
+  unrs-resolver: true
