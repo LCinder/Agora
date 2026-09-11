@@ -1,3 +1,4 @@
+import { readableTextOn } from '@agora/core';
 import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
@@ -253,7 +254,10 @@ export function Chip({
   color?: string;
 }) {
   const theme = useTheme();
-  const accent = color ?? theme.colors.primary;
+  // A selected filter reverses out of the ground rather than taking the town's
+  // colour: on this design the colour belongs to the event covers, and a row of
+  // brand-coloured pills fights every poster under it.
+  const accent = color ?? theme.colors.contrast;
 
   return (
     <Pressable
@@ -261,7 +265,7 @@ export function Chip({
       accessibilityRole="button"
       accessibilityState={{ selected }}
       style={({ pressed }) => ({
-        backgroundColor: selected ? accent : theme.colors.surface,
+        backgroundColor: selected ? accent : 'transparent',
         borderColor: selected ? accent : theme.colors.border,
         borderRadius: theme.radius.pill,
         borderWidth: 1,
@@ -273,9 +277,9 @@ export function Chip({
     >
       <Text
         style={{
-          color: selected ? '#FFFFFF' : theme.colors.text,
+          color: selected ? readableTextOn(accent) : theme.colors.textMuted,
           fontSize: theme.fontSize.caption,
-          fontWeight: '600',
+          fontWeight: selected ? '700' : '600',
         }}
       >
         {label}

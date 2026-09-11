@@ -1,16 +1,34 @@
+import { readableTextOn } from '@agora/core';
 import type { ColorSchemeName } from 'react-native';
 
 /**
  * Design tokens.
  *
- * Two constraints shape them. The app is used by older neighbours, so text is
- * large, contrast is high and touch targets are generous. And it is sold to
+ * Three constraints shape them. The app is used by older neighbours, so text
+ * is large, contrast is high and touch targets are generous. It is sold to
  * public administrations, which means RD 1112/2018 and WCAG 2.1 AA: every
- * colour pair here is meant to clear 4.5:1, and nothing relies on colour alone
- * to carry meaning.
+ * colour pair here clears 4.5:1, and nothing relies on colour alone to carry
+ * meaning. And it has to look like a poster rather than a form, which is where
+ * the ink-dark ground and the flat category colour come from.
+ *
+ * Dark is the default. Light is an option in Settings, not an accident of what
+ * the phone happens to be set to — a calendar read outdoors in August wants
+ * the choice to be the resident's.
  */
 
+export const APPEARANCES = ['dark', 'light', 'system'] as const;
+
+export type Appearance = (typeof APPEARANCES)[number];
+
+export const DEFAULT_APPEARANCE: Appearance = 'dark';
+
+export function isAppearance(value: unknown): value is Appearance {
+  return typeof value === 'string' && (APPEARANCES as readonly string[]).includes(value);
+}
+
 export interface Theme {
+  /** Which palette is actually painted, once `system` has been resolved. */
+  scheme: 'dark' | 'light';
   colors: {
     background: string;
     surface: string;
@@ -18,10 +36,15 @@ export interface Theme {
     border: string;
     text: string;
     textMuted: string;
+    /** The municipality's colour, used sparingly: the poster covers carry the category. */
     primary: string;
     onPrimary: string;
+    /** Reversed out of the ground: the app's own emphasis, independent of the town's colour. */
+    contrast: string;
+    onContrast: string;
     danger: string;
     onDanger: string;
+    live: string;
   };
   spacing: (steps: number) => number;
   radius: { sm: number; md: number; lg: number; pill: number };
@@ -38,54 +61,49 @@ export interface Theme {
 
 const SPACING_UNIT = 4;
 
-const LIGHT = {
-  background: '#F7F7F5',
-  surface: '#FFFFFF',
-  surfaceMuted: '#EEEEEA',
-  border: '#D6D6D0',
-  text: '#1A1A17',
-  textMuted: '#5C5C55',
-  danger: '#B3261E',
-  onDanger: '#FFFFFF',
-};
-
 const DARK = {
-  background: '#131313',
-  surface: '#1E1E1C',
-  surfaceMuted: '#2A2A27',
-  border: '#3C3C38',
-  text: '#F2F2EF',
-  textMuted: '#B0B0A8',
+  background: '#121211',
+  surface: '#1A1A17',
+  surfaceMuted: '#26251F',
+  border: '#35342F',
+  text: '#F4F3F0',
+  textMuted: '#8A867A',
+  contrast: '#F4F3F0',
+  onContrast: '#121211',
   danger: '#F2B8B5',
   onDanger: '#3B0907',
+  live: '#EF4444',
 };
 
-/** Relative luminance, per the WCAG definition. */
-function luminance(hex: string): number {
-  const value = hex.replace('#', '');
-  const channels = [0, 2, 4].map((offset) => {
-    const channel = Number.parseInt(value.slice(offset, offset + 2), 16) / 255;
-    return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-  });
+const LIGHT = {
+  background: '#F5F3EE',
+  surface: '#FFFFFF',
+  surfaceMuted: '#EBE8E0',
+  border: '#DCD8CE',
+  text: '#16150F',
+  textMuted: '#62605A',
+  contrast: '#16150F',
+  onContrast: '#F5F3EE',
+  danger: '#B3261E',
+  onDanger: '#FFFFFF',
+  live: '#C81E1E',
+};
 
-  const [r, g, b] = channels as [number, number, number];
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+export function resolveScheme(appearance: Appearance, device: ColorSchemeName): 'dark' | 'light' {
+  if (appearance === 'system') return device === 'light' ? 'light' : 'dark';
+  return appearance;
 }
 
-/**
- * Black or white text on the municipality colour, whichever reads better.
- *
- * The colour comes from the town hall and cannot be assumed to be dark: a
- * fixed white label would disappear on a yellow or light blue brand.
- */
-export function readableTextOn(backgroundHex: string): string {
-  return luminance(backgroundHex) > 0.45 ? '#1A1A17' : '#FFFFFF';
-}
-
-export function createTheme(primaryColor: string, scheme: ColorSchemeName): Theme {
+export function createTheme(
+  primaryColor: string,
+  appearance: Appearance,
+  device: ColorSchemeName,
+): Theme {
+  const scheme = resolveScheme(appearance, device);
   const palette = scheme === 'dark' ? DARK : LIGHT;
 
   return {
+    scheme,
     colors: {
       ...palette,
       primary: primaryColor,

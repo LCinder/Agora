@@ -13,6 +13,7 @@ const KEYS = {
   activeMunicipality: 'agora.municipality.active',
   interests: 'agora.interests',
   requestedMunicipalities: 'agora.municipality.requested',
+  appearance: 'agora.appearance',
 } as const;
 
 /** An interest is one event of one municipality. */
@@ -38,6 +39,23 @@ async function writeJson(key: string, value: unknown): Promise<void> {
     await AsyncStorage.setItem(key, JSON.stringify(value));
   } catch {
     // Storage being full is not worth interrupting the neighbour for.
+  }
+}
+
+/** Dark, light or follow the phone. Dark until the resident says otherwise. */
+export async function loadAppearance(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(KEYS.appearance);
+  } catch {
+    return null;
+  }
+}
+
+export async function saveAppearance(appearance: string): Promise<void> {
+  try {
+    await AsyncStorage.setItem(KEYS.appearance, appearance);
+  } catch {
+    // Not worth interrupting the neighbour for.
   }
 }
 

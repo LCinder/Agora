@@ -1,3 +1,4 @@
+import { readableOn } from '@agora/core';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
@@ -6,11 +7,15 @@ import { useApp } from '../../providers/app-provider';
 export default function TabsLayout() {
   const { t, theme } = useApp();
 
+  // The town's colour is where the branding lives in this design, but a dark
+  // green on a dark bar is 2.4:1. Lift it until the label is legible.
+  const active = readableOn(theme.colors.primary, theme.colors.surface);
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.colors.primary,
+        tabBarActiveTintColor: active,
         tabBarInactiveTintColor: theme.colors.textMuted,
         tabBarStyle: {
           backgroundColor: theme.colors.surface,

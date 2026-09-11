@@ -10,8 +10,9 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Calendar from 'expo-calendar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, Share, StyleSheet, View } from 'react-native';
+import { Alert, Dimensions, Pressable, Share, StyleSheet, View } from 'react-native';
 
+import { EventCover } from '../../components/event-cover';
 import { Map } from '../../components/map';
 import {
   Badge,
@@ -119,19 +120,48 @@ export default function EventDetailScreen() {
     Alert.alert(current.title, t('event.addToCalendar'));
   }
 
+  const coverWidth = Dimensions.get('window').width;
+
   return (
     <Screen>
-      <Pressable
-        onPress={() => router.back()}
-        accessibilityRole="button"
-        accessibilityLabel={t('common.cancel')}
-        style={[styles.back, { margin: theme.spacing(3), minHeight: theme.touchTarget }]}
-      >
-        <Ionicons name="chevron-back" size={26} color={theme.colors.text} />
-      </Pressable>
-
       <ScreenScroll>
-        <View style={{ gap: theme.spacing(4), paddingHorizontal: theme.spacing(5) }}>
+        {/* The cover runs full bleed: it is the poster, and a poster with a
+            margin round it is a thumbnail. */}
+        <View style={styles.cover}>
+          <EventCover
+            event={event}
+            category={category}
+            size="hero"
+            width={coverWidth}
+            height={Math.round(coverWidth * 0.92)}
+            rounded={false}
+          />
+          <Pressable
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.cancel')}
+            style={({ pressed }) => [
+              styles.back,
+              {
+                borderRadius: theme.radius.pill,
+                margin: theme.spacing(3),
+                minHeight: theme.touchTarget,
+                minWidth: theme.touchTarget,
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            <Ionicons name="chevron-back" size={26} color="#FFFFFF" />
+          </Pressable>
+        </View>
+
+        <View
+          style={{
+            gap: theme.spacing(4),
+            paddingHorizontal: theme.spacing(5),
+            paddingTop: theme.spacing(5),
+          }}
+        >
           <View style={[styles.row, { gap: theme.spacing(2) }]}>
             {event.status === 'cancelled' ? (
               <Badge label={t('event.cancelled')} color={theme.colors.danger} />
@@ -219,7 +249,16 @@ function Row({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: strin
 }
 
 const styles = StyleSheet.create({
-  back: { alignSelf: 'flex-start', justifyContent: 'center' },
+  back: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(18,18,17,0.45)',
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    top: 0,
+  },
+  cover: { position: 'relative' },
   grow: { flex: 1 },
   map: { height: 180 },
   row: { alignItems: 'center', flexDirection: 'row' },

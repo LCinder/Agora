@@ -259,3 +259,26 @@ La agenda tiene ahora un conmutador «Lista / Mes». La lista sigue siendo lo qu
 **La lógica está en `@agora/core`**, con 13 pruebas: una rejilla de calendario es engañosa en los finales de mes, los años bisiestos y el vecino que abre la app desde el extranjero, y nada de eso es algo que apetezca depurar mirando un móvil. Los días se calculan en la zona horaria del municipio, nunca en la del dispositivo, igual que la agrupación: una verbena que acaba a la 01:30 sale en los dos días, y un evento de varios días sale en todos ellos.
 
 **De paso:** la fila de filtros se estiraba en vertical cuando el contenido de debajo era corto, y los chips salían como óvalos altos. Existía desde antes; la vista de mes, con un mes vacío, lo dejó a la vista.
+
+---
+
+## D-020 — Dirección C implementada: portada por categoría, destacado y oscuro por defecto
+**Fecha:** 2026-09-11 · **Estado:** aceptada · **Ref.:** sustituye el aspecto anterior, ver `.design/`
+
+La app pasa de parecer un formulario a parecer un cartel. De las tres direcciones del lienzo se eligió la C: fondo oscuro, color plano de la categoría, celosía y tipografía de gran tamaño.
+
+**La app dibuja la portada.** Casi ningún evento trae imagen —la charla de una asociación, un taller municipal, un partido de liga— y un calendario de rectángulos grises es exactamente el problema que había. Así que la portada se genera con las dos cosas que todo evento sí tiene: el color de su categoría y su fecha. El día del mes en grande **es** el gráfico. Cuando el evento sí trae cartel, manda el cartel y el dibujo se aparta.
+
+**Una portada por categoría, no una por municipio.** `coverTreatmentFor` en `@agora/core` reparte cuatro tratamientos —fecha, celosía, tipográfica y bandas— con asignación deliberada para las seis categorías compartidas y un hash estable para las que se inventa cada municipio. Nadie en el ayuntamiento tiene que configurar nada, y una categoría no cambia de aspecto entre dos aperturas de la app.
+
+**Los colores de categoría se calculan, no se tabulan.** Están escritos para papel y se hunden sobre fondo oscuro: `#6D28D9` da 2,9:1 sobre `#121211`. `readableOn` de `@agora/core` recorre la luminosidad conservando el tono hasta cruzar el 4,5:1. Se calcula porque cada municipio trae sus propias categorías con sus propios colores, así que ninguna lista de pares elegidos a mano puede cubrirlos. El plano de la portada sí conserva el color exacto: ahí el texto va en blanco.
+
+**El destacado manda.** Solo un bloque de la agenda lleva evento grande —el primero con contenido, y dentro de él el marcado como destacado— para que la pantalla tenga un foco y no una fila de iguales. Es lo que un ayuntamiento quiere empujar.
+
+**Oscuro por defecto, claro en Ajustes.** No se sigue el ajuste del teléfono salvo que el vecino elija «Automático»: una agenda que se consulta en la calle en agosto merece que la decisión sea suya. Las tres opciones viven en Ajustes y se guardan en el dispositivo.
+
+**El color del municipio se repliega.** En esta dirección el color lo llevan las portadas, así que los filtros seleccionados se invierten contra el fondo en vez de teñirse de la marca: una fila de pastillas verdes peleaba con cada cartel de debajo. La marca queda en la barra inferior y en el botón de «Me interesa» —y ahí también pasa por `readableOn`, porque el verde de La Zubia sobre la barra oscura daba 2,38:1.
+
+**La celosía se dibuja con vistas, no con SVG.** Una rejilla de rombos son unas cuantas `View` giradas 45°; traer un renderizador nativo de SVG costaría una dependencia y una recompilación a todos los municipios.
+
+**Lo que queda con el aspecto anterior:** la pantalla de bienvenida, el directo y el mapa heredan la paleta nueva pero no se han recompuesto.

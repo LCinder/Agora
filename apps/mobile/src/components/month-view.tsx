@@ -2,6 +2,7 @@ import {
   buildMonthGrid,
   formatLongDate,
   monthDays,
+  readableOn,
   shiftMonth,
   type Event,
   type EventCategory,
@@ -211,9 +212,13 @@ function Day({
 
   const dots = day.events.slice(0, MAX_DOTS).map((event, index) => ({
     key: `${event.id}-${index}`,
-    color:
+    color: readableOn(
       categories.find((category) => category.id === event.categoryId)?.color ??
-      theme.colors.primary,
+        theme.colors.primary,
+      theme.colors.background,
+      // A dot carries no text: 3:1 is the bar WCAG sets for graphical objects.
+      3,
+    ),
   }));
 
   return (
@@ -225,8 +230,8 @@ function Day({
       style={({ pressed }) => [
         styles.cell,
         {
-          backgroundColor: selected ? theme.colors.primary : 'transparent',
-          borderColor: day.isToday && !selected ? theme.colors.primary : 'transparent',
+          backgroundColor: selected ? theme.colors.contrast : 'transparent',
+          borderColor: day.isToday && !selected ? theme.colors.contrast : 'transparent',
           borderRadius: theme.radius.md,
           borderWidth: 2,
           minHeight: theme.touchTarget,
@@ -238,7 +243,7 @@ function Day({
       <Text
         style={{
           color: selected
-            ? theme.colors.onPrimary
+            ? theme.colors.onContrast
             : day.inMonth
               ? theme.colors.text
               : theme.colors.textMuted,
@@ -255,7 +260,7 @@ function Day({
           <View
             key={dot.key}
             style={{
-              backgroundColor: selected ? theme.colors.onPrimary : dot.color,
+              backgroundColor: selected ? theme.colors.onContrast : dot.color,
               borderRadius: 3,
               height: 6,
               width: 6,

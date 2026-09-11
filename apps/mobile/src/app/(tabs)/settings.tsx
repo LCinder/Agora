@@ -4,16 +4,28 @@ import { View } from 'react-native';
 
 import { Body, Button, Caption, Card, Chip, Display, Screen, Subtitle } from '../../components/ui';
 import { useApp } from '../../providers/app-provider';
+import { APPEARANCES, type Appearance } from '../../theme/theme';
+
+/** Dark first: the calendar is designed for it, and light is the way out. */
+const APPEARANCE_LABELS: Record<
+  Appearance,
+  'settings.appearanceDark' | 'settings.appearanceLight' | 'settings.appearanceSystem'
+> = {
+  dark: 'settings.appearanceDark',
+  light: 'settings.appearanceLight',
+  system: 'settings.appearanceSystem',
+};
 
 /**
  * Settings.
  *
- * Short on purpose. The only thing a resident has to be able to do here is
- * change town, change language and delete everything the app stored, which is
- * what the privacy policy promises.
+ * Short on purpose. The only things a resident has to be able to do here are
+ * change town, change language, choose light or dark, and delete everything
+ * the app stored, which is what the privacy policy promises.
  */
 export default function SettingsScreen() {
-  const { forgetEverything, locale, municipality, setLocale, t, theme } = useApp();
+  const { appearance, forgetEverything, locale, municipality, setAppearance, setLocale, t, theme } =
+    useApp();
   const router = useRouter();
 
   async function deleteEverything() {
@@ -51,6 +63,25 @@ export default function SettingsScreen() {
               />
             ))}
           </View>
+        </Card>
+
+        <Card>
+          <Caption>{t('settings.appearance')}</Caption>
+          <View
+            style={{ flexDirection: 'row', gap: theme.spacing(2), marginTop: theme.spacing(3) }}
+          >
+            {APPEARANCES.map((option) => (
+              <Chip
+                key={option}
+                label={t(APPEARANCE_LABELS[option])}
+                selected={appearance === option}
+                onPress={() => void setAppearance(option)}
+              />
+            ))}
+          </View>
+          <Body tone="muted" style={{ marginTop: theme.spacing(3) }}>
+            {t('settings.appearanceBody')}
+          </Body>
         </Card>
 
         <Card>

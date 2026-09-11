@@ -24,11 +24,20 @@ import {
   clearAllData,
   interestKey,
   loadActiveMunicipality,
+  loadAppearance,
   loadInterests,
   saveActiveMunicipality,
+  saveAppearance,
   saveInterests,
 } from '../lib/storage';
-import { FALLBACK_PRIMARY_COLOR, createTheme, type Theme } from '../theme/theme';
+import {
+  DEFAULT_APPEARANCE,
+  FALLBACK_PRIMARY_COLOR,
+  createTheme,
+  isAppearance,
+  type Appearance,
+  type Theme,
+} from '../theme/theme';
 
 /**
  * Application state every screen needs: which municipality is being shown, in
@@ -50,6 +59,8 @@ export interface AppState {
   setLocale: (locale: Locale) => void;
   t: Translate;
   theme: Theme;
+  appearance: Appearance;
+  setAppearance: (appearance: Appearance) => Promise<void>;
 
   isInterested: (eventId: string) => boolean;
   toggleInterest: (eventId: string) => Promise<void>;
@@ -67,6 +78,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [municipality, setMunicipality] = useState<Municipality | null>(null);
   const [interests, setInterests] = useState<string[]>([]);
   const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
+  const [appearance, setAppearanceState] = useState<Appearance>(DEFAULT_APPEARANCE);
 
   useEffect(() => {
     let active = true;
@@ -76,6 +88,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const all = await dataSource.listMunicipalities();
       const storedId = await loadActiveMunicipality();
       const storedInterests = await loadInterests();
+      const storedAppearance = await loadAppearance();
 
       const stored = storedId === null ? null : all.find((entry) => entry.id === storedId);
       const selected = stored ? await dataSource.getMunicipalityBySlug(stored.slug) : null;
@@ -86,6 +99,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setMunicipalities(all);
       setMunicipality(selected);
       setInterests(storedInterests);
+      if (isAppearance(storedAppearance)) setAppearanceState(storedAppearance);
       setReady(true);
     }
 
@@ -109,6 +123,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
     [municipalities],
   );
+
+  const setAppearance = useCallback(async (next: Appearance) => {
+    setAppearanceState(next);
+    await saveAppearance(next);
+  }, []);
 
   const isInterested = useCallback(
     (eventId: string) =>
@@ -135,6 +154,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await clearAllData();
     setInterests([]);
     setMunicipality(null);
+    setAppearanceState(DEFAULT_APPEARANCE);
   }, []);
 
   const interestedEventIds = useMemo(() => {
@@ -155,13 +175,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       locale,
       setLocale,
       t: createTranslator(locale),
-      theme: createTheme(municipality?.branding.primaryColor ?? FALLBACK_PRIMARY_COLOR, scheme),
+      theme: createTheme(
+        municipality?.branding.primaryColor ?? FALLBACK_PRIMARY_COLOR,
+        appearance,
+        scheme,
+      ),
+      appearance,
+      setAppearance,
       isInterested,
       toggleInterest,
       interestedEventIds,
       forgetEverything,
     }),
     [
+      appearance,
+      setAppearance,
       forgetEverything,
       interestedEventIds,
       isInterested,

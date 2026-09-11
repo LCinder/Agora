@@ -39,6 +39,8 @@ export interface Messages {
   'calendar.allCategories': string;
   'calendar.onlyFree': string;
   'calendar.changeMunicipality': string;
+  'calendar.municipalAgenda': string;
+  'calendar.change': string;
   'calendar.viewList': string;
   'calendar.viewMonth': string;
   'calendar.previousMonth': string;
@@ -75,6 +77,11 @@ export interface Messages {
   'settings.title': string;
   'settings.municipality': string;
   'settings.language': string;
+  'settings.appearance': string;
+  'settings.appearanceDark': string;
+  'settings.appearanceLight': string;
+  'settings.appearanceSystem': string;
+  'settings.appearanceBody': string;
   'settings.privacy': string;
   'settings.deleteData': string;
   'settings.deleteDataBody': string;
@@ -115,6 +122,8 @@ const es: Messages = {
   'calendar.allCategories': 'Todo',
   'calendar.onlyFree': 'Gratis',
   'calendar.changeMunicipality': 'Cambiar de municipio',
+  'calendar.municipalAgenda': 'Agenda municipal',
+  'calendar.change': 'Cambiar',
   'calendar.viewList': 'Lista',
   'calendar.viewMonth': 'Mes',
   'calendar.previousMonth': 'Mes anterior',
@@ -152,6 +161,11 @@ const es: Messages = {
   'settings.title': 'Ajustes',
   'settings.municipality': 'Municipio',
   'settings.language': 'Idioma',
+  'settings.appearance': 'Aspecto',
+  'settings.appearanceDark': 'Oscuro',
+  'settings.appearanceLight': 'Claro',
+  'settings.appearanceSystem': 'Automático',
+  'settings.appearanceBody': 'El claro se lee mejor a pleno sol.',
   'settings.privacy': 'Privacidad',
   'settings.deleteData': 'Borrar mis datos',
   'settings.deleteDataBody':
@@ -193,6 +207,8 @@ const en: Messages = {
   'calendar.allCategories': 'All',
   'calendar.onlyFree': 'Free',
   'calendar.changeMunicipality': 'Change town',
+  'calendar.municipalAgenda': 'Town agenda',
+  'calendar.change': 'Change',
   'calendar.viewList': 'List',
   'calendar.viewMonth': 'Month',
   'calendar.previousMonth': 'Previous month',
@@ -229,6 +245,11 @@ const en: Messages = {
   'settings.title': 'Settings',
   'settings.municipality': 'Town',
   'settings.language': 'Language',
+  'settings.appearance': 'Appearance',
+  'settings.appearanceDark': 'Dark',
+  'settings.appearanceLight': 'Light',
+  'settings.appearanceSystem': 'Automatic',
+  'settings.appearanceBody': 'Light reads better in bright sunshine.',
   'settings.privacy': 'Privacy',
   'settings.deleteData': 'Delete my data',
   'settings.deleteDataBody':
