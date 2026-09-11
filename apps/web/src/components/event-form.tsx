@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 
 import { usePanel, type NewEvent } from '../lib/panel-store';
-import { PosterImport } from './poster-import';
+import { PosterPanel } from './poster-panel';
 import { Button, Card, Checkbox, Field, Input, Select, TextArea } from './ui';
 
 /**
@@ -205,7 +205,8 @@ export function EventForm({ event }: { event?: Event }) {
         </form>
       </Card>
 
-      <PosterImport
+      <PosterPanel
+        subject={{ title, date, startTime, locationName }}
         onRead={(reading) => {
           if (reading.title) setTitle(reading.title);
           if (reading.description) setDescription(reading.description);

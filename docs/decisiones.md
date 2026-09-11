@@ -215,3 +215,28 @@ Cada vez que algo entra en `main` —una fusión de rama incluida— el workflow
 **Arquitecturas:** solo `arm64-v8a` por defecto, que es cualquier móvil de los últimos años, para que el APK pese lo menos posible. El lanzamiento manual permite incluir `armeabi-v7a` y las de emulador.
 
 **iOS queda fuera:** compilar para iOS exige cuenta de Apple Developer de pago y certificados de firma, y no se puede hacer en un runner de GitHub. Cuando haya cuenta, iOS irá por EAS.
+
+---
+
+## D-018 — Dibujar carteles: Gemini para la imagen, Claude para la instrucción
+**Fecha:** 2026-09-11 · **Estado:** aceptada (provisional) · **Ref.:** amplía D-009 y D-014
+
+El panel hace ahora las dos direcciones del cartel. Leerlo, que ya estaba, y dibujarlo: el técnico escribe una frase y sale un cartel.
+
+**Dos pasos, no uno.** Lo que escribe un técnico municipal es «concurso de tortillas en la plaza», que describe bien el evento y sirve muy mal de instrucción para un modelo de imagen. Así que Claude Opus 5 la convierte primero en una instrucción visual completa, con salida validada por Zod, y solo después dibuja el modelo de imagen. El técnico no tiene que aprender a escribir instrucciones para una IA, que es exactamente lo que no va a hacer.
+
+**Por qué Gemini:** Claude no genera imágenes. `gemini-3.1-flash-image` (Nano Banana 2) es hoy la opción gratuita más generosa —unas 50 imágenes al día por la API de Google AI Studio, sin tarjeta— y la que mejor escribe texto dentro de la imagen, que aquí es justo lo que más cuesta.
+
+**Dos modos, y el que se recomienda no es el vistoso.** Un cartel municipal es una comunicación oficial: si la fecha sale mal, el problema no es una errata. Por eso el modo por defecto pide al modelo una ilustración **sin texto** y el panel compone encima el título, la fecha, el lugar y el color del municipio, que son datos que ya tiene en el formulario. Salen bien siempre y se pueden corregir sin volver a dibujar. El modo de cartel entero, con el texto dentro de la imagen, queda disponible en un desplegable y avisa de que hay que repasarlo.
+
+**Sin llave, el panel sigue funcionando**, igual que con el lector de carteles: el botón avisa de qué falta y el técnico rellena el formulario a mano.
+
+**La composición ocurre en el navegador**, sobre un `canvas`, porque el panel no tiene servidor donde renderizar (D-013). El cartel se descarga; no se guarda en el evento, porque el panel persiste en el navegador y un JPEG en base64 se comería la cuota de almacenamiento.
+
+### Lo que queda abierto, y hay que cerrar antes de Fase 2
+
+**El nivel gratuito de Google usa lo que se le envía para entrenar sus modelos**, con revisión humana declarada, y desde marzo de 2026 sus términos dicen que AI Studio no es para uso de consumidor. Vendemos a ayuntamientos, donde el ayuntamiento es responsable del tratamiento y nosotros encargados (sección 10 del documento de proyecto): montar una función del producto sobre esos términos no se sostiene en un contrato del artículo 28.
+
+Se ha aceptado a sabiendas para Fase 0 y Fase 1, porque en una demo no hay datos de nadie y porque quita fricción para probarlo. **Antes de que un ayuntamiento lo use de verdad hay que pasar a nivel de pago**, donde Google no entrena con lo enviado: es activar la facturación, la misma clave y ni una línea de código distinta. El coste es despreciable —unos pocos carteles al mes por municipio— y cabe de sobra en el objetivo de pocos euros al mes por municipio.
+
+**Y no cierra la elección de proveedor:** son una llamada HTTP y una variable de entorno. Cambiar a otro modelo de imagen es reescribir esa llamada, no tocar el panel.
