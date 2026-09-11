@@ -74,7 +74,9 @@ jobs:
           else
             task=':app:assembleDebug'
           fi
-          ./gradlew "$task" --no-daemon \
+          # --build-cache reuses task outputs from previous runs through the
+          # cache that setup-gradle restores, which is most of the build time.
+          ./gradlew "$task" --no-daemon --build-cache \
             -PreactNativeArchitectures="$REACT_NATIVE_ARCHITECTURES"
 
       - name: Name the APK after the commit it came from
