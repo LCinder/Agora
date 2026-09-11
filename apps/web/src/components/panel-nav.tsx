@@ -20,7 +20,7 @@ const LINKS = [
  * is the one thing in this panel that goes stale if nobody looks at it.
  */
 export function PanelNav() {
-  const { events, municipality } = usePanel();
+  const { events, municipality, resetToSeed } = usePanel();
   const pathname = usePathname();
 
   const pending = events.filter(isAwaitingReview).length;
@@ -66,6 +66,19 @@ export function PanelNav() {
             );
           })}
         </nav>
+
+        {/*
+          Resets the panel to the seed. Not a product feature: it is there so
+          the same laptop can run the demo twice in an afternoon without
+          carrying over whatever the previous councillor typed.
+        */}
+        <button
+          type="button"
+          onClick={resetToSeed}
+          className="ml-auto text-xs text-neutral-500 underline hover:text-neutral-800 dark:hover:text-neutral-200"
+        >
+          Reiniciar demo
+        </button>
       </div>
     </header>
   );

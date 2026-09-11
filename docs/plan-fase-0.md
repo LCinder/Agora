@@ -116,3 +116,33 @@ Logo y color de La Zubia aplicados desde su `municipality.json`, accesibilidad b
 - **Notificaciones:** el paso 9 simula el envío, como ya preveía el documento.
 - **Multi-municipio:** el documento lo deja fuera de Fase 0 ("multi-municipio real"). Aquí sí se construye la **estructura** multi-municipio (selector, módulos, aislamiento de datos por municipio), porque retrofitarla después sería reescribir la app. Lo que sigue fuera es el backend multi-inquilino real, que llega en Fase 2.
 - **Cartel con IA:** el documento lo sitúa en el backlog de Fase 3. Se adelanta a Fase 0 por su impacto comercial y su bajo coste de construcción.
+
+---
+
+## Estado
+
+| Paso | Qué es | Estado |
+|---|---|---|
+| 0 | Andamiaje del monorepo | Hecho |
+| 1 | `packages/core` | Hecho |
+| 2 | Semillas | Hecho |
+| 3 | App — selector de municipio | Hecho |
+| 4 | App — inicio del calendario | Hecho |
+| 5 | App — detalle de evento | Hecho |
+| 6 | Panel — alta y edición de evento | Hecho |
+| 7 | Web — página pública de evento | Hecho |
+| 8 | App — «Me interesa» y «Mis eventos» | Hecho |
+| 9 | Panel — aviso de evento simulado | Hecho |
+| 10 | Panel — crear evento desde el cartel | Hecho |
+| 11 | Panel — bandeja de revisión | Hecho |
+| 12 | Panel — panel de datos | Hecho |
+| 13 | App — directo simulado | Hecho |
+| 14 | Pulido y documentación | Hecho |
+
+**Pendiente de vosotros, no de código:**
+
+- Logo y color corporativo de La Zubia (ahora hay marcadores de posición).
+- Cuenta de EAS para generar la *development build* con el mapa nativo.
+- `ANTHROPIC_API_KEY` en `apps/web/.env.local` para el lector de carteles.
+- Vista de mes: se dejó fuera a propósito (ver desviaciones más arriba). Es media tarde de trabajo
+  si en una reunión resulta que la piden.
