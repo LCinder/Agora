@@ -179,3 +179,18 @@ El panel carga la semilla una vez y guarda lo que se crea, edita, aprueba o canc
 Todas las gráficas del panel dibujan una única serie en un azul validado (`#2a78d6` en claro, `#3987e5` en oscuro), con rejilla discreta y una vista de tabla alternativa.
 
 **Por qué:** con una sola serie una paleta categórica solo añade ruido, y el color deja de ser la única forma de leer el dato, que es lo que exige la accesibilidad del sector público. Los tonos están comprobados contra las superficies clara y oscura (banda de luminosidad, croma y contraste mínimo 3:1), y los pasos oscuros están elegidos para fondo oscuro, no invertidos de los claros.
+
+---
+
+## D-016 — Esquema de base de datos y aislamiento escritos antes que el backend
+**Fecha:** 2026-09-11 · **Estado:** aceptada
+
+`infra/db/` contiene el esquema, las políticas de seguridad por fila y 23 pruebas de aislamiento, en PostgreSQL portable. No está en uso: la Fase 0 funciona con los ficheros de `content/`.
+
+**Por qué antes de tiempo:** el aislamiento entre municipios es lo que el documento de proyecto marca como prioridad máxima y es lo más caro de arreglar si se descubre tarde. Además es lo que hay que enseñar cuando un ayuntamiento pregunte por protección de datos, así que sirve para vender y no solo para desarrollar.
+
+**Por qué no cierra D-001:** es PostgreSQL a secas. Lo único específico del proveedor son las tres funciones de identidad del principio de `policies.sql`. Cambiar Supabase por Cognito es reescribir esas tres funciones.
+
+**Una decisión de diseño que conviene recordar:** no existe ninguna política que permita a un usuario municipal leer `event_interests`. Los números llegan al panel por agregados diarios. Es la promesa de la política de privacidad, escrita donde no se puede saltar por error, y hay una prueba que lo comprueba.
+
+**Matiz sobre el aislamiento:** los eventos publicados son públicos a propósito, porque un vecino los lee sin cuenta y puede seguir varios municipios. La frontera que se defiende es la de los datos no publicados y la de todas las escrituras.
