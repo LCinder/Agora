@@ -194,3 +194,22 @@ Todas las gráficas del panel dibujan una única serie en un azul validado (`#2a
 **Una decisión de diseño que conviene recordar:** no existe ninguna política que permita a un usuario municipal leer `event_interests`. Los números llegan al panel por agregados diarios. Es la promesa de la política de privacidad, escrita donde no se puede saltar por error, y hay una prueba que lo comprueba.
 
 **Matiz sobre el aislamiento:** los eventos publicados son públicos a propósito, porque un vecino los lee sin cuenta y puede seguir varios municipios. La frontera que se defiende es la de los datos no publicados y la de todas las escrituras.
+
+---
+
+## D-017 — La build de Android se compila en la CI, no en EAS
+**Fecha:** 2026-09-11 · **Estado:** aceptada · **Ref.:** matiza D-004
+
+Cada vez que algo entra en `main` —una fusión de rama incluida— el workflow `android-build.yml` genera el proyecto nativo con `expo prebuild`, compila el APK con Gradle en el propio runner de GitHub y lo sube como artefacto del run, descargable desde la pestaña Actions.
+
+**Por qué no EAS Build:** D-004 daba por hecho EAS, y `apps/mobile/eas.json` sigue ahí para el día que haga falta. Pero EAS exige cuenta de Expo, proyecto enlazado y un `EXPO_TOKEN` en los secretos, y la cuenta es justo uno de los pendientes de Fase 0. Compilar en el runner no necesita cuenta, ni secretos, ni tarjeta, y el repositorio es público, así que los minutos de Actions no se pagan. La build deja de depender de nadie.
+
+**Lo que se pierde:** EAS da página de instalación con código QR y almacenamiento permanente. Aquí el APK vive 90 días dentro de un `.zip` en el run que lo generó. Para pasarlo a un móvil hay que descomprimirlo y copiarlo, no basta escanear un código.
+
+**Firma:** el APK va firmado con la clave de depuración que genera la plantilla de Expo. Sirve para instalar a mano y para la demo; no sirve para publicar en Google Play. Cuando llegue la publicación en tiendas —fuera de Fase 0— hará falta una clave real y ahí EAS vuelve a ser la respuesta razonable.
+
+**Perfiles:** por defecto compila el perfil `development`, que es lo que pide D-004 para el mapa nativo y necesita `expo start --dev-client` en marcha. El workflow se puede lanzar a mano con el perfil `preview`, que lleva el JavaScript dentro y arranca sin portátil delante: es el que conviene llevar a una reunión.
+
+**Arquitecturas:** solo `arm64-v8a` por defecto, que es cualquier móvil de los últimos años, para que el APK pese lo menos posible. El lanzamiento manual permite incluir `armeabi-v7a` y las de emulador.
+
+**iOS queda fuera:** compilar para iOS exige cuenta de Apple Developer de pago y certificados de firma, y no se puede hacer en un runner de GitHub. Cuando haya cuenta, iOS irá por EAS.

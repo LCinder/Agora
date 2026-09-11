@@ -1,0 +1,146 @@
+name: Android build
+
+# Every merge into main leaves behind an installable APK attached to its run.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'development necesita Metro (expo start --dev-client); preview arranca solo'
+        type: choice
+        options: [development, preview]
+        default: development
+      architectures:
+        description: 'Arquitecturas de Android incluidas en el APK'
+        type: choice
+        options:
+          - arm64-v8a
+          - armeabi-v7a,arm64-v8a
+          - armeabi-v7a,arm64-v8a,x86,x86_64
+        default: arm64-v8a
+
+# A merge must not cancel the previous one's APK: every commit on main keeps its own.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Development build (Android)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      # workflow_dispatch fills these in; a push falls back to the defaults.
+      PROFILE: ${{ inputs.profile || 'development' }}
+      REACT_NATIVE_ARCHITECTURES: ${{ inputs.architectures || 'arm64-v8a' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # android/ is not tracked: it is generated from app.json on every build.
+      - name: Generate the native Android project
+        run: pnpm --filter @agora/mobile exec expo prebuild --platform android --no-install --clean
+
+      - name: Build the APK
+        working-directory: apps/mobile/android
+        run: |
+          if [ "$PROFILE" = 'preview' ]; then
+            task=':app:assembleRelease'
+          else
+            task=':app:assembleDebug'
+          fi
+          ./gradlew "$task" --no-daemon \
+            -PreactNativeArchitectures="$REACT_NATIVE_ARCHITECTURES"
+
+      - name: Name the APK after the commit it came from
+        id: apk
+        run: |
+          set -euo pipefail
+          if [ "$PROFILE" = 'preview' ]; then
+            variant=release
+          else
+            variant=debug
+          fi
+          source="apps/mobile/android/app/build/outputs/apk/$variant/app-$variant.apk"
+          version="$(node -p "require('./apps/mobile/app.json').expo.version")"
+          name="agora-$PROFILE-$version-${GITHUB_SHA:0:7}.apk"
+          mkdir -p build-output
+          cp "$source" "build-output/$name"
+          {
+            echo "name=$name"
+            echo "path=build-output/$name"
+            echo "size=$(du -h "build-output/$name" | cut -f1)"
+            echo "version=$version"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        id: upload
+        with:
+          name: ${{ steps.apk.outputs.name }}
+          path: ${{ steps.apk.outputs.path }}
+          if-no-files-found: error
+          retention-days: 90
+          # An APK is already compressed; zipping it again only costs time.
+          compression-level: 0
+
+      # The run summary is what someone opens to get the APK onto a phone.
+      - name: Explain how to install it
+        run: |
+          {
+            echo "## APK listo para descargar"
+            echo
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| Fichero | \`${{ steps.apk.outputs.name }}\` |"
+            echo "| Perfil | \`$PROFILE\` |"
+            echo "| Versión | ${{ steps.apk.outputs.version }} |"
+            echo "| Arquitecturas | \`$REACT_NATIVE_ARCHITECTURES\` |"
+            echo "| Tamaño | ${{ steps.apk.outputs.size }} |"
+            echo "| Commit | [\`${GITHUB_SHA:0:7}\`]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$GITHUB_SHA) |"
+            echo
+            echo "**[Descargar el APK](${{ steps.upload.outputs.artifact-url }})**"
+            echo
+            echo "GitHub lo entrega dentro de un \`.zip\`: hay que descomprimirlo antes de pasarlo al móvil."
+            echo
+            echo "### Instalarlo en el móvil"
+            echo
+            echo "1. Copia el \`.apk\` al teléfono Android y ábrelo."
+            echo "2. Android pedirá permitir la instalación de orígenes desconocidos. Es normal: va firmado con la clave de depuración."
+            if [ "$PROFILE" = 'preview' ]; then
+              echo "3. La app arranca sola: lleva el JavaScript dentro."
+            else
+              echo "3. Esta build **necesita el servidor de desarrollo**. En el portátil, con el móvil en la misma red:"
+              echo
+              echo "   \`\`\`bash"
+              echo "   pnpm --filter @agora/mobile exec expo start --dev-client"
+              echo "   \`\`\`"
+              echo
+              echo "> ¿Hace falta una build que funcione sola, sin portátil delante? Lanza este workflow a mano con el perfil \`preview\`."
+            fi
+            echo
+            echo "El APK se guarda 90 días. Después hay que volver a lanzar el workflow."
+          } >> "$GITHUB_STEP_SUMMARY"
