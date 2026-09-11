@@ -1,0 +1,143 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Black&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Archivo', system-ui, sans-serif; background: #121211; color: #F4F3F0; -webkit-font-smoothing: antialiased; }
+    a { color: #E8763C; text-decoration: none; } a:hover { color: #f09a6c; }
+    .black { font-family: 'Archivo Black', 'Archivo', system-ui, sans-serif; font-weight: 400; }
+    .cat { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+    .tile { position: relative; height: 178px; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
+    .tiletext { display: flex; flex-direction: column; gap: 3px; padding-top: 8px; }
+    .pill { height: 36px; padding: 0 16px; display: flex; align-items: center; border-radius: 999px; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; display: flex; flex-direction: column; background: #121211; overflow: hidden">
+
+  <div style="display: flex; flex-direction: column; gap: 14px; padding: 30px 20px 0 20px">
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px">
+      <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+        <span class="cat" style="color: #8A867A">Agenda municipal</span>
+        <h1 class="black" style="margin: 0; font-size: 34px; line-height: 0.94; letter-spacing: -0.025em; text-transform: uppercase">La Zubia</h1>
+      </div>
+      <div class="pill" style="border: 1px solid #35342F; flex: none; height: 40px">
+        <span style="font-size: 14px; font-weight: 600; color: #B5B2A8">Cambiar</span>
+      </div>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center">
+      <div class="pill" style="background: #F4F3F0"><span style="font-size: 14px; font-weight: 700; color: #121211">Lista</span></div>
+      <div class="pill" style="border: 1px solid #35342F"><span style="font-size: 14px; font-weight: 600; color: #B5B2A8">Mes</span></div>
+      <div style="flex: 1"></div>
+      <div class="pill" style="border: 1px solid #35342F"><span style="font-size: 14px; font-weight: 600; color: #B5B2A8">Filtros</span></div>
+    </div>
+  </div>
+
+  <div style="flex: 1; display: flex; flex-direction: column; gap: 16px; padding: 22px 20px 0 20px; overflow: hidden">
+
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <pattern id="rj-lace" width="30" height="30" patternUnits="userSpaceOnUse">
+          <path d="M15 0 L30 15 L15 30 L0 15 Z" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1.8"/>
+        </pattern>
+      </defs>
+    </svg>
+
+    <div style="display: flex; align-items: center; gap: 10px">
+      <span class="cat" style="color: #F4F3F0">Hoy</span>
+      <div style="flex: 1; height: 1px; background: #26251F"></div>
+      <span class="cat" style="color: #8A867A">Viernes 11</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px">
+
+      <div>
+        <div class="tile" style="background: #6D28D9">
+          <svg style="position: absolute; inset: 0" width="170" height="178"><rect width="170" height="178" fill="url(#rj-lace)"/></svg>
+          <div style="position: relative; padding: 11px"><div style="height: 22px; padding: 0 9px; display: inline-flex; align-items: center; border-radius: 999px; background: rgba(0,0,0,0.38)"><span class="cat" style="color: #FFFFFF; font-size: 10px">Cultura</span></div></div>
+          <div style="position: relative; padding: 11px; display: flex; align-items: flex-end; justify-content: space-between">
+            <span class="black" style="font-size: 40px; line-height: 0.8; color: #FFFFFF; letter-spacing: -0.04em">11</span>
+            <span class="cat" style="color: rgba(255,255,255,0.9); font-size: 10px">22:00</span>
+          </div>
+        </div>
+        <div class="tiletext">
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em">Cine a la fresca</h3>
+          <span style="font-size: 14px; color: #8A867A">Parque de la Encina</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="tile" style="background: #A16207">
+          <svg style="position: absolute; inset: 0" width="170" height="178"><rect width="170" height="178" fill="url(#rj-lace)"/></svg>
+          <div style="position: relative; padding: 11px"><div style="height: 22px; padding: 0 9px; display: inline-flex; align-items: center; border-radius: 999px; background: rgba(0,0,0,0.38)"><span class="cat" style="color: #FFFFFF; font-size: 10px">Mayores</span></div></div>
+          <div style="position: relative; padding: 11px; display: flex; align-items: flex-end; justify-content: space-between">
+            <span class="black" style="font-size: 40px; line-height: 0.8; color: #FFFFFF; letter-spacing: -0.04em">11</span>
+            <span class="cat" style="color: rgba(255,255,255,0.9); font-size: 10px">18:00</span>
+          </div>
+        </div>
+        <div class="tiletext">
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em">Taller de cerámica</h3>
+          <span style="font-size: 14px; color: #8A867A">Centro de Mayores</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="tile" style="background: #0369A1">
+          <svg style="position: absolute; inset: 0" width="170" height="178"><rect width="170" height="178" fill="url(#rj-lace)"/></svg>
+          <div style="position: relative; padding: 11px"><div style="height: 22px; padding: 0 9px; display: inline-flex; align-items: center; border-radius: 999px; background: rgba(0,0,0,0.38)"><span class="cat" style="color: #FFFFFF; font-size: 10px">Infantil</span></div></div>
+          <div style="position: relative; padding: 11px; display: flex; align-items: flex-end; justify-content: space-between">
+            <span class="black" style="font-size: 40px; line-height: 0.8; color: #FFFFFF; letter-spacing: -0.04em">12</span>
+            <span class="cat" style="color: rgba(255,255,255,0.9); font-size: 10px">18:00</span>
+          </div>
+        </div>
+        <div class="tiletext">
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em">Cuentacuentos</h3>
+          <span style="font-size: 14px; color: #8A867A">Biblioteca Municipal</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="tile" style="background: #047857">
+          <svg style="position: absolute; inset: 0" width="170" height="178"><rect width="170" height="178" fill="url(#rj-lace)"/></svg>
+          <div style="position: relative; padding: 11px"><div style="height: 22px; padding: 0 9px; display: inline-flex; align-items: center; border-radius: 999px; background: rgba(0,0,0,0.38)"><span class="cat" style="color: #FFFFFF; font-size: 10px">Deporte</span></div></div>
+          <div style="position: relative; padding: 11px; display: flex; align-items: flex-end; justify-content: space-between">
+            <span class="black" style="font-size: 40px; line-height: 0.8; color: #FFFFFF; letter-spacing: -0.04em">13</span>
+            <span class="cat" style="color: rgba(255,255,255,0.9); font-size: 10px">09:00</span>
+          </div>
+        </div>
+        <div class="tiletext">
+          <h3 style="margin: 0; font-size: 16px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em">Ruta por el pinar</h3>
+          <span style="font-size: 14px; color: #8A867A">Salida del Ayuntamiento</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex: none; display: flex; background: #1A1A17; border-top: 1px solid #26251F; padding: 8px 0 18px 0">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F4F3F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+      <span style="font-size: 12px; font-weight: 700; color: #F4F3F0">Agenda</span>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8A867A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5l-1.4-1.3C5.4 14.5 2.5 11.9 2.5 8.7 2.5 6.1 4.6 4 7.2 4c1.5 0 2.9.7 3.8 1.8L12 6.9l1-1.1C13.9 4.7 15.3 4 16.8 4c2.6 0 4.7 2.1 4.7 4.7 0 3.2-2.9 5.8-8.1 10.5z"/></svg>
+      <span style="font-size: 12px; font-weight: 600; color: #8A867A">Mis eventos</span>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8A867A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8 2 2 0 11-2.7 2.7 1.6 1.6 0 00-1.8.3 1.6 1.6 0 00-1 1.5 2 2 0 11-4 0 1.6 1.6 0 00-1-1.5 1.6 1.6 0 00-1.8-.3 2 2 0 11-2.7-2.7 1.6 1.6 0 00.3-1.8 1.6 1.6 0 00-1.5-1 2 2 0 110-4 1.6 1.6 0 001.5-1 1.6 1.6 0 00-.3-1.8 2 2 0 112.7-2.7 1.6 1.6 0 001.8.3 1.6 1.6 0 001-1.5 2 2 0 114 0 1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3 2 2 0 112.7 2.7 1.6 1.6 0 00-.3 1.8 1.6 1.6 0 001.5 1 2 2 0 110 4 1.6 1.6 0 00-1.5 1z"/></svg>
+      <span style="font-size: 12px; font-weight: 600; color: #8A867A">Ajustes</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

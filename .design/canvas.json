@@ -1,7 +1,7 @@
 {
   "pages": [
-    { "id": "page-1", "name": "App — dirección A" },
-    { "id": "page-2", "name": "Otras direcciones" }
+    { "id": "page-1", "name": "App" },
+    { "id": "page-2", "name": "Variaciones" }
   ],
   "artboards": [
     { "file": "Selector.dc.html", "title": "Selector de municipio", "page": "page-1", "x": 0, "y": 0, "w": 390, "h": 844 },
@@ -11,41 +11,50 @@
     { "file": "MisEventos.dc.html", "title": "Mis eventos", "page": "page-1", "x": 500, "y": 1000, "w": 390, "h": 844 },
     { "file": "Directo.dc.html", "title": "Directo", "page": "page-1", "x": 1000, "y": 1000, "w": 390, "h": 844 },
 
-    { "file": "DireccionB.dc.html", "title": "B — Servicio público", "page": "page-2", "x": 0, "y": 0, "w": 390, "h": 844 },
-    { "file": "DireccionC.dc.html", "title": "C — Cartel", "page": "page-2", "x": 500, "y": 0, "w": 390, "h": 844 }
+    { "file": "Portadas.dc.html", "title": "Portadas sin cartel", "page": "page-2", "x": 0, "y": 0, "w": 860, "h": 800 },
+    { "file": "Rejilla.dc.html", "title": "Ritmo: rejilla de dos", "page": "page-2", "x": 970, "y": 0, "w": 390, "h": 844 },
+    { "file": "Claro.dc.html", "title": "Fondo claro", "page": "page-2", "x": 1470, "y": 0, "w": 390, "h": 844 }
   ],
   "annotations": [
     {
-      "id": "dir-a",
+      "id": "dir-c",
       "page": "page-1",
       "x": 0,
-      "y": -210,
+      "y": -230,
       "w": 890,
-      "text": "Dirección A — «Programa de fiestas»\n\nLa metáfora es el programa de fiestas impreso que ya edita cada ayuntamiento: papel cálido, titulares en serif de cartel, el color de cada categoría como lomo del evento. Diferencia frente a Bandomóvil sin perder legibilidad para mayores.\n\nA cambio: es la más arriesgada de las tres si el concejal espera algo «de administración». En la página 2 están las otras dos direcciones."
+      "text": "Dirección C — «Cartel»\n\nLa que elegiste, ya extendida a las seis pantallas. Dos cosas cambiaron respecto al boceto:\n\n· Fuera los degradados. Color plano, celosía y tipografía de gran tamaño: en un cartel eso pega más fuerte, y el degradado es el recurso más gastado que hay.\n· La fecha pasa a ser el gráfico. El día en Archivo Black ocupando la portada resuelve el problema real de esta dirección, que era qué hacer cuando un evento no trae cartel."
     },
     {
-      "id": "tokens",
+      "id": "medido",
       "page": "page-1",
       "x": 1000,
-      "y": -210,
+      "y": -230,
       "w": 390,
-      "text": "Sobre el sistema actual: radios 6/12/20, objetivo táctil 48dp, cuerpo 16-17px y los ocho colores de categoría de content/shared/categories.json, sin tocar. Lo que cambia es el papel, la tipografía y la jerarquía.\n\nEl color verde es el de La Zubia; la pastilla «Marca» de cada pantalla prueba otro municipio."
+      "text": "Contrastes medidos, no supuestos: 21 pares comprobados contra el 4,5:1 de WCAG AA. El más justo es el texto secundario sobre el fondo, en 5,15.\n\nLas etiquetas de categoría se aclaran sobre fondo oscuro (Cultura #6D28D9 pasa a #A98BE8) porque el color original se hunde en el negro. El plano de cada portada sí conserva el color exacto del municipio."
     },
     {
-      "id": "dir-b",
+      "id": "var-portadas",
       "page": "page-2",
       "x": 0,
-      "y": -230,
-      "w": 390,
-      "text": "B — «Servicio público»\n\nSin serif y sin tarjetas: una sola familia, horario en columna izquierda y filas separadas por reglas. Se lee como un horario bien compuesto.\n\nA favor: es la que mejor envejece y la que menos discute un técnico municipal. En contra: se parece más a lo que ya existe, y el argumento comercial es diferenciarse."
+      "y": -140,
+      "w": 860,
+      "text": "Las cinco portadas se mezclan con los dos ritmos y los dos fondos de la derecha. Dime qué combinación quieres y la implemento."
     },
     {
-      "id": "dir-c",
+      "id": "var-rejilla",
       "page": "page-2",
-      "x": 500,
+      "x": 970,
       "y": -230,
       "w": 390,
-      "text": "C — «Cartel»\n\nOscura y con la imagen por delante: cada evento entra por su cartel. Es la que más partido saca del generador de carteles que acaba de entrar en el panel.\n\nA favor: es la más moderna de las tres. En contra: depende de que haya cartel —hoy casi ningún evento semilla tiene imagen— y el fondo oscuro no es el mejor amigo de un vecino de 70 años."
+      "text": "Ritmo: rejilla de dos\n\nSin destacado: todos los eventos al mismo tamaño, cuatro por pantalla en vez de dos y media. Se ve más programación de un vistazo.\n\nEn contra: se pierde la jerarquía, y el destacado es precisamente lo que un ayuntamiento quiere empujar."
+    },
+    {
+      "id": "var-claro",
+      "page": "page-2",
+      "x": 1470,
+      "y": -230,
+      "w": 390,
+      "text": "Fondo claro\n\nLa misma estructura sobre papel. Las portadas siguen siendo bloques de color saturado, así que el carácter de cartel aguanta.\n\nResponde a la pega que le puse a esta dirección: el fondo negro no es el mejor amigo de un vecino de 70 años a pleno sol. Se puede ofrecer como ajuste en vez de elegir uno."
     }
   ],
   "launch": { "view": "canvas", "page": "page-1" }

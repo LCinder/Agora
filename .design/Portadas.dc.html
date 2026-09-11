@@ -1,0 +1,165 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Black&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Archivo', system-ui, sans-serif; background: #121211; color: #F4F3F0; -webkit-font-smoothing: antialiased; }
+    a { color: #E8763C; text-decoration: none; } a:hover { color: #f09a6c; }
+    .black { font-family: 'Archivo Black', 'Archivo', system-ui, sans-serif; font-weight: 400; }
+    .cat { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+    .cover { position: relative; overflow: hidden; width: 236px; height: 300px; border-radius: 14px; }
+    .chip { height: 24px; padding: 0 10px; display: flex; align-items: center; border-radius: 999px; background: rgba(0,0,0,0.38); }
+    .name { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+    .why { font-size: 13px; line-height: 1.45; color: #8A867A; }
+    .slot { display: flex; flex-direction: column; gap: 10px; width: 236px; }
+    .scrim { position: relative; padding: 14px; background: linear-gradient(180deg, rgba(18,18,17,0) 0%, rgba(18,18,17,0.78) 65%, rgba(18,18,17,0.94) 100%); }
+  </style>
+</helmet>
+
+<div style="width: 860px; padding: 40px; background: #121211; display: flex; flex-direction: column; gap: 32px">
+
+  <div style="display: flex; flex-direction: column; gap: 8px; max-width: 640px">
+    <span class="cat" style="color: #8A867A">Dirección C · sistema de portadas</span>
+    <h1 class="black" style="margin: 0; font-size: 34px; line-height: 1.02; letter-spacing: -0.025em; text-transform: uppercase">Cuando no hay cartel</h1>
+    <p style="margin: 0; font-size: 16px; line-height: 1.5; color: #B5B2A8; text-wrap: pretty">Hoy casi ningún evento de la semilla trae imagen, y esa era la pega de esta dirección. La portada se genera con el color de la categoría y la fecha, sin depender de nadie. Se mezclan: uno por categoría, o uno fijo para todo el municipio.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px">
+
+    <!-- 1. Fecha -->
+    <div class="slot">
+      <div class="cover" style="background: #6D28D9; display: flex; flex-direction: column; justify-content: space-between">
+        <svg style="position: absolute; inset: 0" width="236" height="300" aria-hidden="true">
+          <defs>
+            <pattern id="p-celosia" width="44" height="44" patternUnits="userSpaceOnUse">
+              <path d="M22 0 L44 22 L22 44 L0 22 Z" fill="none" stroke="#FFFFFF" stroke-opacity="0.16" stroke-width="2"/>
+              <circle cx="22" cy="22" r="4.5" fill="#FFFFFF" fill-opacity="0.12"/>
+            </pattern>
+          </defs>
+          <rect width="236" height="300" fill="url(#p-celosia)"/>
+        </svg>
+        <div style="position: relative; display: flex; justify-content: space-between; align-items: flex-start; padding: 14px">
+          <div class="chip"><span class="cat" style="color: #FFFFFF">Cultura</span></div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; line-height: 0.82">
+            <span class="black" style="font-size: 56px; color: #FFFFFF; letter-spacing: -0.04em">11</span>
+            <span class="cat" style="color: rgba(255,255,255,0.9); margin-top: 4px">Sep</span>
+          </div>
+        </div>
+        <div class="scrim">
+          <h3 class="black" style="margin: 0; font-size: 21px; line-height: 1.04; letter-spacing: -0.025em; color: #FFFFFF">Cine a la fresca</h3>
+        </div>
+      </div>
+      <div>
+        <div class="name">1 · Fecha</div>
+        <p class="why" style="margin: 3px 0 0 0">La más legible de lejos y la que mejor dice «agenda». Es la que usa la pantalla principal.</p>
+      </div>
+    </div>
+
+    <!-- 2. Celosía -->
+    <div class="slot">
+      <div class="cover" style="background: #A16207; display: flex; flex-direction: column; justify-content: flex-end">
+        <svg style="position: absolute; inset: 0" width="236" height="300" aria-hidden="true">
+          <defs>
+            <pattern id="p-lace" width="30" height="30" patternUnits="userSpaceOnUse">
+              <path d="M15 1 L29 15 L15 29 L1 15 Z" fill="none" stroke="#FFFFFF" stroke-opacity="0.34" stroke-width="2"/>
+              <path d="M15 8 L22 15 L15 22 L8 15 Z" fill="#FFFFFF" fill-opacity="0.16"/>
+            </pattern>
+          </defs>
+          <rect width="236" height="300" fill="url(#p-lace)"/>
+        </svg>
+        <div style="position: absolute; top: 14px; left: 14px; display: flex; gap: 7px">
+          <div class="chip"><span class="cat" style="color: #FFFFFF">Mayores</span></div>
+          <div class="chip"><span class="cat" style="color: #FFFFFF">11 Sep</span></div>
+        </div>
+        <div class="scrim">
+          <h3 class="black" style="margin: 0; font-size: 21px; line-height: 1.04; letter-spacing: -0.025em; color: #FFFFFF">Taller de cerámica</h3>
+        </div>
+      </div>
+      <div>
+        <div class="name">2 · Celosía</div>
+        <p class="why" style="margin: 3px 0 0 0">La trama manda y la fecha baja a etiqueta. Guiño a la celosía andaluza; el motivo puede cambiar por municipio.</p>
+      </div>
+    </div>
+
+    <!-- 3. Tipográfica -->
+    <div class="slot">
+      <div class="cover" style="background: #C2410C; display: flex; flex-direction: column; justify-content: space-between; padding: 14px">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start">
+          <div class="chip" style="background: rgba(0,0,0,0.3)"><span class="cat" style="color: #FFFFFF">Fiestas</span></div>
+          <span class="cat" style="color: rgba(255,255,255,0.9)">26 Sep</span>
+        </div>
+        <h3 class="black" style="margin: 0 -6px -10px -6px; font-size: 58px; line-height: 0.84; letter-spacing: -0.045em; color: #FFFFFF; text-transform: uppercase">Feria de San Miguel</h3>
+      </div>
+      <div>
+        <div class="name">3 · Tipográfica</div>
+        <p class="why" style="margin: 3px 0 0 0">El título es el cartel, recortado a sangre. La más contundente; se cae con títulos largos, así que conviene reservarla para lo destacado.</p>
+      </div>
+    </div>
+
+    <!-- 4. Bandas -->
+    <div class="slot">
+      <div class="cover" style="background: #047857; display: flex; flex-direction: column; justify-content: space-between">
+        <div style="position: absolute; inset: 0; display: flex; flex-direction: column">
+          <div style="flex: 1; background: #065F46"></div>
+          <div style="flex: 1; background: #047857"></div>
+          <div style="flex: 1; background: #0D9488"></div>
+          <div style="flex: 1; background: #14B8A6"></div>
+        </div>
+        <div style="position: relative; padding: 14px">
+          <div class="chip"><span class="cat" style="color: #FFFFFF">Deporte</span></div>
+        </div>
+        <div style="position: relative; padding: 14px; display: flex; align-items: flex-end; justify-content: space-between; gap: 10px">
+          <h3 class="black" style="margin: 0; font-size: 21px; line-height: 1.04; letter-spacing: -0.025em; color: #FFFFFF">Ruta por el pinar</h3>
+          <span class="black" style="font-size: 34px; line-height: 0.8; color: rgba(255,255,255,0.92); letter-spacing: -0.03em; flex: none">14</span>
+        </div>
+      </div>
+      <div>
+        <div class="name">4 · Bandas</div>
+        <p class="why" style="margin: 3px 0 0 0">Cuatro tonos de la misma categoría. La más tranquila de las cuatro generadas: funciona bien cuando hay muchas seguidas en pantalla.</p>
+      </div>
+    </div>
+
+    <!-- 5. Cartel real -->
+    <div class="slot">
+      <div class="cover" style="background: #1A1A17; display: flex; flex-direction: column; justify-content: flex-end">
+        <svg style="position: absolute; inset: 0" width="236" height="300" viewBox="0 0 236 300" aria-hidden="true">
+          <rect width="236" height="300" fill="#2A2620"/>
+          <circle cx="172" cy="74" r="46" fill="#7C2D12"/>
+          <path d="M0 232 L68 150 L128 214 L176 168 L236 226 L236 300 L0 300 Z" fill="#3F3A31"/>
+          <path d="M0 262 L58 206 L124 258 L186 214 L236 252 L236 300 L0 300 Z" fill="#4C463A"/>
+          <rect x="24" y="24" width="188" height="252" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="2"/>
+        </svg>
+        <div style="position: absolute; top: 14px; left: 14px" class="chip"><span class="cat" style="color: #FFFFFF">Romería</span></div>
+        <div class="scrim">
+          <h3 class="black" style="margin: 0; font-size: 21px; line-height: 1.04; letter-spacing: -0.025em; color: #FFFFFF">Romería de San Antón</h3>
+        </div>
+      </div>
+      <div>
+        <div class="name">5 · Cartel real</div>
+        <p class="why" style="margin: 3px 0 0 0">Cuando el evento sí trae imagen, manda ella y el sistema se aparta. Aquí va un marcador de posición, no una foto.</p>
+      </div>
+    </div>
+
+    <!-- Nota -->
+    <div class="slot" style="justify-content: center">
+      <div style="border: 1px solid #26251F; border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+        <span class="cat" style="color: #8A867A">Lo que hay que decidir</span>
+        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #B5B2A8">¿Una portada fija para todo el municipio, o una por categoría —celosía para Mayores, tipográfica para Fiestas—?</p>
+        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #B5B2A8">Lo segundo hace el calendario más vivo. Lo primero es una regla que un técnico municipal no tiene que entender.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":860,"height":800}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>
