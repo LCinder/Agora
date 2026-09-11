@@ -1,16 +1,17 @@
 name: Android build
 
-# Every merge into main leaves behind an installable APK attached to its run.
+# Every merge into main leaves behind an APK attached to its run: standalone by
+# default, so it runs on a phone with no development server behind it.
 on:
   push:
     branches: [main]
   workflow_dispatch:
     inputs:
       profile:
-        description: 'development necesita Metro (expo start --dev-client); preview arranca solo'
+        description: 'preview arranca solo; development necesita Metro (expo start --dev-client)'
         type: choice
-        options: [development, preview]
-        default: development
+        options: [preview, development]
+        default: preview
       architectures:
         description: 'Arquitecturas de Android incluidas en el APK'
         type: choice
@@ -30,13 +31,13 @@ permissions:
 
 jobs:
   android:
-    name: Development build (Android)
+    name: Build the APK (Android)
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
     env:
       # workflow_dispatch fills these in; a push falls back to the defaults.
-      PROFILE: ${{ inputs.profile || 'development' }}
+      PROFILE: ${{ inputs.profile || 'preview' }}
       REACT_NATIVE_ARCHITECTURES: ${{ inputs.architectures || 'arm64-v8a' }}
 
     steps:
@@ -139,7 +140,7 @@ jobs:
               echo "   pnpm --filter @agora/mobile exec expo start --dev-client"
               echo "   \`\`\`"
               echo
-              echo "> ¿Hace falta una build que funcione sola, sin portátil delante? Lanza este workflow a mano con el perfil \`preview\`."
+              echo "> ¿Querías una que funcione sola, sin portátil delante? Lanza este workflow a mano con el perfil \`preview\`."
             fi
             echo
             echo "El APK se guarda 90 días. Después hay que volver a lanzar el workflow."

@@ -208,7 +208,7 @@ Cada vez que algo entra en `main` —una fusión de rama incluida— el workflow
 
 **Firma:** el APK va firmado con la clave de depuración que genera la plantilla de Expo. Sirve para instalar a mano y para la demo; no sirve para publicar en Google Play. Cuando llegue la publicación en tiendas —fuera de Fase 0— hará falta una clave real y ahí EAS vuelve a ser la respuesta razonable.
 
-**Perfiles:** por defecto compila el perfil `development`, que es lo que pide D-004 para el mapa nativo y necesita `expo start --dev-client` en marcha. El workflow se puede lanzar a mano con el perfil `preview`, que lleva el JavaScript dentro y arranca sin portátil delante: es el que conviene llevar a una reunión.
+**Perfiles:** por defecto compila el perfil `preview`, que lleva el JavaScript dentro y arranca sin nada detrás. D-004 hablaba de una *development build* porque es lo que EAS llama a la build con módulos nativos, pero una *development build* está vacía de JavaScript y lo pide a Metro por la red: es una herramienta de desarrollo, no una versión del producto, y sin portátil delante no arranca. Lo que resuelve D-004 —que MapLibre no funciona en Expo Go— lo resuelve igual el `preview`, porque también es una build nativa. El perfil `development` sigue disponible lanzando el workflow a mano, para programar con el móvil en la mano.
 
 **Arquitecturas:** solo `arm64-v8a` por defecto, que es cualquier móvil de los últimos años, para que el APK pese lo menos posible. El lanzamiento manual permite incluir `armeabi-v7a` y las de emulador.
 

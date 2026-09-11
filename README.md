@@ -81,13 +81,17 @@ Para descargarlo:
 
 Hay dos perfiles:
 
-| Perfil        | Qué es                                                                 | Cuándo                                   |
-| ------------- | ---------------------------------------------------------------------- | ---------------------------------------- |
-| `development` | El de cada fusión. Necesita `expo start --dev-client` en la misma red. | Desarrollo diario, ver cambios al vuelo. |
-| `preview`     | Lleva el JavaScript dentro y arranca solo, sin portátil delante.       | **Reuniones.** Se lanza a mano.          |
+| Perfil        | Qué es                                                               | Cuándo                                       |
+| ------------- | -------------------------------------------------------------------- | -------------------------------------------- |
+| `preview`     | **El de cada fusión.** Lleva el JavaScript dentro y arranca solo.    | Prototipo en el bolsillo y reuniones.        |
+| `development` | Vacío de JavaScript: lo pide a `expo start --dev-client` por la red. | Solo para programar con el móvil en la mano. |
 
-Para el `preview`, o para incluir arquitecturas antiguas: **Actions** → **Android build** → **Run
-workflow**, y elige perfil y arquitecturas. Por defecto se compila solo `arm64-v8a`, que es
+La _development build_ no es una versión del producto, es una herramienta de desarrollo: sin Metro
+corriendo en el portátil se queda en una pantalla de error. Por eso lo que se compila en cada
+fusión es el `preview`.
+
+Para el `development`, o para incluir arquitecturas antiguas: **Actions** → **Android build** →
+**Run workflow**, y elige perfil y arquitecturas. Por defecto se compila solo `arm64-v8a`, que es
 cualquier móvil de los últimos años.
 
 El APK se guarda 90 días. Pasado ese plazo, se vuelve a lanzar el workflow y listo.
