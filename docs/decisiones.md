@@ -204,7 +204,9 @@ Cada vez que algo entra en `main` —una fusión de rama incluida— el workflow
 
 **Por qué no EAS Build:** D-004 daba por hecho EAS, y `apps/mobile/eas.json` sigue ahí para el día que haga falta. Pero EAS exige cuenta de Expo, proyecto enlazado y un `EXPO_TOKEN` en los secretos, y la cuenta es justo uno de los pendientes de Fase 0. Compilar en el runner no necesita cuenta, ni secretos, ni tarjeta, y el repositorio es público, así que los minutos de Actions no se pagan. La build deja de depender de nadie.
 
-**Lo que se pierde:** EAS da página de instalación con código QR y almacenamiento permanente. Aquí el APK vive 90 días dentro de un `.zip` en el run que lo generó. Para pasarlo a un móvil hay que descomprimirlo y copiarlo, no basta escanear un código.
+**Cómo llega al móvil:** el artefacto del run se descarga en `.zip` y exige sesión iniciada, que en un teléfono es inservible. Así que cada build de `main` se publica además como *release* con la etiqueta rodante `android-latest`: un enlace fijo a un `.apk` que el navegador del móvil descarga e instala de un toque. El artefacto del run se mantiene como copia por commit, que es lo que sirve para volver a una build anterior.
+
+**Lo que se pierde frente a EAS:** el código QR y la página de instalación con su historial de builds. El artefacto por run vive 90 días; la release, hasta que la sustituye la siguiente.
 
 **Firma:** el APK va firmado con la clave de depuración que genera la plantilla de Expo. Sirve para instalar a mano y para la demo; no sirve para publicar en Google Play. Cuando llegue la publicación en tiendas —fuera de Fase 0— hará falta una clave real y ahí EAS vuelve a ser la respuesta razonable.
 

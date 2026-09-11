@@ -27,7 +27,9 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  # Needed to publish the APK as a release asset, which is the only way to
+  # install it on a phone without a computer in the middle.
+  contents: write
 
 jobs:
   android:
@@ -110,6 +112,27 @@ jobs:
           # An APK is already compressed; zipping it again only costs time.
           compression-level: 0
 
+      # An Actions artifact arrives as a .zip and needs a logged-in session, which
+      # on a phone is unusable. A release asset is a plain .apk URL: open it in
+      # the browser, tap, install. The tag is rolling, so the link never changes.
+      - name: Publish it where a phone can install it
+        if: github.ref == 'refs/heads/main' && env.PROFILE == 'preview'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release delete android-latest --yes --cleanup-tag 2>/dev/null || true
+          gh release create android-latest '${{ steps.apk.outputs.path }}' \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title 'Agora Android — última build' \
+            --notes "$(printf '%s\n' \
+              'APK autónomo de la última fusión en `main`. No necesita ordenador.' \
+              '' \
+              "Versión ${{ steps.apk.outputs.version }} · commit \`${GITHUB_SHA:0:7}\` · ${{ steps.apk.outputs.size }} · \`$REACT_NATIVE_ARCHITECTURES\`" \
+              '' \
+              'Ábrelo desde el navegador del móvil y acepta instalar de orígenes desconocidos.')"
+
       # The run summary is what someone opens to get the APK onto a phone.
       - name: Explain how to install it
         run: |
@@ -125,9 +148,15 @@ jobs:
             echo "| Tamaño | ${{ steps.apk.outputs.size }} |"
             echo "| Commit | [\`${GITHUB_SHA:0:7}\`]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$GITHUB_SHA) |"
             echo
-            echo "**[Descargar el APK](${{ steps.upload.outputs.artifact-url }})**"
-            echo
-            echo "GitHub lo entrega dentro de un \`.zip\`: hay que descomprimirlo antes de pasarlo al móvil."
+            if [ "$GITHUB_REF" = 'refs/heads/main' ] && [ "$PROFILE" = 'preview' ]; then
+              echo "**Desde el móvil:** [$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/android-latest]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/android-latest) — el \`.apk\` se descarga tal cual y se instala de un toque."
+              echo
+              echo "**Desde el ordenador:** [artefacto del run](${{ steps.upload.outputs.artifact-url }}), que GitHub entrega dentro de un \`.zip\`."
+            else
+              echo "**[Descargar el APK](${{ steps.upload.outputs.artifact-url }})**"
+              echo
+              echo "GitHub lo entrega dentro de un \`.zip\`: hay que descomprimirlo antes de pasarlo al móvil."
+            fi
             echo
             echo "### Instalarlo en el móvil"
             echo

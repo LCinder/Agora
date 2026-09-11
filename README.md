@@ -72,12 +72,14 @@ pnpm --filter @agora/mobile exec expo start --web
 listo para descargar.** No hace falta cuenta de Expo ni ningún secreto: se compila en el propio
 runner de GitHub (decisión D-017).
 
-Para descargarlo:
+**Desde el móvil, que es lo normal:** abre
+[la release `android-latest`](../../releases/tag/android-latest) en el navegador del teléfono y
+toca el `.apk`. Android pedirá permitir orígenes desconocidos: es normal, va firmado con la clave
+de depuración. Ese enlace no cambia nunca; siempre apunta a la última fusión en `main`.
 
-1. Pestaña **Actions** → workflow **Android build** → el run del commit que te interese.
-2. El resumen del run trae el enlace de descarga, el tamaño y las instrucciones.
-3. Descomprime el `.zip` que entrega GitHub, pasa el `.apk` al móvil y ábrelo. Android pedirá
-   permitir orígenes desconocidos: es normal, va firmado con la clave de depuración.
+**Desde el ordenador, o para una build antigua:** pestaña **Actions** → workflow **Android build**
+→ el run que te interese. El resumen trae el enlace, el tamaño y el commit del que salió. Ahí
+GitHub lo entrega dentro de un `.zip` que hay que descomprimir.
 
 Hay dos perfiles:
 
