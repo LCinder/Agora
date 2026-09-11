@@ -244,7 +244,6 @@ function Day({
               : theme.colors.textMuted,
           fontSize: theme.fontSize.body,
           fontWeight: day.isToday || selected ? '800' : '500',
-          opacity: day.inMonth ? 1 : 0.5,
           textAlign: 'center',
         }}
       >
