@@ -23,3 +23,26 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
 }
+
+/*
+ * Chart tokens.
+ *
+ * A single validated hue: every chart in the panel draws one series, so a
+ * categorical palette would be noise. The dark steps are chosen for the dark
+ * surface rather than flipped from the light ones.
+ */
+.viz-root {
+  --viz-surface: #ffffff;
+  --viz-grid: #e5e5e1;
+  --viz-axis: #5c5c55;
+  --viz-series-1: #2a78d6;
+}
+
+@media (prefers-color-scheme: dark) {
+  .viz-root {
+    --viz-surface: #1a1a19;
+    --viz-grid: #33332f;
+    --viz-axis: #b0b0a8;
+    --viz-series-1: #3987e5;
+  }
+}

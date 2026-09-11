@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_TIME_ZONE } from './municipality';
-import { atLocalTime, dayRange, isSameDayInZone, minutesSince, weekendRange } from './time';
+import {
+  atLocalTime,
+  dayRange,
+  isSameDayInZone,
+  minutesSince,
+  parseLocalDateTime,
+  toLocalParts,
+  weekendRange,
+} from './time';
 
 const MADRID = DEFAULT_TIME_ZONE;
 
@@ -111,5 +119,36 @@ describe('atLocalTime', () => {
   it('rejects a malformed time', () => {
     expect(() => atLocalTime(new Date(), 0, '25:00', MADRID)).toThrow();
     expect(() => atLocalTime(new Date(), 0, '9:00', MADRID)).toThrow();
+  });
+});
+
+describe('parseLocalDateTime and toLocalParts', () => {
+  it('reads the wall clock time a municipal officer typed', () => {
+    const instant = parseLocalDateTime('2026-09-12', '20:30', MADRID);
+
+    expect(instant.toISOString()).toBe('2026-09-12T18:30:00.000Z');
+  });
+
+  it('applies winter time for a date after the October change', () => {
+    const instant = parseLocalDateTime('2026-11-15', '20:30', MADRID);
+
+    expect(instant.toISOString()).toBe('2026-11-15T19:30:00.000Z');
+  });
+
+  it('round trips through the form fields', () => {
+    const instant = parseLocalDateTime('2027-01-05', '18:00', MADRID);
+
+    expect(toLocalParts(instant, MADRID)).toEqual({ date: '2027-01-05', timeOfDay: '18:00' });
+  });
+
+  it('shows the local date for an instant that falls on another UTC day', () => {
+    expect(toLocalParts(new Date('2026-09-11T22:30:00Z'), MADRID)).toEqual({
+      date: '2026-09-12',
+      timeOfDay: '00:30',
+    });
+  });
+
+  it('rejects a malformed date', () => {
+    expect(() => parseLocalDateTime('12/09/2026', '20:30', MADRID)).toThrow();
   });
 });

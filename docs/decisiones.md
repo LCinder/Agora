@@ -142,3 +142,40 @@ El experimento `typedRoutes` de expo-router genera tipos de ruta a partir del á
 **Por qué:** el módulo nativo no funciona en el navegador, y la compilación web es lo que permite enseñar la demo desde un portátil en una sala de reuniones sin depender de que el móvil tenga la build instalada. Además da una comprobación automática real: si algo se rompe, la exportación web falla.
 
 **Teselas:** OpenStreetMap en lugar de Google Maps, porque el producto tiene que costar unos pocos euros al mes por municipio y el precio por carga de Google no sobrevive a una procesión que mira medio pueblo. Para producción hay que contratar un proveedor de teselas: mandar ese pico de tráfico a los servidores de la fundación OSM no es aceptable.
+
+---
+
+## D-013 — El panel guarda su estado en el navegador
+**Fecha:** 2026-09-11 · **Estado:** aceptada, solo para la Fase 0
+
+El panel carga la semilla una vez y guarda lo que se crea, edita, aprueba o cancela en el almacenamiento local del navegador.
+
+**Por qué:** el panel tiene que poder escribirse — enseñar cómo se crea y se aprueba un evento es el objetivo de la demo — pero en Fase 0 no hay backend. Guardarlo en el navegador tiene dos ventajas concretas para una reunión: la demo sobrevive a una recarga, y nada de lo que teclee un concejal probando sale del portátil.
+
+**Consecuencia:** todo eso vive en `apps/web/src/lib/panel-store.tsx`. En Fase 2 ese módulo pasa a ser un cliente del API real y las pantallas no cambian.
+
+**Cómo reiniciar la demo:** el estado se borra vaciando el almacenamiento local del navegador (hay un `resetToSeed` en el store para engancharlo a un botón cuando haga falta).
+
+---
+
+## D-014 — Lector de carteles: Claude Opus 5 con salida validada
+**Fecha:** 2026-09-11 · **Estado:** aceptada · **Ref.:** D-009
+
+`POST /api/poster` recibe la imagen del cartel y devuelve título, fecha, hora, lugar, precio y organizador, más un nivel de confianza.
+
+**Cómo:** API de Claude (`claude-opus-5`) con visión y salida estructurada validada contra un esquema Zod, así que el panel nunca recibe un JSON con una forma inesperada. El prompt le prohíbe explícitamente inventar datos: si algo no está en el cartel, devuelve cadena vacía.
+
+**Revisión humana obligatoria:** el resultado rellena el formulario y no publica nada. Una IA leyendo una fecha de un cartel acierta casi siempre, y casi siempre no basta para publicar sin mirar. Cuando la confianza en la fecha es baja, la interfaz lo dice.
+
+**Configuración:** `ANTHROPIC_API_KEY` en `apps/web/.env.local` (ver `.env.example`). Sin clave, el panel funciona igual y el botón avisa de que falta configurarla, así que la demo nunca se rompe por eso.
+
+**Coste:** céntimos por cartel.
+
+---
+
+## D-015 — Gráficas del panel de datos: una sola serie, un solo tono
+**Fecha:** 2026-09-11 · **Estado:** aceptada
+
+Todas las gráficas del panel dibujan una única serie en un azul validado (`#2a78d6` en claro, `#3987e5` en oscuro), con rejilla discreta y una vista de tabla alternativa.
+
+**Por qué:** con una sola serie una paleta categórica solo añade ruido, y el color deja de ser la única forma de leer el dato, que es lo que exige la accesibilidad del sector público. Los tonos están comprobados contra las superficies clara y oscura (banda de luminosidad, croma y contraste mínimo 3:1), y los pasos oscuros están elegidos para fondo oscuro, no invertidos de los claros.

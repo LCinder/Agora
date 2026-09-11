@@ -102,3 +102,38 @@ export function atLocalTime(
 
   return plain(at);
 }
+
+/** A calendar date written as YYYY-MM-DD. */
+export const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/**
+ * Builds an instant from the date and time a municipal officer typed.
+ *
+ * The panel form deals in wall clock time in the municipality, which is what
+ * the poster says and what the neighbour will read. Converting through the
+ * time zone here is what keeps an event created in July from drifting an hour
+ * once the clocks change.
+ */
+export function parseLocalDateTime(date: string, timeOfDay: string, timeZone: string): Date {
+  const dateMatch = DATE_PATTERN.exec(date);
+  if (!dateMatch) {
+    throw new Error(`Expected a date as YYYY-MM-DD, got "${date}"`);
+  }
+
+  const [, year, month, day] = dateMatch;
+  const noon = new TZDate(Number(year), Number(month) - 1, Number(day), 12, 0, 0, 0, timeZone);
+
+  return atLocalTime(plain(noon), 0, timeOfDay, timeZone);
+}
+
+/** The inverse: the date and time to show in the panel form. */
+export function toLocalParts(instant: Date, timeZone: string): { date: string; timeOfDay: string } {
+  const zoned = inZone(instant, timeZone);
+
+  const pad = (value: number) => String(value).padStart(2, '0');
+
+  return {
+    date: `${zoned.getFullYear()}-${pad(zoned.getMonth() + 1)}-${pad(zoned.getDate())}`,
+    timeOfDay: `${pad(zoned.getHours())}:${pad(zoned.getMinutes())}`,
+  };
+}
