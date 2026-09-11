@@ -194,3 +194,24 @@ Todas las gráficas del panel dibujan una única serie en un azul validado (`#2a
 **Una decisión de diseño que conviene recordar:** no existe ninguna política que permita a un usuario municipal leer `event_interests`. Los números llegan al panel por agregados diarios. Es la promesa de la política de privacidad, escrita donde no se puede saltar por error, y hay una prueba que lo comprueba.
 
 **Matiz sobre el aislamiento:** los eventos publicados son públicos a propósito, porque un vecino los lee sin cuenta y puede seguir varios municipios. La frontera que se defiende es la de los datos no publicados y la de todas las escrituras.
+
+---
+
+## D-017 — La build de Android se compila en la CI, no en EAS
+**Fecha:** 2026-09-11 · **Estado:** aceptada · **Ref.:** matiza D-004
+
+Cada vez que algo entra en `main` —una fusión de rama incluida— el workflow `android-build.yml` genera el proyecto nativo con `expo prebuild`, compila el APK con Gradle en el propio runner de GitHub y lo sube como artefacto del run, descargable desde la pestaña Actions.
+
+**Por qué no EAS Build:** D-004 daba por hecho EAS, y `apps/mobile/eas.json` sigue ahí para el día que haga falta. Pero EAS exige cuenta de Expo, proyecto enlazado y un `EXPO_TOKEN` en los secretos, y la cuenta es justo uno de los pendientes de Fase 0. Compilar en el runner no necesita cuenta, ni secretos, ni tarjeta, y el repositorio es público, así que los minutos de Actions no se pagan. La build deja de depender de nadie.
+
+**Cómo llega al móvil:** el artefacto del run se descarga en `.zip` y exige sesión iniciada, que en un teléfono es inservible. Así que cada build de `main` se publica además como *release* con la etiqueta rodante `android-latest`: un enlace fijo a un `.apk` que el navegador del móvil descarga e instala de un toque. El artefacto del run se mantiene como copia por commit, que es lo que sirve para volver a una build anterior.
+
+**Lo que se pierde frente a EAS:** el código QR y la página de instalación con su historial de builds. El artefacto por run vive 90 días; la release, hasta que la sustituye la siguiente.
+
+**Firma:** el APK va firmado con la clave de depuración que genera la plantilla de Expo. Sirve para instalar a mano y para la demo; no sirve para publicar en Google Play. Cuando llegue la publicación en tiendas —fuera de Fase 0— hará falta una clave real y ahí EAS vuelve a ser la respuesta razonable.
+
+**Perfiles:** por defecto compila el perfil `preview`, que lleva el JavaScript dentro y arranca sin nada detrás. D-004 hablaba de una *development build* porque es lo que EAS llama a la build con módulos nativos, pero una *development build* está vacía de JavaScript y lo pide a Metro por la red: es una herramienta de desarrollo, no una versión del producto, y sin portátil delante no arranca. Lo que resuelve D-004 —que MapLibre no funciona en Expo Go— lo resuelve igual el `preview`, porque también es una build nativa. El perfil `development` sigue disponible lanzando el workflow a mano, para programar con el móvil en la mano.
+
+**Arquitecturas:** solo `arm64-v8a` por defecto, que es cualquier móvil de los últimos años, para que el APK pese lo menos posible. El lanzamiento manual permite incluir `armeabi-v7a` y las de emulador.
+
+**iOS queda fuera:** compilar para iOS exige cuenta de Apple Developer de pago y certificados de firma, y no se puede hacer en un runner de GitHub. Cuando haya cuenta, iOS irá por EAS.

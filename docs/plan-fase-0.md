@@ -142,7 +142,9 @@ Logo y color de La Zubia aplicados desde su `municipality.json`, accesibilidad b
 **Pendiente de vosotros, no de código:**
 
 - Logo y color corporativo de La Zubia (ahora hay marcadores de posición).
-- Cuenta de EAS para generar la *development build* con el mapa nativo.
+- ~~Cuenta de EAS para generar la *development build* con el mapa nativo.~~ Ya no hace falta:
+  la CI compila el APK de Android en cada fusión con `main` y lo deja descargable en Actions
+  (D-017). Solo volvería a hacer falta para iOS o para publicar en tiendas.
 - `ANTHROPIC_API_KEY` en `apps/web/.env.local` para el lector de carteles.
 - Vista de mes: se dejó fuera a propósito (ver desviaciones más arriba). Es media tarde de trabajo
   si en una reunión resulta que la piden.

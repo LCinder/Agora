@@ -50,14 +50,56 @@ pnpm --filter @agora/mobile dev
 ```
 
 MapLibre es un módulo nativo y **no funciona en Expo Go**, así que la app se prueba con una
-_development build_ de EAS instalada en el dispositivo (decisión D-004). Mientras no haya mapa en
-pantalla, `expo start` sirve para iterar.
+_development build_ instalada en el dispositivo (decisión D-004). Esa build la genera la CI sola:
+ver [Builds de Android](#builds-de-android). Mientras no haya mapa en pantalla, `expo start` sirve
+para iterar.
+
+Con la _development build_ ya instalada en el móvil, el servidor de desarrollo se arranca así:
+
+```bash
+pnpm --filter @agora/mobile exec expo start --dev-client
+```
 
 Para verla en el navegador, con mapa incluido:
 
 ```bash
 pnpm --filter @agora/mobile exec expo start --web
 ```
+
+## Builds de Android
+
+**Cada vez que algo entra en `main` —una fusión de rama incluida— la CI compila un APK y lo deja
+listo para descargar.** No hace falta cuenta de Expo ni ningún secreto: se compila en el propio
+runner de GitHub (decisión D-017).
+
+**Desde el móvil, que es lo normal:** abre
+[la release `android-latest`](../../releases/tag/android-latest) en el navegador del teléfono y
+toca el `.apk`. Android pedirá permitir orígenes desconocidos: es normal, va firmado con la clave
+de depuración. Ese enlace no cambia nunca; siempre apunta a la última fusión en `main`.
+
+**Desde el ordenador, o para una build antigua:** pestaña **Actions** → workflow **Android build**
+→ el run que te interese. El resumen trae el enlace, el tamaño y el commit del que salió. Ahí
+GitHub lo entrega dentro de un `.zip` que hay que descomprimir.
+
+Hay dos perfiles:
+
+| Perfil        | Qué es                                                               | Cuándo                                       |
+| ------------- | -------------------------------------------------------------------- | -------------------------------------------- |
+| `preview`     | **El de cada fusión.** Lleva el JavaScript dentro y arranca solo.    | Prototipo en el bolsillo y reuniones.        |
+| `development` | Vacío de JavaScript: lo pide a `expo start --dev-client` por la red. | Solo para programar con el móvil en la mano. |
+
+La _development build_ no es una versión del producto, es una herramienta de desarrollo: sin Metro
+corriendo en el portátil se queda en una pantalla de error. Por eso lo que se compila en cada
+fusión es el `preview`.
+
+Para el `development`, o para incluir arquitecturas antiguas: **Actions** → **Android build** →
+**Run workflow**, y elige perfil y arquitecturas. Por defecto se compila solo `arm64-v8a`, que es
+cualquier móvil de los últimos años.
+
+El APK se guarda 90 días. Pasado ese plazo, se vuelve a lanzar el workflow y listo.
+
+> iOS no se compila: exige cuenta de Apple Developer de pago y certificados de firma, que no caben
+> en un runner de GitHub. `apps/mobile/eas.json` sigue en el repositorio para ese día.
 
 ## Comprobaciones
 
