@@ -21,7 +21,7 @@ Agora/
 ├─ content/
 │  └─ municipalities/
 │     ├─ la-zubia/         municipality.json, events.json, organizations.json,
-│     │                    route.geojson, assets/
+│     │                    route.json, assets/
 │     ├─ ogijares/         datos mínimos (para el selector)
 │     ├─ cajar/            datos mínimos
 │     └─ otura/            datos mínimos
@@ -101,7 +101,7 @@ Interesados por evento, top de eventos, interés por categoría, dispositivos ac
 ### Lo vistoso, al final
 
 **13. App — directo simulado.**
-Reproduce `route.geojson` sobre MapLibre como si fuera en tiempo real: posición actual, recorrido previsto y "última actualización hace X min".
+Reproduce `route.json` sobre MapLibre como si fuera en tiempo real: posición actual, recorrido previsto y "última actualización hace X min".
 
 ### Cierre
 

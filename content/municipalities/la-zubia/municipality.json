@@ -1,0 +1,23 @@
+{
+  "id": "la-zubia",
+  "slug": "la-zubia",
+  "name": "La Zubia",
+  "province": "Granada",
+  "population": 20389,
+  "ineCode": "18193",
+  "latitude": 37.12056,
+  "longitude": -3.585,
+  "timeZone": "Europe/Madrid",
+  "defaultLocale": "es",
+  "status": "demo",
+  "branding": {
+    "logoUrl": null,
+    "primaryColor": "#1B5E20",
+    "heroImageUrl": null
+  },
+  "settings": {
+    "reminderHour": 19,
+    "maxDailyNotifications": 3
+  },
+  "features": ["poster_import", "interests", "associations", "analytics", "live_tracking"]
+}

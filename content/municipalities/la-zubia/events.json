@@ -1,0 +1,591 @@
+[
+  {
+    "id": "lz-cine-fresca",
+    "organizationId": null,
+    "title": "Cine a la fresca: proyección al aire libre",
+    "description": "Proyección al aire libre en el parque. Se recomienda traer silla o manta.",
+    "categoryId": "cultura",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 0,
+      "startTime": "22:00",
+      "endTime": "23:45"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Parque de la Encina",
+      "latitude": 37.1188,
+      "longitude": -3.5812
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["families"],
+    "status": "published",
+    "isFeatured": true,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "lz-taller-ceramica",
+    "organizationId": null,
+    "title": "Taller de cerámica para mayores",
+    "description": "Taller de iniciación al torno. Plazas limitadas, inscripción en el centro.",
+    "categoryId": "mayores",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 0,
+      "startTime": "18:00",
+      "endTime": "20:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Centro de Mayores",
+      "latitude": 37.1214,
+      "longitude": -3.5834
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["seniors"],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "lz-cuentacuentos",
+    "organizationId": "ampa-vega",
+    "title": "Cuentacuentos en la biblioteca",
+    "description": "Sesión de cuentacuentos para niñas y niños de 3 a 8 años.",
+    "categoryId": "infantil",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 1,
+      "startTime": "18:00",
+      "endTime": "19:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Biblioteca Municipal",
+      "latitude": 37.1201,
+      "longitude": -3.5841
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["children", "families"],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "lz-mercadillo-artesania",
+    "organizationId": null,
+    "title": "Mercadillo de artesanía",
+    "description": "Puestos de artesanía local en la plaza.",
+    "categoryId": "cultura",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 2,
+      "startTime": "10:00",
+      "endTime": "14:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Plaza del Ayuntamiento",
+      "latitude": 37.1206,
+      "longitude": -3.585
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["families"],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "lz-partido-liga",
+    "organizationId": "club-deportivo",
+    "title": "CD La Zubia – Partido de liga",
+    "description": "Jornada de liga en el polideportivo municipal.",
+    "categoryId": "deporte",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 2,
+      "startTime": "17:00",
+      "endTime": "19:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Polideportivo Municipal",
+      "latitude": 37.1172,
+      "longitude": -3.5893
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["youth", "families"],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "lz-yoga-parque",
+    "organizationId": null,
+    "title": "Yoga al aire libre",
+    "description": "Suspendida por previsión de lluvia. Se reprogramará la semana que viene.",
+    "categoryId": "deporte",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 3,
+      "startTime": "09:30",
+      "endTime": "10:30"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Parque de la Encina",
+      "latitude": 37.1188,
+      "longitude": -3.5812
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": [],
+    "status": "cancelled",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "lz-banda-municipal",
+    "organizationId": null,
+    "title": "Concierto de la Banda Municipal",
+    "description": "Concierto de la banda municipal en la plaza del Ayuntamiento.",
+    "categoryId": "cultura",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 3,
+      "startTime": "20:00",
+      "endTime": "21:30"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Plaza del Ayuntamiento",
+      "latitude": 37.1206,
+      "longitude": -3.585
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["families", "seniors"],
+    "status": "published",
+    "isFeatured": true,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "lz-ruta-senderista",
+    "organizationId": "club-deportivo",
+    "title": "Ruta senderista por el pinar",
+    "description": "Ruta de dificultad baja. Salida desde el camino de San Pedro.",
+    "categoryId": "deporte",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 4,
+      "startTime": "09:00",
+      "endTime": "13:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Camino de San Pedro",
+      "latitude": 37.1128,
+      "longitude": -3.5762
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["families"],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "lz-noche-flamenca",
+    "organizationId": "pena-flamenca",
+    "title": "Noche flamenca en la Peña",
+    "description": "Cante y baile a cargo de artistas de la comarca.",
+    "categoryId": "cultura",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 5,
+      "startTime": "21:30",
+      "endTime": "23:30"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Sede de la Peña Flamenca",
+      "latitude": 37.1199,
+      "longitude": -3.5885
+    },
+    "imageUrl": null,
+    "priceInfo": "5 € socios · 8 € general",
+    "isFree": false,
+    "audienceTags": ["seniors"],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "lz-taller-informatica",
+    "organizationId": null,
+    "title": "Taller de informática para mayores",
+    "description": "Cómo usar el móvil para trámites y videollamadas. Seis sesiones.",
+    "categoryId": "mayores",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 6,
+      "startTime": "10:00",
+      "endTime": "12:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Centro de Mayores",
+      "latitude": 37.1214,
+      "longitude": -3.5834
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["seniors"],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "lz-torneo-ajedrez",
+    "organizationId": null,
+    "title": "Torneo de ajedrez",
+    "description": "Torneo abierto por sistema suizo. Inscripción gratuita.",
+    "categoryId": "deporte",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 8,
+      "startTime": "17:00",
+      "endTime": "20:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Centro Cultural",
+      "latitude": 37.1196,
+      "longitude": -3.5871
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["youth", "families"],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "lz-teatro-bernarda",
+    "organizationId": null,
+    "title": "Teatro aficionado: La casa de Bernarda Alba",
+    "description": "Montaje del grupo de teatro aficionado del municipio.",
+    "categoryId": "cultura",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 9,
+      "startTime": "20:00",
+      "endTime": "22:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Centro Cultural",
+      "latitude": 37.1196,
+      "longitude": -3.5871
+    },
+    "imageUrl": null,
+    "priceInfo": "6 €",
+    "isFree": false,
+    "audienceTags": [],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "lz-charla-huertos",
+    "organizationId": null,
+    "title": "Charla: huertos urbanos en casa",
+    "description": "Charla práctica sobre cultivo en balcones y patios.",
+    "categoryId": "cultura",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 12,
+      "startTime": "19:00",
+      "endTime": "20:30"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Biblioteca Municipal",
+      "latitude": 37.1201,
+      "longitude": -3.5841
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["seniors", "families"],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "lz-mercadillo-solidario",
+    "organizationId": "pena-flamenca",
+    "title": "Mercadillo solidario de otoño",
+    "description": "Mercadillo benéfico a favor de la asociación de vecinos.",
+    "categoryId": "cultura",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 14,
+      "startTime": "11:00",
+      "endTime": "14:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Plaza del Ayuntamiento",
+      "latitude": 37.1206,
+      "longitude": -3.585
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": [],
+    "status": "pending_review",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "lz-todos-los-santos",
+    "organizationId": null,
+    "title": "Castañada popular",
+    "description": "Reparto de castañas asadas en la plaza por Todos los Santos.",
+    "categoryId": "fiestas",
+    "when": {
+      "kind": "fixed",
+      "startAt": "2026-11-01T12:00:00+01:00",
+      "endAt": "2026-11-01T15:00:00+01:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Plaza del Ayuntamiento",
+      "latitude": 37.1206,
+      "longitude": -3.585
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["families", "seniors"],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "lz-encendido-navidad",
+    "organizationId": null,
+    "title": "Encendido del alumbrado de Navidad",
+    "description": "Encendido de luces, chocolate caliente y actuación de la coral.",
+    "categoryId": "fiestas",
+    "when": {
+      "kind": "fixed",
+      "startAt": "2026-12-05T19:00:00+01:00",
+      "endAt": "2026-12-05T20:30:00+01:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Plaza del Ayuntamiento",
+      "latitude": 37.1206,
+      "longitude": -3.585
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["families", "children"],
+    "status": "published",
+    "isFeatured": true,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "lz-belen-viviente",
+    "organizationId": null,
+    "title": "Belén viviente",
+    "description": "Representación del belén viviente en el entorno de la parroquia.",
+    "categoryId": "religioso",
+    "when": {
+      "kind": "fixed",
+      "startAt": "2026-12-20T17:00:00+01:00",
+      "endAt": "2026-12-20T20:00:00+01:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Parroquia de Nuestra Señora de la Asunción",
+      "latitude": 37.1211,
+      "longitude": -3.5856
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["families", "children"],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "lz-cabalgata",
+    "organizationId": null,
+    "title": "Cabalgata de Reyes Magos",
+    "description": "Recorrido de la cabalgata por las calles del municipio.",
+    "categoryId": "fiestas",
+    "when": {
+      "kind": "fixed",
+      "startAt": "2027-01-05T18:00:00+01:00",
+      "endAt": "2027-01-05T20:30:00+01:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Plaza del Ayuntamiento",
+      "latitude": 37.1206,
+      "longitude": -3.585
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["children", "families"],
+    "status": "published",
+    "isFeatured": true,
+    "liveTrackingEnabled": true
+  },
+  {
+    "id": "lz-viernes-santo",
+    "organizationId": "hermandad-san-juan",
+    "title": "Procesión del Viernes Santo",
+    "description": "Salida procesional desde la parroquia y recorrido oficial.",
+    "categoryId": "semana-santa",
+    "when": {
+      "kind": "fixed",
+      "startAt": "2027-03-26T20:00:00+01:00",
+      "endAt": "2027-03-27T00:30:00+01:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Parroquia de Nuestra Señora de la Asunción",
+      "latitude": 37.1211,
+      "longitude": -3.5856
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["families", "seniors"],
+    "status": "published",
+    "isFeatured": true,
+    "liveTrackingEnabled": true
+  },
+  {
+    "id": "lz-dia-cruz",
+    "organizationId": null,
+    "title": "Día de la Cruz",
+    "description": "Cruces de mayo repartidas por las plazas del municipio.",
+    "categoryId": "fiestas",
+    "when": {
+      "kind": "fixed",
+      "startAt": "2027-05-03T12:00:00+02:00",
+      "endAt": "2027-05-03T23:00:00+02:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Plaza del Ayuntamiento",
+      "latitude": 37.1206,
+      "longitude": -3.585
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["families"],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "lz-misa-patron",
+    "organizationId": "hermandad-san-juan",
+    "title": "Misa solemne en honor a San Juan Nepomuceno",
+    "description": "Misa solemne en la parroquia por el patrón del municipio.",
+    "categoryId": "religioso",
+    "when": {
+      "kind": "fixed",
+      "startAt": "2027-05-16T12:00:00+02:00",
+      "endAt": "2027-05-16T13:30:00+02:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Parroquia de Nuestra Señora de la Asunción",
+      "latitude": 37.1211,
+      "longitude": -3.5856
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["seniors", "families"],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "lz-procesion-patron",
+    "organizationId": "hermandad-san-juan",
+    "title": "Procesión de San Juan Nepomuceno y la Virgen del Rosario",
+    "description": "Procesión del patrón acompañado por la Virgen del Rosario y la Banda Municipal.",
+    "categoryId": "fiestas",
+    "when": {
+      "kind": "fixed",
+      "startAt": "2027-05-16T20:00:00+02:00",
+      "endAt": "2027-05-16T23:30:00+02:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Parroquia de Nuestra Señora de la Asunción",
+      "latitude": 37.1211,
+      "longitude": -3.5856
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["families", "seniors"],
+    "status": "published",
+    "isFeatured": true,
+    "liveTrackingEnabled": true
+  },
+  {
+    "id": "lz-romeria-san-pedro",
+    "organizationId": null,
+    "title": "Romería de San Pedro",
+    "description": "Romería con carrozas y caballos, con premio a la carroza mejor engalanada.",
+    "categoryId": "romeria",
+    "when": {
+      "kind": "fixed",
+      "startAt": "2027-06-27T09:00:00+02:00",
+      "endAt": "2027-06-27T20:00:00+02:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Camino de San Pedro",
+      "latitude": 37.1128,
+      "longitude": -3.5762
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["families", "youth"],
+    "status": "published",
+    "isFeatured": true,
+    "liveTrackingEnabled": true
+  }
+]

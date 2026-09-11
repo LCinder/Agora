@@ -1,0 +1,54 @@
+[
+  {
+    "id": "ot-concierto",
+    "organizationId": null,
+    "title": "Concierto de la coral municipal",
+    "description": "Concierto de la coral del municipio.",
+    "categoryId": "cultura",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 3,
+      "startTime": "20:00",
+      "endTime": "21:30"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Iglesia parroquial",
+      "latitude": 37.0869,
+      "longitude": -3.6403
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": [],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "ot-senderismo",
+    "organizationId": null,
+    "title": "Senderismo familiar",
+    "description": "Ruta familiar de dificultad baja.",
+    "categoryId": "deporte",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 9,
+      "startTime": "09:30",
+      "endTime": "12:30"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Plaza del Ayuntamiento",
+      "latitude": 37.0869,
+      "longitude": -3.6403
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": [],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  }
+]

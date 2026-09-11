@@ -1,0 +1,23 @@
+{
+  "id": "ogijares",
+  "slug": "ogijares",
+  "name": "Ogíjares",
+  "province": "Granada",
+  "population": 15239,
+  "ineCode": "18145",
+  "latitude": 37.1272,
+  "longitude": -3.6167,
+  "timeZone": "Europe/Madrid",
+  "defaultLocale": "es",
+  "status": "demo",
+  "branding": {
+    "logoUrl": null,
+    "primaryColor": "#1D4ED8",
+    "heroImageUrl": null
+  },
+  "settings": {
+    "reminderHour": 19,
+    "maxDailyNotifications": 3
+  },
+  "features": ["interests"]
+}

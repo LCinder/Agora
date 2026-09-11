@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_TIME_ZONE } from './municipality';
-import { dayRange, isSameDayInZone, minutesSince, weekendRange } from './time';
+import { atLocalTime, dayRange, isSameDayInZone, minutesSince, weekendRange } from './time';
 
 const MADRID = DEFAULT_TIME_ZONE;
 
@@ -84,5 +84,32 @@ describe('minutesSince', () => {
     const then = new Date('2026-09-11T20:00:00Z');
 
     expect(minutesSince(then, new Date('2026-09-11T19:59:00Z'))).toBe(0);
+  });
+});
+
+describe('atLocalTime', () => {
+  it('resolves a wall clock time in the municipality time zone', () => {
+    // Summer time: 21:00 in Madrid is 19:00 UTC.
+    const instant = atLocalTime(new Date('2026-09-10T10:00:00Z'), 0, '21:00', MADRID);
+
+    expect(instant.toISOString()).toBe('2026-09-10T19:00:00.000Z');
+  });
+
+  it('keeps the wall clock time across the end of summer time', () => {
+    // Winter time: the same 21:00 is 20:00 UTC.
+    const instant = atLocalTime(new Date('2026-10-23T10:00:00Z'), 5, '21:00', MADRID);
+
+    expect(instant.toISOString()).toBe('2026-10-28T20:00:00.000Z');
+  });
+
+  it('walks forward across a month boundary', () => {
+    const instant = atLocalTime(new Date('2026-09-29T10:00:00Z'), 3, '09:30', MADRID);
+
+    expect(instant.toISOString()).toBe('2026-10-02T07:30:00.000Z');
+  });
+
+  it('rejects a malformed time', () => {
+    expect(() => atLocalTime(new Date(), 0, '25:00', MADRID)).toThrow();
+    expect(() => atLocalTime(new Date(), 0, '9:00', MADRID)).toThrow();
   });
 });

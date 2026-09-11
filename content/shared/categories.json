@@ -1,0 +1,50 @@
+[
+  {
+    "id": "fiestas",
+    "municipalityId": null,
+    "slug": "fiestas",
+    "name": "Fiestas",
+    "icon": "sparkles",
+    "color": "#C2410C"
+  },
+  {
+    "id": "cultura",
+    "municipalityId": null,
+    "slug": "cultura",
+    "name": "Cultura",
+    "icon": "masks",
+    "color": "#6D28D9"
+  },
+  {
+    "id": "deporte",
+    "municipalityId": null,
+    "slug": "deporte",
+    "name": "Deporte",
+    "icon": "running",
+    "color": "#047857"
+  },
+  {
+    "id": "infantil",
+    "municipalityId": null,
+    "slug": "infantil",
+    "name": "Infantil",
+    "icon": "balloon",
+    "color": "#0369A1"
+  },
+  {
+    "id": "mayores",
+    "municipalityId": null,
+    "slug": "mayores",
+    "name": "Mayores",
+    "icon": "hands",
+    "color": "#A16207"
+  },
+  {
+    "id": "religioso",
+    "municipalityId": null,
+    "slug": "religioso",
+    "name": "Religioso",
+    "icon": "church",
+    "color": "#7C2D12"
+  }
+]

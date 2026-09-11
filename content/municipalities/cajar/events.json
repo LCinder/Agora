@@ -1,0 +1,28 @@
+[
+  {
+    "id": "ca-taller",
+    "organizationId": null,
+    "title": "Taller de manualidades",
+    "description": "Taller para niñas y niños de 6 a 12 años.",
+    "categoryId": "infantil",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 2,
+      "startTime": "17:30",
+      "endTime": "19:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Casa de la Cultura",
+      "latitude": 37.1289,
+      "longitude": -3.5872
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": [],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  }
+]

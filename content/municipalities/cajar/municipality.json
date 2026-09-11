@@ -1,0 +1,23 @@
+{
+  "id": "cajar",
+  "slug": "cajar",
+  "name": "Cájar",
+  "province": "Granada",
+  "population": 5511,
+  "ineCode": "18036",
+  "latitude": 37.1289,
+  "longitude": -3.5872,
+  "timeZone": "Europe/Madrid",
+  "defaultLocale": "es",
+  "status": "demo",
+  "branding": {
+    "logoUrl": null,
+    "primaryColor": "#B91C1C",
+    "heroImageUrl": null
+  },
+  "settings": {
+    "reminderHour": 19,
+    "maxDailyNotifications": 3
+  },
+  "features": ["interests"]
+}

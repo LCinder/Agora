@@ -1,0 +1,18 @@
+[
+  {
+    "id": "semana-santa",
+    "municipalityId": "la-zubia",
+    "slug": "semana-santa",
+    "name": "Semana Santa",
+    "icon": "candle",
+    "color": "#581C87"
+  },
+  {
+    "id": "romeria",
+    "municipalityId": "la-zubia",
+    "slug": "romeria",
+    "name": "Romería",
+    "icon": "cart",
+    "color": "#B45309"
+  }
+]

@@ -43,3 +43,4 @@ pnpm-debug.log*
 
 # Test output
 coverage/
+.expo-smoke/

@@ -1,0 +1,54 @@
+[
+  {
+    "id": "og-mercadillo",
+    "organizationId": null,
+    "title": "Mercadillo semanal",
+    "description": "Puestos de alimentación y textil.",
+    "categoryId": "cultura",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 1,
+      "startTime": "09:00",
+      "endTime": "14:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Plaza de la Constitución",
+      "latitude": 37.1272,
+      "longitude": -3.6167
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": [],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "og-carrera",
+    "organizationId": null,
+    "title": "Carrera popular de Ogíjares",
+    "description": "Carrera popular de 10 km por el casco urbano.",
+    "categoryId": "deporte",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 6,
+      "startTime": "10:00",
+      "endTime": "13:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Polideportivo Municipal",
+      "latitude": 37.1272,
+      "longitude": -3.6167
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": [],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  }
+]

@@ -11,9 +11,10 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run"
   },
   "dependencies": {
-    "@agora/core": "workspace:*"
+    "@agora/core": "workspace:*",
+    "zod": "^4.6.1"
   }
 }

@@ -1,0 +1,23 @@
+{
+  "id": "otura",
+  "slug": "otura",
+  "name": "Otura",
+  "province": "Granada",
+  "population": 7696,
+  "ineCode": "18149",
+  "latitude": 37.0869,
+  "longitude": -3.6403,
+  "timeZone": "Europe/Madrid",
+  "defaultLocale": "es",
+  "status": "demo",
+  "branding": {
+    "logoUrl": null,
+    "primaryColor": "#7C3AED",
+    "heroImageUrl": null
+  },
+  "settings": {
+    "reminderHour": 19,
+    "maxDailyNotifications": 3
+  },
+  "features": ["interests"]
+}

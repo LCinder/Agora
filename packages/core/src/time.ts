@@ -1,5 +1,14 @@
 import { TZDate } from '@date-fns/tz';
-import { addDays, endOfDay, getDay, startOfDay } from 'date-fns';
+import {
+  addDays,
+  endOfDay,
+  getDay,
+  setHours,
+  setMilliseconds,
+  setMinutes,
+  setSeconds,
+  startOfDay,
+} from 'date-fns';
 
 /**
  * Every "today" and "this weekend" in the product is computed in the time zone
@@ -60,4 +69,36 @@ export function isSameDayInZone(a: Date, b: Date, timeZone: string): boolean {
 /** Minutes elapsed since `instant`, floored, never negative. */
 export function minutesSince(instant: Date, now: Date): number {
   return Math.max(0, Math.floor((now.getTime() - instant.getTime()) / 60_000));
+}
+
+/** A wall clock time of day, written as HH:mm. */
+export const TIME_OF_DAY_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+/**
+ * Resolves a wall clock time into an instant.
+ *
+ * Used by the demo seed, whose events are anchored to "today" so the calendar
+ * is never empty whenever the app is shown. Going through the municipality
+ * time zone matters: 21:00 in La Zubia is a different instant in summer and in
+ * winter, and the seed must not drift by an hour after the October clock
+ * change.
+ */
+export function atLocalTime(
+  reference: Date,
+  dayOffset: number,
+  timeOfDay: string,
+  timeZone: string,
+): Date {
+  const match = TIME_OF_DAY_PATTERN.exec(timeOfDay);
+  if (!match) {
+    throw new Error(`Expected a time of day as HH:mm, got "${timeOfDay}"`);
+  }
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+
+  const day = addDays(inZone(reference, timeZone), dayOffset);
+  const at = setMilliseconds(setSeconds(setMinutes(setHours(day, hours), minutes), 0), 0);
+
+  return plain(at);
 }

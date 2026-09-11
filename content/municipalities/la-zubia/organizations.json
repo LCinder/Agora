@@ -1,0 +1,52 @@
+[
+  {
+    "id": "hermandad-san-juan",
+    "municipalityId": "la-zubia",
+    "name": "Hermandad de San Juan Nepomuceno",
+    "type": "brotherhood",
+    "contactEmail": "hermandad@ejemplo.es",
+    "isTrusted": true,
+    "status": "active",
+    "logoUrl": null
+  },
+  {
+    "id": "pena-flamenca",
+    "municipalityId": "la-zubia",
+    "name": "Peña Flamenca de La Zubia",
+    "type": "pena",
+    "contactEmail": "penaflamenca@ejemplo.es",
+    "isTrusted": false,
+    "status": "active",
+    "logoUrl": null
+  },
+  {
+    "id": "club-deportivo",
+    "municipalityId": "la-zubia",
+    "name": "Club Deportivo La Zubia",
+    "type": "sports_club",
+    "contactEmail": "club@ejemplo.es",
+    "isTrusted": true,
+    "status": "active",
+    "logoUrl": null
+  },
+  {
+    "id": "ampa-vega",
+    "municipalityId": "la-zubia",
+    "name": "AMPA del colegio de la Vega",
+    "type": "parents_assoc",
+    "contactEmail": "ampa@ejemplo.es",
+    "isTrusted": false,
+    "status": "active",
+    "logoUrl": null
+  },
+  {
+    "id": "asociacion-mayores",
+    "municipalityId": "la-zubia",
+    "name": "Asociación de Mayores La Encina",
+    "type": "seniors",
+    "contactEmail": "mayores@ejemplo.es",
+    "isTrusted": false,
+    "status": "invited",
+    "logoUrl": null
+  }
+]

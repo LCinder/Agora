@@ -1,25 +1,55 @@
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { DEFAULT_TIME_ZONE } from '@agora/core';
-import { DEFAULT_LOCALE } from '@agora/i18n';
+import { groupEvents, residentVisibleEvents, type EventGroups } from '@agora/core';
+import { createSeedDataSource } from '@agora/data';
 
 /**
  * Placeholder home screen.
  *
- * It exists to prove the workspace wiring end to end: Metro resolves and
- * bundles the shared packages. Replaced by the real calendar in step 4.
+ * It reads the seed through the data source, which proves Metro bundles the
+ * shared packages and the content files. Replaced by the real calendar in
+ * step 4.
  */
 export default function HomeScreen() {
+  const [groups, setGroups] = useState<EventGroups | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      const source = createSeedDataSource();
+      const municipality = await source.getMunicipalityBySlug('la-zubia');
+      if (!municipality) return;
+
+      const events = residentVisibleEvents(await source.listEvents(municipality.id));
+      const grouped = groupEvents(events, {
+        now: new Date(),
+        timeZone: municipality.timeZone,
+      });
+
+      if (active) setGroups(grouped);
+    }
+
+    void load();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Text style={styles.title}>Agenda del municipio</Text>
+        <Text style={styles.title}>La Zubia</Text>
         <Text style={styles.body}>
           Andamiaje del monorepo listo. El calendario llega en el paso 4 del plan de Fase 0.
         </Text>
         <Text style={styles.meta}>
-          {DEFAULT_TIME_ZONE} · {DEFAULT_LOCALE}
+          {groups
+            ? `Hoy ${groups.today.length} · Este finde ${groups.thisWeekend.length} · Próximos ${groups.upcoming.length}`
+            : 'Cargando eventos…'}
         </Text>
       </View>
     </SafeAreaView>
