@@ -1,19 +1,96 @@
 {
   "pages": [
-    { "id": "page-1", "name": "App" },
-    { "id": "page-2", "name": "Variaciones" }
+    {
+      "id": "page-1",
+      "name": "App"
+    },
+    {
+      "id": "page-2",
+      "name": "Variaciones"
+    }
   ],
   "artboards": [
-    { "file": "Selector.dc.html", "title": "Selector de municipio", "page": "page-1", "x": 0, "y": 0, "w": 390, "h": 844 },
-    { "file": "Main.dc.html", "title": "Agenda", "page": "page-1", "x": 500, "y": 0, "w": 390, "h": 844 },
-    { "file": "Mes.dc.html", "title": "Vista de mes", "page": "page-1", "x": 1000, "y": 0, "w": 390, "h": 844 },
-    { "file": "Evento.dc.html", "title": "Detalle de evento", "page": "page-1", "x": 0, "y": 1000, "w": 390, "h": 844 },
-    { "file": "MisEventos.dc.html", "title": "Mis eventos", "page": "page-1", "x": 500, "y": 1000, "w": 390, "h": 844 },
-    { "file": "Directo.dc.html", "title": "Directo", "page": "page-1", "x": 1000, "y": 1000, "w": 390, "h": 844 },
-
-    { "file": "Portadas.dc.html", "title": "Portadas sin cartel", "page": "page-2", "x": 0, "y": 0, "w": 860, "h": 800 },
-    { "file": "Rejilla.dc.html", "title": "Ritmo: rejilla de dos", "page": "page-2", "x": 970, "y": 0, "w": 390, "h": 844 },
-    { "file": "Claro.dc.html", "title": "Fondo claro", "page": "page-2", "x": 1470, "y": 0, "w": 390, "h": 844 }
+    {
+      "file": "Selector.dc.html",
+      "title": "Selector de municipio",
+      "page": "page-1",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Main.dc.html",
+      "title": "Agenda",
+      "page": "page-1",
+      "x": 500,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Mes.dc.html",
+      "title": "Vista de mes",
+      "page": "page-1",
+      "x": 1000,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Evento.dc.html",
+      "title": "Detalle de evento",
+      "page": "page-1",
+      "x": 0,
+      "y": 1000,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "MisEventos.dc.html",
+      "title": "Mis eventos",
+      "page": "page-1",
+      "x": 500,
+      "y": 1000,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Directo.dc.html",
+      "title": "Directo",
+      "page": "page-1",
+      "x": 1000,
+      "y": 1000,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Portadas.dc.html",
+      "title": "Portadas sin cartel",
+      "page": "page-2",
+      "x": 0,
+      "y": 0,
+      "w": 860,
+      "h": 800
+    },
+    {
+      "file": "Rejilla.dc.html",
+      "title": "Ritmo: rejilla de dos",
+      "page": "page-2",
+      "x": 970,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Claro.dc.html",
+      "title": "Fondo claro",
+      "page": "page-2",
+      "x": 1470,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    }
   ],
   "annotations": [
     {
@@ -22,7 +99,7 @@
       "x": 0,
       "y": -230,
       "w": 890,
-      "text": "Dirección C — «Cartel»\n\nLa que elegiste, ya extendida a las seis pantallas. Dos cosas cambiaron respecto al boceto:\n\n· Fuera los degradados. Color plano, celosía y tipografía de gran tamaño: en un cartel eso pega más fuerte, y el degradado es el recurso más gastado que hay.\n· La fecha pasa a ser el gráfico. El día en Archivo Black ocupando la portada resuelve el problema real de esta dirección, que era qué hacer cuando un evento no trae cartel."
+      "text": "Dirección C — «Cartel»\n\nLa que elegiste, ya extendida a las seis pantallas. Dos cosas cambiaron respecto al boceto:\n\n· Fuera los degradados. Color plano, celosía y tipografía de gran tamaño: en un cartel eso pega más fuerte, y el degradado es el recurso más gastado que hay.\n· La fecha pasa a ser el gráfico. El día en Archivo Black ocupando la portada resuelve el problema real de esta dirección, que era qué hacer cuando un evento no trae cartel.\n\nDespués, dos cosas más: el color de marca pasa a morado #4F46E5 —medido, 6,29:1 sobre blanco, y apartado a propósito del morado de Cultura— y la barra inferior deja de estar pegada al canto para flotar como pastilla sobre el contenido."
     },
     {
       "id": "medido",
@@ -54,8 +131,11 @@
       "x": 1470,
       "y": -230,
       "w": 390,
-      "text": "Fondo claro\n\nLa misma estructura sobre papel. Las portadas siguen siendo bloques de color saturado, así que el carácter de cartel aguanta.\n\nResponde a la pega que le puse a esta dirección: el fondo negro no es el mejor amigo de un vecino de 70 años a pleno sol. Se puede ofrecer como ajuste en vez de elegir uno."
+      "text": "Fondo claro — elegido como ajuste\n\nLa misma estructura sobre papel blanco, no sobre crema: lo que se le pide a un modo claro es papel. Fondo #FFFFFF, tinta #15141B (18,30:1) y texto secundario #66647A (5,72:1).\n\nUna tarjeta blanca sobre fondo blanco deja de existir, así que aquí la jerarquía la da una sombra muy baja. En el tema oscuro no hay sombra ninguna: la da el tono.\n\nResponde a la pega que le puse a esta dirección: el fondo negro no es el mejor amigo de un vecino de 70 años a pleno sol. Va como ajuste, con el oscuro por defecto."
     }
   ],
-  "launch": { "view": "canvas", "page": "page-1" }
+  "launch": {
+    "view": "canvas",
+    "page": "page-1"
+  }
 }
