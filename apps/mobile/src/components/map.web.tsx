@@ -14,7 +14,15 @@ import { mapStyleUrl, type MapProps } from './map-shared';
  * The native module in map.tsx cannot run in a browser, and the web build is
  * what lets the demo be shown from a laptop in a meeting room.
  */
-export function Map({ latitude, longitude, route, live, marker = true, style }: MapProps) {
+export function Map({
+  latitude,
+  longitude,
+  route,
+  live,
+  marker = true,
+  interactive = true,
+  style,
+}: MapProps) {
   const theme = useTheme();
   const container = useRef<HTMLDivElement | null>(null);
   const map = useRef<MapLibreMap | null>(null);
@@ -31,6 +39,7 @@ export function Map({ latitude, longitude, route, live, marker = true, style }: 
       center: [longitude, latitude],
       zoom: route ? 13 : 15,
       attributionControl: { compact: true },
+      interactive,
     });
 
     instance.on('load', () => {

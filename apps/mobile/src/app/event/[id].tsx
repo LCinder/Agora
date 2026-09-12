@@ -200,12 +200,35 @@ export default function EventDetailScreen() {
 
           {event.description ? <Body>{event.description}</Body> : null}
 
+          {/* The thumbnail is a door, not a map: at this size it cannot be
+              panned or zoomed, so tapping it opens the real thing. */}
           {event.location.latitude !== null && event.location.longitude !== null ? (
-            <Map
-              latitude={event.location.latitude}
-              longitude={event.location.longitude}
-              style={styles.map}
-            />
+            <Pressable
+              onPress={() => router.push(`/map/${event.id}`)}
+              accessibilityRole="button"
+              accessibilityLabel={t('event.openMap', { place: event.location.name })}
+              style={({ pressed }) => [styles.mapDoor, { opacity: pressed ? 0.85 : 1 }]}
+            >
+              <Map
+                latitude={event.location.latitude}
+                longitude={event.location.longitude}
+                interactive={false}
+                style={styles.map}
+              />
+              <View
+                style={[
+                  styles.expand,
+                  theme.elevation,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderRadius: theme.radius.pill,
+                    margin: theme.spacing(3),
+                  },
+                ]}
+              >
+                <Ionicons name="expand" size={18} color={theme.colors.text} />
+              </View>
+            </Pressable>
           ) : null}
 
           {event.liveTrackingEnabled ? (
@@ -259,7 +282,17 @@ const styles = StyleSheet.create({
     top: 0,
   },
   cover: { position: 'relative' },
+  expand: {
+    alignItems: 'center',
+    bottom: 0,
+    height: 40,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 0,
+    width: 40,
+  },
   grow: { flex: 1 },
   map: { height: 180 },
+  mapDoor: { position: 'relative' },
   row: { alignItems: 'center', flexDirection: 'row' },
 });

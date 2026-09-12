@@ -142,7 +142,7 @@ export default function CalendarScreen() {
         <ScrollView
           contentContainerStyle={{
             gap: theme.spacing(4),
-            paddingBottom: theme.spacing(10),
+            paddingBottom: theme.spacing(26),
             // The grid wants the wider canvas; the list reads better inset.
             paddingHorizontal: theme.spacing(view === 'month' ? 3 : 5),
           }}

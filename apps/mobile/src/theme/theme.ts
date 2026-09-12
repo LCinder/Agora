@@ -1,5 +1,5 @@
 import { readableTextOn } from '@agora/core';
-import type { ColorSchemeName } from 'react-native';
+import type { ColorSchemeName, ViewStyle } from 'react-native';
 
 /**
  * Design tokens.
@@ -68,6 +68,11 @@ export interface Theme {
     onDanger: string;
     live: string;
   };
+  /**
+   * Card elevation. On the ink theme a card is told apart by its border; on a
+   * white one it needs a shadow, because white on white is nothing.
+   */
+  elevation: ViewStyle;
   spacing: (steps: number) => number;
   radius: { sm: number; md: number; lg: number; pill: number };
   fontSize: {
@@ -97,15 +102,19 @@ const DARK = {
   live: '#EF4444',
 };
 
+/**
+ * White, with the faintest violet in the greys so the light theme belongs to
+ * the same product as the dark one rather than reading as a second app.
+ */
 const LIGHT = {
-  background: '#F5F3EE',
+  background: '#FFFFFF',
   surface: '#FFFFFF',
-  surfaceMuted: '#EBE8E0',
-  border: '#DCD8CE',
-  text: '#16150F',
-  textMuted: '#62605A',
-  contrast: '#16150F',
-  onContrast: '#F5F3EE',
+  surfaceMuted: '#F3F2F8',
+  border: '#E7E5F0',
+  text: '#15141B',
+  textMuted: '#66647A',
+  contrast: '#15141B',
+  onContrast: '#FFFFFF',
   danger: '#B3261E',
   onDanger: '#FFFFFF',
   live: '#C81E1E',
@@ -132,6 +141,16 @@ export function createTheme(
       primary: primaryColor,
       onPrimary: readableTextOn(primaryColor),
     },
+    elevation:
+      scheme === 'light'
+        ? {
+            elevation: 3,
+            shadowColor: '#15141B',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.07,
+            shadowRadius: 12,
+          }
+        : {},
     spacing: (steps: number) => steps * SPACING_UNIT,
     radius: { sm: 6, md: 12, lg: 20, pill: 999 },
     fontSize: {
@@ -145,5 +164,10 @@ export function createTheme(
   };
 }
 
-/** Used before a municipality is chosen, and as a fallback. */
-export const FALLBACK_PRIMARY_COLOR = '#1B5E20';
+/**
+ * Used before a municipality is chosen, and as a fallback.
+ *
+ * A placeholder until La Zubia sends its real colour: theirs is what a town
+ * puts on its letterhead, and no app gets to choose it for them.
+ */
+export const FALLBACK_PRIMARY_COLOR = '#4F46E5';

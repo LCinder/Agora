@@ -24,7 +24,7 @@ export function PanelNav() {
   const pathname = usePathname();
 
   const pending = events.filter(isAwaitingReview).length;
-  const brand = municipality?.branding.primaryColor ?? '#1B5E20';
+  const brand = municipality?.branding.primaryColor ?? '#4F46E5';
 
   return (
     <header className="border-b border-black/10 bg-white dark:border-white/10 dark:bg-neutral-900">

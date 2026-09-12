@@ -16,6 +16,11 @@ export interface MapProps {
   /** Live position of the volunteer, drawn on top of the route. */
   live?: { latitude: number; longitude: number } | null;
   marker?: boolean;
+  /**
+   * Off for a map embedded as a thumbnail: gestures inside a scrolling page
+   * steal the scroll, and the thumbnail is a door to the full screen one.
+   */
+  interactive?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 

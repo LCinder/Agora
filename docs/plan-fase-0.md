@@ -145,7 +145,7 @@ Logo y color de La Zubia aplicados desde su `municipality.json`, accesibilidad b
 - ~~Cuenta de EAS para generar la *development build* con el mapa nativo.~~ Ya no hace falta:
   la CI compila el APK de Android en cada fusión con `main` y lo deja descargable en Actions
   (D-017). Solo volvería a hacer falta para iOS o para publicar en tiendas.
-- `ANTHROPIC_API_KEY` en `apps/web/.env.local` para el lector de carteles.
+- `GEMINI_API_KEY` y las dos de Cloudflare en `apps/web/.env.local` para los carteles (ver D-024).
 - ~~Vista de mes: se dejó fuera a propósito.~~ Hecha. Conmutador «Lista / Mes» en la agenda, con
   rejilla de lunes a domingo, puntos del color de cada categoría y el día elegido desplegado
   debajo. Ver D-019.

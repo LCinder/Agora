@@ -40,7 +40,7 @@ export function makeMunicipality(overrides: Partial<MunicipalityInput> = {}): Mu
     latitude: 37.1,
     longitude: -3.6,
     status: 'demo',
-    branding: { primaryColor: '#1B5E20' },
+    branding: { primaryColor: '#4F46E5' },
     settings: {},
     features: [],
   };

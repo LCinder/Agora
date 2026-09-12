@@ -46,7 +46,7 @@ export const DEFAULT_TIME_ZONE = 'Europe/Madrid';
 
 const hexColor = z
   .string()
-  .regex(/^#[0-9a-fA-F]{6}$/, 'Expected a six digit hex colour, for example #1B5E20');
+  .regex(/^#[0-9a-fA-F]{6}$/, 'Expected a six digit hex colour, for example #4F46E5');
 
 export const brandingSchema = z.object({
   logoUrl: z.string().nullable().default(null),

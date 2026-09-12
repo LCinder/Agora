@@ -1,7 +1,7 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+
+import { geminiErrorResponse, geminiJson } from '../../../../lib/gemini';
 
 /**
  * Draws an event poster from a one-line description.
@@ -13,20 +13,20 @@ import { z } from 'zod';
  *
  * It runs in two steps on purpose. What a municipal officer types is "concurso
  * de tortillas en la plaza", which is a fine description of an event and a
- * terrible prompt for an image model. So Claude turns it into a real visual
- * brief first, and only then does the image model draw. The officer never has
- * to learn how to prompt anything.
+ * terrible prompt for an image model. So a text model turns it into a real
+ * visual brief first, and only then does the image model draw. The officer
+ * never has to learn how to prompt anything.
+ *
+ * The two steps run on two providers, both free and both key-only (D-024):
+ * Gemini Flash writes the brief, Cloudflare Workers AI draws with FLUX schnell.
  */
-
-const PROMPT_MODEL = 'claude-opus-5';
 
 /**
- * Image generation runs on Gemini because Claude does not generate images.
- * Kept behind plain fetch rather than an SDK: this is one HTTP call, and the
- * provider is explicitly undecided (D-018).
+ * FLUX.1 [schnell] on Workers AI. Four steps is the model's own default and
+ * what it was distilled for; more steps cost budget without buying much.
  */
-const IMAGE_MODEL = 'gemini-3.1-flash-image';
-const IMAGE_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/interactions';
+const IMAGE_MODEL = '@cf/black-forest-labs/flux-1-schnell';
+const IMAGE_STEPS = 4;
 
 const requestSchema = z.object({
   description: z.string().min(3).max(2000),
@@ -46,16 +46,8 @@ const requestSchema = z.object({
 });
 
 const briefSchema = z.object({
-  imagePrompt: z
-    .string()
-    .describe(
-      'Descripción visual detallada para el modelo de imagen, en español: escena, estilo, composición, paleta, iluminación y encuadre.',
-    ),
-  altText: z
-    .string()
-    .describe(
-      'Texto alternativo del cartel, en español, de una frase, para lectores de pantalla. Describe la imagen, no repitas el título.',
-    ),
+  imagePrompt: z.string().min(1),
+  altText: z.string(),
 });
 
 export type PosterBrief = z.infer<typeof briefSchema>;
@@ -64,12 +56,35 @@ export type PosterDrawing = PosterBrief & {
   image: { mimeType: string; data: string };
 };
 
+const BRIEF_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    imagePrompt: {
+      type: 'STRING',
+      description:
+        'Descripción visual detallada para el modelo de imagen: escena, estilo, composición, paleta, iluminación y encuadre.',
+    },
+    altText: {
+      type: 'STRING',
+      description:
+        'Texto alternativo del cartel, en español, de una frase, para lectores de pantalla. Describe la imagen, no repitas el título.',
+    },
+  },
+  required: ['imagePrompt', 'altText'],
+  propertyOrdering: ['imagePrompt', 'altText'],
+} as const;
+
+/**
+ * FLUX follows English prompts noticeably better than Spanish ones, so the
+ * brief is written in English while the alt text — which a neighbour's screen
+ * reader will actually say out loud — stays in Spanish.
+ */
 const SYSTEM_PROMPT = `Escribes instrucciones para un modelo de imagen que dibuja carteles de eventos de un ayuntamiento andaluz.
 
 Recibes la descripción breve que ha escrito un técnico municipal y la conviertes en una instrucción visual rica y concreta.
 
 Reglas:
-- Responde siempre en español.
+- El campo imagePrompt va SIEMPRE en inglés, porque el modelo de imagen entiende mejor el inglés. El campo altText va siempre en español.
 - Sé concreto con la escena, el estilo, la composición, la paleta y la luz. Una instrucción de varias frases funciona mejor que una lista de palabras sueltas.
 - Es un cartel institucional para vecinos de todas las edades: alegre y claro, nunca estridente ni comercial. Evita el aspecto de anuncio publicitario.
 - Nada de marcas comerciales, ni logotipos reales, ni caras de personas reconocibles.
@@ -79,62 +94,15 @@ const BACKGROUND_RULE = `El cartel NO debe contener ningún texto, ni letras, ni
 
 const COMPLETE_RULE = `El cartel SÍ lleva el texto dentro de la imagen. Indica al modelo el texto exacto que debe escribir, entrecomillado y sin cambiar ni una tilde, y pídele tipografía grande, legible y bien contrastada, con el título como elemento dominante.`;
 
-function anthropic(): Anthropic | null {
-  if (!process.env.ANTHROPIC_API_KEY) return null;
-  return new Anthropic();
-}
-
-/**
- * Pulls the image out of an Interactions response.
- *
- * The documented path is `output_image.data`; the steps array and the older
- * `candidates` shape are read too, so a provider-side response change degrades
- * into a clear error here rather than a crash somewhere in the panel.
- */
-function extractImage(payload: unknown): { mimeType: string; data: string } | null {
-  const seen = new Set<unknown>();
-
-  function walk(node: unknown): { mimeType: string; data: string } | null {
-    if (typeof node !== 'object' || node === null || seen.has(node)) return null;
-    seen.add(node);
-
-    if (Array.isArray(node)) {
-      for (const item of node) {
-        const found = walk(item);
-        if (found) return found;
-      }
-      return null;
-    }
-
-    const record = node as Record<string, unknown>;
-    const data = record.data ?? record.base64Data;
-    const mimeType = record.mime_type ?? record.mimeType;
-
-    if (typeof data === 'string' && data.length > 0) {
-      return { mimeType: typeof mimeType === 'string' ? mimeType : 'image/jpeg', data };
-    }
-
-    for (const value of Object.values(record)) {
-      const found = walk(value);
-      if (found) return found;
-    }
-
-    return null;
-  }
-
-  return walk(payload);
-}
-
 export async function POST(request: Request): Promise<NextResponse> {
-  const claude = anthropic();
-  const geminiKey = process.env.GEMINI_API_KEY;
+  const account = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const token = process.env.CLOUDFLARE_API_TOKEN;
 
-  if (!claude || !geminiKey) {
-    const missing = !claude ? 'ANTHROPIC_API_KEY' : 'GEMINI_API_KEY';
+  if (!account || !token) {
     return NextResponse.json(
       {
         error: 'missing_api_key',
-        message: `Falta ${missing}. Añádela a apps/web/.env.local para dibujar carteles.`,
+        message: `Falta ${!account ? 'CLOUDFLARE_ACCOUNT_ID' : 'CLOUDFLARE_API_TOKEN'}. Añádelo a apps/web/.env.local para dibujar carteles.`,
       },
       { status: 503 },
     );
@@ -161,28 +129,27 @@ export async function POST(request: Request): Promise<NextResponse> {
     .filter((line) => line !== null)
     .join('\n');
 
-  let brief: PosterBrief;
-
-  try {
-    const response = await claude.messages.parse({
-      model: PROMPT_MODEL,
-      max_tokens: 4000,
-      system: SYSTEM_PROMPT,
-      output_config: { format: zodOutputFormat(briefSchema) },
-      messages: [
-        {
-          role: 'user',
-          content: `${mode === 'background' ? BACKGROUND_RULE : COMPLETE_RULE}
+  const brief = await geminiJson({
+    system: SYSTEM_PROMPT,
+    schema: BRIEF_SCHEMA as unknown as Record<string, unknown>,
+    parts: [
+      {
+        text: `${mode === 'background' ? BACKGROUND_RULE : COMPLETE_RULE}
 
 Descripción del técnico:
 ${description}
 
 ${details ? `Datos del evento:\n${details}` : 'Todavía no hay datos del evento.'}`,
-        },
-      ],
-    });
+      },
+    ],
+    parse: (value) => {
+      const result = briefSchema.safeParse(value);
+      return result.success ? result.data : null;
+    },
+  });
 
-    if (response.stop_reason === 'refusal' || !response.parsed_output) {
+  if (!brief.ok) {
+    if (brief.failure === 'refused') {
       return NextResponse.json(
         {
           error: 'not_drawable',
@@ -192,47 +159,20 @@ ${details ? `Datos del evento:\n${details}` : 'Todavía no hay datos del evento.
       );
     }
 
-    brief = response.parsed_output;
-  } catch (error) {
-    if (error instanceof Anthropic.AuthenticationError) {
-      return NextResponse.json(
-        { error: 'bad_api_key', message: 'La clave de la API de Claude no es válida.' },
-        { status: 503 },
-      );
-    }
-
-    if (error instanceof Anthropic.RateLimitError) {
-      return NextResponse.json(
-        { error: 'rate_limited', message: 'Demasiadas peticiones. Inténtalo en un momento.' },
-        { status: 429 },
-      );
-    }
-
-    return NextResponse.json(
-      { error: 'unknown', message: 'No hemos podido preparar el cartel.' },
-      { status: 500 },
-    );
+    return geminiErrorResponse(brief.failure, 'dibujar carteles');
   }
 
   let drawn: Response;
 
   try {
-    drawn = await fetch(IMAGE_ENDPOINT, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-goog-api-key': geminiKey },
-      body: JSON.stringify({
-        model: IMAGE_MODEL,
-        input: [{ type: 'text', text: brief.imagePrompt }],
-        // 3:4 is the shape of a poster on a noticeboard and of the card the
-        // app shows it in.
-        response_format: {
-          type: 'image',
-          mime_type: 'image/jpeg',
-          aspect_ratio: '3:4',
-          image_size: '2K',
-        },
-      }),
-    });
+    drawn = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${account}/ai/run/${IMAGE_MODEL}`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({ prompt: brief.value.imagePrompt, steps: IMAGE_STEPS }),
+      },
+    );
   } catch {
     return NextResponse.json(
       { error: 'unreachable', message: 'No hemos podido conectar con el servicio de imágenes.' },
@@ -245,7 +185,7 @@ ${details ? `Datos del evento:\n${details}` : 'Todavía no hay datos del evento.
       {
         error: 'rate_limited',
         message:
-          'Se ha agotado la cuota diaria de carteles del nivel gratuito. Inténtalo mañana o pasa a nivel de pago.',
+          'Se ha agotado la cuota diaria gratuita de carteles. Vuelve a intentarlo mañana o amplía el plan de Cloudflare.',
       },
       { status: 429 },
     );
@@ -253,7 +193,10 @@ ${details ? `Datos del evento:\n${details}` : 'Todavía no hay datos del evento.
 
   if (drawn.status === 401 || drawn.status === 403) {
     return NextResponse.json(
-      { error: 'bad_api_key', message: 'La clave de la API de imágenes no es válida.' },
+      {
+        error: 'bad_api_key',
+        message: 'Las credenciales de Cloudflare no son válidas o el token no tiene Workers AI.',
+      },
       { status: 503 },
     );
   }
@@ -265,7 +208,7 @@ ${details ? `Datos del evento:\n${details}` : 'Todavía no hay datos del evento.
     );
   }
 
-  const image = extractImage(await drawn.json());
+  const image = extractImage(await drawn.json().catch(() => null));
 
   if (!image) {
     return NextResponse.json(
@@ -277,5 +220,25 @@ ${details ? `Datos del evento:\n${details}` : 'Todavía no hay datos del evento.
     );
   }
 
-  return NextResponse.json({ ...brief, image } satisfies PosterDrawing);
+  return NextResponse.json({ ...brief.value, image } satisfies PosterDrawing);
+}
+
+/**
+ * Pulls the image out of a Workers AI response.
+ *
+ * The documented shape is `{ result: { image: "<base64 jpeg>" } }`, and the
+ * envelope can also carry `success: false` with the error in `errors`. Reading
+ * it defensively means a provider-side change surfaces as a clear message in
+ * the panel rather than as a crash.
+ */
+function extractImage(payload: unknown): { mimeType: string; data: string } | null {
+  if (typeof payload !== 'object' || payload === null) return null;
+
+  const result = (payload as { result?: unknown }).result;
+  if (typeof result !== 'object' || result === null) return null;
+
+  const image = (result as { image?: unknown }).image;
+  if (typeof image !== 'string' || image.length === 0) return null;
+
+  return { mimeType: 'image/jpeg', data: image };
 }

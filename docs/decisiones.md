@@ -320,3 +320,56 @@ Los cuatro huecos que quedaban entre «se ve bien» y «se ve acabada».
 **4. Icono y arranque propios.** Eran los de la plantilla de Expo, y es lo primero que ve un concejal al instalarla. La marca es una celosía: un rombo con otro dentro. Es lo que la app dibuja en cada portada, es la celosía de cualquier tapia andaluza y es la forma de un día en una rejilla, que es lo que el producto es. Se dibuja con un script (`apps/mobile/scripts/make-icons.py`) en lugar de exportarse a mano, para que todo el juego —icono, capas adaptativas de Android, arranque y favicon— se regenere solo cuando cambien los colores.
 
 **De paso, más contraste.** `tone="primary"` pintaba el color del municipio en crudo, y el verde de La Zubia da 2,38:1 sobre el fondo oscuro. Ahora pasa por `readableOn` en un solo sitio, así que todo lo que lo usa queda cubierto: sube a 4,86:1 para texto y 3,29:1 para objetos gráficos, y sobre el tema claro no lo toca, porque ahí ya daba 7,10:1. Lo mismo con la línea del recorrido y el marcador del mapa, que van sobre el basemap y no sobre el fondo de la app.
+
+---
+
+## D-023 — Morado, claro de verdad, mapa a pantalla completa y barra flotante
+**Fecha:** 2026-09-12 · **Estado:** aceptada · **Ref.:** tres correcciones pedidas sobre D-022 + referencia visual
+
+**1. El color pasa a morado.** El verde era un marcador de posición que venía del primer volcado de La Zubia y se había quedado como color de marca por inercia. El nuevo es `#4F46E5`. Se eligió midiendo, no a ojo: da **6,29:1 sobre blanco** —pasa AA como texto en el tema claro sin retoques— y 2,98:1 sobre la tinta oscura, que `readableOn` sube a 4,89:1 para texto y 3,28:1 para el trazo del recorrido y el marcador del mapa. Y se aparta a propósito del morado de la categoría Cultura (`#6D28D9`): si el color de marca y el de una categoría son el mismo, la categoría deja de significar nada.
+
+Está en un sitio por superficie: `FALLBACK_PRIMARY_COLOR` en el tema de la app, `primaryColor` en el municipio de demo, los componentes del panel web y las fixtures de test. No queda ningún `#1B5E20` en el repositorio.
+
+**2. El tema claro es blanco.** Lo que había era un crema cálido —el negativo del tema oscuro— y lo que se pide de un modo claro es papel. Fondo y superficie `#FFFFFF`, tinta `#15141B` (18,30:1), texto secundario `#66647A` (5,72:1) y un gris muy frío para las separaciones.
+
+El problema de un blanco sobre blanco es que las tarjetas dejan de existir: sin cambio de tono no hay tarjeta, solo texto suelto. Por eso el tema expone ahora **`elevation`**, una sombra muy baja y difusa en claro y **nada en oscuro**, donde la jerarquía la da el tono. Es una decisión de tema, no un estilo copiado en cada componente, así que cambiarla de idea es tocar un objeto.
+
+**3. El mapa se puede ampliar.** Un mapa dentro de una ficha es una foto de un mapa: demasiado pequeño para arrastrar y demasiado pequeño para hacer zoom, y «dónde está el Parque de la Encina» es una pregunta que un vecino responde moviéndose por el mapa. Así que la miniatura pasa a ser una **puerta** —gestos desactivados, chip de ampliar encima— y abre `app/map/[id].tsx`, un mapa a pantalla completa con el botón de volver y un panel inferior con el lugar.
+
+Desactivar los gestos en la miniatura no es un detalle: un mapa que traga el gesto dentro de una página que se desplaza deja la ficha atascada. El `interactive` viaja por las dos implementaciones (nativa y web) desde `map-shared.ts`, que es lo que evita que se separen.
+
+**4. De la referencia visual, la idea y no la forma.** De la captura que pasaste se coge **una** cosa: que la barra inferior no esté soldada al canto. Deja de ser un borde y pasa a flotar sobre el contenido, separada del borde y del área segura, con el contenido corriendo por debajo. Eso le da aire a la pantalla y hace que la barra se lea como un control y no como un muro.
+
+Lo que **no** se coge es su forma. La barra usa el radio `lg` de la app, no una pastilla, y los radios se quedan donde estaban (`lg` 20, `md` 12): esta dirección habla en carteles, y un cartel es un rectángulo. Redondear las esquinas hasta la blandura de la referencia sería cambiar de dirección sin haberlo decidido. La sombra del punto 2 se queda porque resuelve un problema real —una tarjeta blanca sobre fondo blanco no existe—, no porque la referencia la tenga.
+
+**Comprobado y no comprobado.** Los cambios se recorrieron con el navegador: la agenda en oscuro y en claro, la ficha, la barra flotante y la navegación a la pantalla de mapa. **Los teselas del mapa no se pueden verificar aquí**: el navegador del entorno de desarrollo no tiene salida a `basemaps.cartocdn.com` ni a `tiles.openfreemap.org` (la petición se corta), así que el mapa sale en negro en las capturas. La pantalla, sus controles y el enrutado sí están verificados; el dibujo del basemap hay que mirarlo en la APK.
+
+---
+
+## D-024 — Los carteles pasan a IA gratuita: Gemini para leer y escribir, Cloudflare para dibujar
+**Fecha:** 2026-09-12 · **Estado:** aceptada · **Ref.:** sustituye a D-014 y D-018
+
+**Lo que rompió la decisión anterior.** D-018 daba por hecho que el nivel gratuito de Gemini dibujaba imágenes, y el `.env.example` prometía «unas 50 imágenes al día, sin tarjeta». **Ya no es verdad**: la página de precios de Google marca hoy los modelos de imagen (Nano Banana y Gemini Flash Image) como _Not available_ en el nivel gratuito, solo de pago. Y D-014 ponía la lectura de carteles en Claude Opus 5, que es mejor leyendo un cartel arrugado en una foto de WhatsApp, pero Anthropic nunca ha tenido nivel gratuito. Con las dos decisiones juntas, la función estrella de la demo no se podía enseñar sin poner una tarjeta.
+
+El requisito es explícito: que funcione con claves que se saquen en cinco minutos, con un correo y sin tarjeta.
+
+**Lo que se hace ahora.**
+
+| Paso | Antes | Ahora | Gratis |
+| --- | --- | --- | --- |
+| Leer un cartel (visión) | Claude Opus 5 | Gemini Flash | ~1.500 peticiones/día |
+| Escribir la instrucción del dibujo | Claude Opus 5 | Gemini Flash | la misma cuota |
+| Dibujar el cartel | Gemini (imagen) | Cloudflare Workers AI, FLUX.1 [schnell] | 10.000 neuronas/día |
+
+**Por qué Cloudflare para la imagen.** Es la mayor cuota gratuita recurrente que hay sin tarjeta: 10.000 neuronas **al día**, que no caducan en un mes ni son un saldo de prueba que se gasta y se acaba. A 4,80 neuronas por tesela de 512×512 y 9,60 por paso, un cartel de 1024×1024 a cuatro pasos sale por unas 58, así que da del orden de **150-250 carteles al día**. Un ayuntamiento publica decenas de eventos al mes. Las alternativas eran saldos de prueba (1 $ en Together, 5 $ en Leonardo) que se agotan, o Hugging Face, cuyo límite gratuito flota con la carga y no se puede prometer en una reunión.
+
+FLUX schnell está además bajo licencia Apache 2.0, lo que evita una conversación incómoda sobre a quién pertenece el cartel que sale.
+
+**Dos consecuencias de diseño.**
+
+1. **La instrucción del dibujo se escribe en inglés.** FLUX sigue el inglés bastante mejor que el español. El técnico municipal sigue escribiendo en español y el texto alternativo —lo que de verdad va a leer en voz alta el móvil de un vecino— sigue saliendo en español; lo único que cambia de idioma es el campo que solo lee el modelo de imagen.
+2. **Se cae el SDK de Anthropic** y con él la salida estructurada por Zod que traía de fábrica. Gemini valida contra su propio dialecto de esquema, y la respuesta se sigue validando con Zod al salir, que es donde estaba la garantía de verdad. Todo el trato con Gemini vive en `apps/web/src/lib/gemini.ts` para no escribirlo dos veces.
+
+**Lo que esto no arregla.** El nivel gratuito de Gemini **sigue usando lo enviado para mejorar los productos de Google**; la propia página de precios lo marca como _Yes_. Para la demo, con carteles de eventos ya públicos, es asumible. **Antes de tocar datos reales de un ayuntamiento hay que pasar a nivel de pago**, y eso va en el contrato de encargo del tratamiento. Cloudflare cobra por ampliar cuota, no por privacidad, así que ahí el salto es solo de volumen.
+
+**Verificado y no verificado.** Las dos rutas responden 503 con el mensaje correcto cuando falta cada credencial, comprobado con el panel levantado. **El camino bueno no está probado**: no hay claves en este entorno, y el navegador del contenedor no tiene salida a ninguno de los dos proveedores. La primera prueba real es pegar las claves y dibujar un cartel.
