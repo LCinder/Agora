@@ -152,7 +152,7 @@ export function createTheme(
           }
         : {},
     spacing: (steps: number) => steps * SPACING_UNIT,
-    radius: { sm: 6, md: 14, lg: 22, pill: 999 },
+    radius: { sm: 6, md: 12, lg: 20, pill: 999 },
     fontSize: {
       caption: 13,
       body: 16,

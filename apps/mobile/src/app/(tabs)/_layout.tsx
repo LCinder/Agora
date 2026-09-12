@@ -20,19 +20,20 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: active,
         tabBarInactiveTintColor: theme.colors.textMuted,
-        // A floating pill rather than a bar welded to the bottom edge: the
-        // content runs under it, which gives the screen room to breathe and
-        // makes the bar read as a control instead of a wall.
+        // Floating rather than welded to the bottom edge: the content runs
+        // under it, which gives the screen room to breathe and makes the bar
+        // read as a control instead of a wall. The shape is the app's own
+        // `lg` radius, not a pill — this design speaks in posters, and a
+        // poster is a rectangle.
         tabBarStyle: [
           theme.elevation,
           {
             backgroundColor: theme.colors.surface,
             borderColor: theme.colors.border,
-            borderRadius: theme.radius.pill,
+            borderRadius: theme.radius.lg,
             borderTopColor: theme.colors.border,
             borderWidth: 1,
             bottom: insets.bottom + theme.spacing(2),
-            elevation: 8,
             height: 64,
             left: theme.spacing(5),
             paddingBottom: 0,
