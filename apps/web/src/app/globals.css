@@ -30,12 +30,17 @@ body {
  * A single validated hue: every chart in the panel draws one series, so a
  * categorical palette would be noise. The dark steps are chosen for the dark
  * surface rather than flipped from the light ones.
+ *
+ * The series hue is the municipality's own colour, handed in by the data
+ * screen as `--viz-series-brand-*` already lifted to 3:1 against the card it
+ * sits on. The literals below are the fallback for anything that draws a
+ * chart before a municipality is known.
  */
 .viz-root {
   --viz-surface: #ffffff;
   --viz-grid: #e5e5e1;
   --viz-axis: #5c5c55;
-  --viz-series-1: #2a78d6;
+  --viz-series-1: var(--viz-series-brand-light, #2a78d6);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -43,6 +48,6 @@ body {
     --viz-surface: #1a1a19;
     --viz-grid: #33332f;
     --viz-axis: #b0b0a8;
-    --viz-series-1: #3987e5;
+    --viz-series-1: var(--viz-series-brand-dark, #3987e5);
   }
 }

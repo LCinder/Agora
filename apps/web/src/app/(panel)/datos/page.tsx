@@ -1,7 +1,7 @@
 'use client';
 
-import { residentVisibleEvents } from '@agora/core';
-import { useMemo, useState } from 'react';
+import { readableOn, residentVisibleEvents } from '@agora/core';
+import { useMemo, useState, type CSSProperties } from 'react';
 import {
   Bar,
   BarChart,
@@ -33,7 +33,7 @@ import { usePanel } from '../../../lib/panel-store';
 const MONTHS = ['Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep'] as const;
 
 export default function DataPage() {
-  const { events, loading, municipality } = usePanel();
+  const { categories, events, loading, municipality } = usePanel();
   const [asTable, setAsTable] = useState(false);
 
   const published = useMemo(() => residentVisibleEvents(events), [events]);
@@ -58,10 +58,15 @@ export default function DataPage() {
       totals.set(event.categoryId, current + demoInterestCount(event.id, event.isFeatured));
     }
 
+    // Labelled with the category's name, not its id: "semana-santa" is a
+    // database key, and this chart ends up in a councillor's annual report.
     return [...totals.entries()]
-      .map(([categoryId, interesados]) => ({ name: categoryId, interesados }))
+      .map(([categoryId, interesados]) => ({
+        name: categories.find((category) => category.id === categoryId)?.name ?? categoryId,
+        interesados,
+      }))
       .sort((a, b) => b.interesados - a.interesados);
-  }, [published]);
+  }, [categories, published]);
 
   const monthly = useMemo(
     () =>
@@ -97,8 +102,21 @@ export default function DataPage() {
     URL.revokeObjectURL(url);
   }
 
+  // The series takes the municipality's colour rather than a fixed blue — it
+  // is their report. Lifted to 3:1 against each scheme's card, which is what
+  // WCAG asks of a graphic object; the CSS picks the one that applies.
+  const brand = municipality.branding.primaryColor;
+
   return (
-    <div className="viz-root">
+    <div
+      className="viz-root"
+      style={
+        {
+          '--viz-series-brand-light': readableOn(brand, '#FFFFFF', 3),
+          '--viz-series-brand-dark': readableOn(brand, '#1A1A19', 3),
+        } as CSSProperties
+      }
+    >
       <PageHeader
         title="Datos"
         description="Interés de los vecinos por evento y por tipo de actividad. Siempre agregado: nunca se identifica a nadie."
