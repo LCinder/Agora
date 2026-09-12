@@ -74,7 +74,7 @@ export function Button({
         onClick={onClick}
         disabled={disabled}
         className={`${base} text-white`}
-        style={{ backgroundColor: brand ?? '#1B5E20' }}
+        style={{ backgroundColor: brand ?? '#4F46E5' }}
       >
         {children}
       </button>

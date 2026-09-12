@@ -52,6 +52,7 @@ export interface Messages {
   'calendar.weekdayInitials': string;
 
   'event.cancelled': string;
+  'event.openMap': string;
   'event.organisedBy': string;
   'event.byTownHall': string;
   'event.interested': string;
@@ -136,6 +137,7 @@ const es: Messages = {
   'calendar.weekdayInitials': 'L M X J V S D',
 
   'event.cancelled': 'Cancelado',
+  'event.openMap': 'Ver {place} en el mapa',
   'event.organisedBy': 'Organiza {name}',
   'event.byTownHall': 'Organiza el Ayuntamiento',
   'event.interested': 'Me interesa',
@@ -220,6 +222,7 @@ const en: Messages = {
   'calendar.weekdayInitials': 'M T W T F S S',
 
   'event.cancelled': 'Cancelled',
+  'event.openMap': 'See {place} on the map',
   'event.organisedBy': 'Organised by {name}',
   'event.byTownHall': 'Organised by the town hall',
   'event.interested': 'I am interested',

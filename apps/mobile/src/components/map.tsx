@@ -22,7 +22,15 @@ import { mapStyleUrl, type MapProps } from './map-shared';
  * survive a procession watched by half the town. The web build uses the
  * MapLibre JS renderer instead, in map.web.tsx.
  */
-export function Map({ latitude, longitude, route, live, marker = true, style }: MapProps) {
+export function Map({
+  latitude,
+  longitude,
+  route,
+  live,
+  marker = true,
+  interactive = true,
+  style,
+}: MapProps) {
   const theme = useTheme();
   const camera = useRef<CameraRef>(null);
 
@@ -38,7 +46,17 @@ export function Map({ latitude, longitude, route, live, marker = true, style }: 
 
   return (
     <View style={[styles.container, { borderRadius: theme.radius.md }, style]}>
-      <MapLibreMap style={StyleSheet.absoluteFill} mapStyle={mapStyleUrl(theme.scheme)} attribution>
+      <MapLibreMap
+        style={StyleSheet.absoluteFill}
+        mapStyle={mapStyleUrl(theme.scheme)}
+        attribution
+        dragPan={interactive}
+        touchZoom={interactive}
+        doubleTapZoom={interactive}
+        doubleTapHoldZoom={interactive}
+        touchRotate={interactive}
+        touchPitch={interactive}
+      >
         <Camera
           ref={camera}
           initialViewState={{

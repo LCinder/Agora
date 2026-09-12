@@ -107,7 +107,7 @@ export function PosterCreate({ subject }: { subject: PosterSubject }) {
               locationName: subject.locationName,
               municipalityName: municipality?.name ?? '',
               logoUrl: municipality?.branding.logoUrl ?? null,
-              primaryColor: municipality?.branding.primaryColor ?? '#1B5E20',
+              primaryColor: municipality?.branding.primaryColor ?? '#4F46E5',
             })
           : drawn;
 

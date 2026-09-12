@@ -65,7 +65,7 @@ $$;
 
 insert into municipalities (id, slug, name, province, population, ine_code, latitude, longitude, primary_color, status)
 values
-  ('11111111-1111-1111-1111-111111111111', 'la-zubia', 'La Zubia', 'Granada', 20389, '18193', 37.12056, -3.585, '#1B5E20', 'active'),
+  ('11111111-1111-1111-1111-111111111111', 'la-zubia', 'La Zubia', 'Granada', 20389, '18193', 37.12056, -3.585, '#4F46E5', 'active'),
   ('22222222-2222-2222-2222-222222222222', 'otura', 'Otura', 'Granada', 7696, '18149', 37.0869, -3.6403, '#7C3AED', 'active');
 
 insert into staff_users (id, auth_user_id, email, full_name)

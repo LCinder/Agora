@@ -320,3 +320,24 @@ Los cuatro huecos que quedaban entre «se ve bien» y «se ve acabada».
 **4. Icono y arranque propios.** Eran los de la plantilla de Expo, y es lo primero que ve un concejal al instalarla. La marca es una celosía: un rombo con otro dentro. Es lo que la app dibuja en cada portada, es la celosía de cualquier tapia andaluza y es la forma de un día en una rejilla, que es lo que el producto es. Se dibuja con un script (`apps/mobile/scripts/make-icons.py`) en lugar de exportarse a mano, para que todo el juego —icono, capas adaptativas de Android, arranque y favicon— se regenere solo cuando cambien los colores.
 
 **De paso, más contraste.** `tone="primary"` pintaba el color del municipio en crudo, y el verde de La Zubia da 2,38:1 sobre el fondo oscuro. Ahora pasa por `readableOn` en un solo sitio, así que todo lo que lo usa queda cubierto: sube a 4,86:1 para texto y 3,29:1 para objetos gráficos, y sobre el tema claro no lo toca, porque ahí ya daba 7,10:1. Lo mismo con la línea del recorrido y el marcador del mapa, que van sobre el basemap y no sobre el fondo de la app.
+
+---
+
+## D-023 — Morado, claro de verdad, mapa a pantalla completa y barra flotante
+**Fecha:** 2026-09-12 · **Estado:** aceptada · **Ref.:** tres correcciones pedidas sobre D-022 + referencia visual
+
+**1. El color pasa a morado.** El verde era un marcador de posición que venía del primer volcado de La Zubia y se había quedado como color de marca por inercia. El nuevo es `#4F46E5`. Se eligió midiendo, no a ojo: da **6,29:1 sobre blanco** —pasa AA como texto en el tema claro sin retoques— y 2,98:1 sobre la tinta oscura, que `readableOn` sube a 4,89:1 para texto y 3,28:1 para el trazo del recorrido y el marcador del mapa. Y se aparta a propósito del morado de la categoría Cultura (`#6D28D9`): si el color de marca y el de una categoría son el mismo, la categoría deja de significar nada.
+
+Está en un sitio por superficie: `FALLBACK_PRIMARY_COLOR` en el tema de la app, `primaryColor` en el municipio de demo, los componentes del panel web y las fixtures de test. No queda ningún `#1B5E20` en el repositorio.
+
+**2. El tema claro es blanco.** Lo que había era un crema cálido —el negativo del tema oscuro— y lo que se pide de un modo claro es papel. Fondo y superficie `#FFFFFF`, tinta `#15141B` (18,30:1), texto secundario `#66647A` (5,72:1) y un gris muy frío para las separaciones.
+
+El problema de un blanco sobre blanco es que las tarjetas dejan de existir: sin cambio de tono no hay tarjeta, solo texto suelto. Por eso el tema expone ahora **`elevation`**, una sombra muy baja y difusa en claro y **nada en oscuro**, donde la jerarquía la da el tono. Es una decisión de tema, no un estilo copiado en cada componente, así que cambiarla de idea es tocar un objeto.
+
+**3. El mapa se puede ampliar.** Un mapa dentro de una ficha es una foto de un mapa: demasiado pequeño para arrastrar y demasiado pequeño para hacer zoom, y «dónde está el Parque de la Encina» es una pregunta que un vecino responde moviéndose por el mapa. Así que la miniatura pasa a ser una **puerta** —gestos desactivados, chip de ampliar encima— y abre `app/map/[id].tsx`, un mapa a pantalla completa con el botón de volver y un panel inferior con el lugar.
+
+Desactivar los gestos en la miniatura no es un detalle: un mapa que traga el gesto dentro de una página que se desplaza deja la ficha atascada. El `interactive` viaja por las dos implementaciones (nativa y web) desde `map-shared.ts`, que es lo que evita que se separen.
+
+**4. De la referencia visual: barra flotante y tarjetas con aire.** La barra inferior deja de ser un borde pegado al canto y pasa a ser una pastilla que flota sobre el contenido, separada del borde y del área segura. Radios más generosos (`lg` de 20 a 22, `md` de 12 a 14) y la sombra del punto 2 completan el aire de la referencia.
+
+**Comprobado y no comprobado.** Los cambios se recorrieron con el navegador: la agenda en oscuro y en claro, la ficha, la barra flotante y la navegación a la pantalla de mapa. **Los teselas del mapa no se pueden verificar aquí**: el navegador del entorno de desarrollo no tiene salida a `basemaps.cartocdn.com` ni a `tiles.openfreemap.org` (la petición se corta), así que el mapa sale en negro en las capturas. La pantalla, sus controles y el enrutado sí están verificados; el dibujo del basemap hay que mirarlo en la APK.

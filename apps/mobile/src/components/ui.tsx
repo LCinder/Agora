@@ -185,6 +185,7 @@ export function Card({
   const content = (
     <View
       style={[
+        theme.elevation,
         {
           backgroundColor: theme.colors.surface,
           borderColor: theme.colors.border,
