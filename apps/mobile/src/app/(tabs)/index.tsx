@@ -3,9 +3,11 @@ import { Redirect, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { EventCard } from '../../components/event-card';
 import { MonthView } from '../../components/month-view';
+import { CalendarSkeleton } from '../../components/skeleton';
 import { Chip, EmptyState, Loading, Screen } from '../../components/ui';
 import { useMunicipalityData } from '../../hooks/use-municipality-data';
 import { useApp } from '../../providers/app-provider';
@@ -135,7 +137,7 @@ export default function CalendarScreen() {
       </ScrollView>
 
       {loading ? (
-        <Loading label={t('common.loading')} />
+        <CalendarSkeleton />
       ) : (
         <ScrollView
           contentContainerStyle={{
@@ -146,9 +148,15 @@ export default function CalendarScreen() {
           }}
         >
           {view === 'month' ? (
-            <MonthView events={filtered} categories={categories} />
+            <Animated.View key="month" entering={FadeIn.duration(220)}>
+              <MonthView events={filtered} categories={categories} />
+            </Animated.View>
           ) : (
-            <>
+            <Animated.View
+              key="list"
+              entering={FadeIn.duration(220)}
+              style={{ gap: theme.spacing(6) }}
+            >
               <Section
                 title={t('calendar.today')}
                 events={groups.today}
@@ -173,7 +181,7 @@ export default function CalendarScreen() {
                   title={isFiltered ? t('calendar.emptyFiltered') : t('calendar.empty')}
                 />
               )}
-            </>
+            </Animated.View>
           )}
         </ScrollView>
       )}
@@ -280,11 +288,21 @@ function Section({
         <View style={[styles.rule, { backgroundColor: theme.colors.surfaceMuted }]} />
       </View>
 
-      {lead ? <EventCard event={lead} category={categoryOf(lead)} variant="hero" /> : null}
+      {lead ? (
+        <Animated.View entering={FadeInDown.duration(380).springify().damping(18)}>
+          <EventCard event={lead} category={categoryOf(lead)} variant="hero" />
+        </Animated.View>
+      ) : null}
 
       {rest.map((event, index) => (
-        <View
+        <Animated.View
           key={event.id}
+          // Staggered, briefly: the list arrives in reading order instead of
+          // all at once, and 40ms apart is felt rather than watched.
+          entering={FadeInDown.delay(60 + index * 40)
+            .duration(320)
+            .springify()
+            .damping(18)}
           style={
             index === 0 && !lead
               ? undefined
@@ -296,7 +314,7 @@ function Section({
           }
         >
           <EventCard event={event} category={categoryOf(event)} />
-        </View>
+        </Animated.View>
       ))}
     </View>
   );

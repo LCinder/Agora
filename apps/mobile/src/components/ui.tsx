@@ -1,4 +1,4 @@
-import { readableTextOn } from '@agora/core';
+import { readableOn, readableTextOn } from '@agora/core';
 import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
@@ -60,7 +60,10 @@ function toneColor(tone: TextTone, theme: ReturnType<typeof useTheme>): string {
     case 'muted':
       return theme.colors.textMuted;
     case 'primary':
-      return theme.colors.primary;
+      // The town's colour is chosen for a letterhead, not for a dark screen:
+      // La Zubia's green sits at 2.4:1 on the ink ground. Lift it wherever it
+      // has to carry text.
+      return readableOn(theme.colors.primary, theme.colors.background);
     case 'danger':
       return theme.colors.danger;
     default:
@@ -332,7 +335,7 @@ export function Loading({ label }: { label: string }) {
 
   return (
     <View style={[styles.flex, styles.centred, { gap: theme.spacing(3) }]}>
-      <ActivityIndicator color={theme.colors.primary} />
+      <ActivityIndicator color={readableOn(theme.colors.primary, theme.colors.background, 3)} />
       <Caption>{label}</Caption>
     </View>
   );

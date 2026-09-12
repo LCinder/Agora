@@ -20,10 +20,19 @@ export interface MapProps {
 }
 
 /**
- * Free raster style backed by OpenStreetMap.
+ * Map styles, one per theme.
  *
- * A demo-grade choice: for production the tiles should be served from a
+ * A bright map inside a dark app is a hole punched in the screen, and at night
+ * it is the brightest thing a neighbour following a procession will be looking
+ * at. Both are demo-grade choices: for production the tiles should come from a
  * provider with a usage agreement, since a procession watched by thousands at
  * once is exactly the traffic the OSM foundation asks people not to send.
  */
-export const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
+const MAP_STYLES = {
+  light: 'https://tiles.openfreemap.org/styles/positron',
+  dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+} as const;
+
+export function mapStyleUrl(scheme: 'dark' | 'light'): string {
+  return MAP_STYLES[scheme];
+}

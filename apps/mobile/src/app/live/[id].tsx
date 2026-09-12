@@ -2,12 +2,14 @@ import { minutesSince, type Event, type Route } from '@agora/core';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Map } from '../../components/map';
-import { Badge, Body, Caption, Display, Loading, Screen, Subtitle } from '../../components/ui';
+import { Body, Caption, Loading, Screen } from '../../components/ui';
 import { dataSource } from '../../lib/data';
 import { useApp } from '../../providers/app-provider';
+import { FONTS } from '../../theme/theme';
 
 /**
  * Live tracking of a procession or parade.
@@ -85,37 +87,10 @@ export default function LiveScreen() {
   };
 
   return (
-    <Screen>
-      <View
-        style={[
-          styles.header,
-          {
-            gap: theme.spacing(2),
-            paddingHorizontal: theme.spacing(5),
-            paddingTop: theme.spacing(2),
-          },
-        ]}
-      >
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel={t('common.cancel')}
-          style={{ justifyContent: 'center', minHeight: theme.touchTarget, width: 40 }}
-        >
-          <Ionicons name="chevron-back" size={26} color={theme.colors.text} />
-        </Pressable>
-        <View style={styles.grow}>
-          <Display>{t('live.title')}</Display>
-        </View>
-        <Badge label={t('live.title')} color={theme.colors.danger} />
-      </View>
-
-      <View style={{ gap: theme.spacing(2), padding: theme.spacing(5) }}>
-        <Subtitle>{event?.title ?? ''}</Subtitle>
-        <Caption>{t('live.lastUpdate', { minutes: minutesSince(updatedAt, new Date()) })}</Caption>
-      </View>
-
-      <View style={{ flex: 1, paddingHorizontal: theme.spacing(5) }}>
+    <Screen edges={[]}>
+      {/* The map runs the whole screen: following a procession means watching
+          the map, and everything else floats over it. */}
+      <View style={StyleSheet.absoluteFill}>
         {route ? (
           <Map
             latitude={centre.latitude}
@@ -126,19 +101,91 @@ export default function LiveScreen() {
             style={styles.map}
           />
         ) : (
-          <Body tone="muted">{t('live.notStarted')}</Body>
+          <View style={[styles.centre, { backgroundColor: theme.colors.background }]}>
+            <Body tone="muted">{t('live.notStarted')}</Body>
+          </View>
         )}
       </View>
 
-      <View style={{ padding: theme.spacing(5) }}>
-        <Caption>{t('live.plannedRoute')}</Caption>
-      </View>
+      <SafeAreaView edges={['top']} style={styles.overlay} pointerEvents="box-none">
+        <View style={[styles.header, { gap: theme.spacing(3), padding: theme.spacing(4) }]}>
+          <Pressable
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.cancel')}
+            style={({ pressed }) => [
+              styles.back,
+              {
+                backgroundColor: theme.colors.surface,
+                borderRadius: theme.radius.pill,
+                minHeight: theme.touchTarget,
+                minWidth: theme.touchTarget,
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            <Ionicons name="chevron-back" size={26} color={theme.colors.text} />
+          </Pressable>
+
+          <View
+            style={[
+              styles.liveBadge,
+              {
+                backgroundColor: theme.colors.surface,
+                borderRadius: theme.radius.pill,
+                gap: theme.spacing(2),
+                paddingHorizontal: theme.spacing(3),
+              },
+            ]}
+          >
+            <View style={[styles.dot, { backgroundColor: theme.colors.live }]} />
+            <Text style={[styles.badgeText, { color: theme.colors.live }]}>
+              {t('live.title').toUpperCase()}
+            </Text>
+          </View>
+        </View>
+      </SafeAreaView>
+
+      <SafeAreaView edges={['bottom']} style={styles.sheetHolder} pointerEvents="box-none">
+        <View
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+              borderTopLeftRadius: theme.radius.lg,
+              borderTopRightRadius: theme.radius.lg,
+              gap: theme.spacing(3),
+              padding: theme.spacing(5),
+            },
+          ]}
+        >
+          <View style={[styles.grabber, { backgroundColor: theme.colors.border }]} />
+          <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={2}>
+            {event?.title ?? ''}
+          </Text>
+          <Caption>
+            {t('live.lastUpdate', { minutes: minutesSince(updatedAt, new Date()) })}
+          </Caption>
+          <Caption>{t('live.plannedRoute')}</Caption>
+        </View>
+      </SafeAreaView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  back: { alignItems: 'center', justifyContent: 'center' },
+  badgeText: { fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 1.4 },
+  centre: { alignItems: 'center', flex: 1, justifyContent: 'center' },
+  dot: { borderRadius: 999, height: 9, width: 9 },
+  grabber: { alignSelf: 'center', borderRadius: 999, height: 4, width: 42 },
   grow: { flex: 1 },
-  header: { alignItems: 'center', flexDirection: 'row' },
-  map: { flex: 1 },
+  header: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+  liveBadge: { alignItems: 'center', flexDirection: 'row', height: 36 },
+  map: { borderRadius: 0, flex: 1 },
+  overlay: { left: 0, position: 'absolute', right: 0, top: 0 },
+  sheet: { borderTopWidth: 1 },
+  sheetHolder: { bottom: 0, left: 0, position: 'absolute', right: 0 },
+  title: { fontFamily: FONTS.black, fontSize: 24, letterSpacing: -0.5, lineHeight: 26 },
 });

@@ -303,3 +303,20 @@ Detalle que se come a mucha gente: **React Native no sintetiza pesos de una fuen
 **5. Iconos siempre rellenos** en la barra inferior. Contorno cuando está inactivo y relleno cuando está activo, que es la convención de las dos plataformas.
 
 **Y dos de tipografía fina:** el nombre del municipio llevaba un tracking de -0,9 que cerraba «LA ZUBIA» en una sola palabra, y la meta de cada fila gastaba la hora de fin, que empujaba el lugar fuera de pantalla. El lugar es lo que un vecino busca; la hora de fin no.
+
+---
+
+## D-022 — Movimiento, esqueletos, las pantallas que faltaban y la marca
+**Fecha:** 2026-09-12 · **Estado:** aceptada · **Ref.:** cierra lo que D-021 dejó pendiente
+
+Los cuatro huecos que quedaban entre «se ve bien» y «se ve acabada».
+
+**1. Movimiento.** La agenda entra escalonada —el destacado primero y las filas 40 ms detrás, en orden de lectura—, cambiar de lista a mes cruza en vez de saltar, y pulsar una tarjeta la encoge un 1,5%. Con `react-native-reanimated`, que ya era dependencia. Las transiciones de pantalla tienen intención: el detalle empuja desde la derecha, el directo sube desde abajo, porque es algo a lo que se entra y de lo que se sale, no una página a la que se navega.
+
+**2. Esqueletos en vez de ruleta.** Un indicador girando dice que algo pasa; un esqueleto dice **qué** va a aparecer, y la pantalla no da un salto cuando llega. Los bloques copian el ritmo real —una portada grande, luego sellos y líneas— así que la llegada es un relleno, no un redibujado. La ruleta se queda solo donde todavía no se sabe de qué municipio se trata.
+
+**3. Bienvenida, directo y mapa.** La bienvenida pasa al lenguaje de cartel con titular pesado y sello de iniciales por municipio —«La Zubia» da LZ, «Villa de Otura» da VO, «Cájar» da CÁ: las mayúsculas llevan el nombre y los enlaces en minúscula de un topónimo español no—. El directo pasa a mapa a pantalla completa con los controles flotando encima y un panel inferior, porque seguir una procesión es mirar el mapa. **Y el mapa tiene ahora un estilo por tema:** uno claro dentro de una app oscura es un agujero en la pantalla, y de noche es lo más brillante que va a mirar un vecino.
+
+**4. Icono y arranque propios.** Eran los de la plantilla de Expo, y es lo primero que ve un concejal al instalarla. La marca es una celosía: un rombo con otro dentro. Es lo que la app dibuja en cada portada, es la celosía de cualquier tapia andaluza y es la forma de un día en una rejilla, que es lo que el producto es. Se dibuja con un script (`apps/mobile/scripts/make-icons.py`) en lugar de exportarse a mano, para que todo el juego —icono, capas adaptativas de Android, arranque y favicon— se regenere solo cuando cambien los colores.
+
+**De paso, más contraste.** `tone="primary"` pintaba el color del municipio en crudo, y el verde de La Zubia da 2,38:1 sobre el fondo oscuro. Ahora pasa por `readableOn` en un solo sitio, así que todo lo que lo usa queda cubierto: sube a 4,86:1 para texto y 3,29:1 para objetos gráficos, y sobre el tema claro no lo toca, porque ahí ya daba 7,10:1. Lo mismo con la línea del recorrido y el marcador del mapa, que van sobre el basemap y no sobre el fondo de la app.

@@ -75,7 +75,12 @@ export function EventCard({
         onPress={() => router.push(`/event/${event.id}`)}
         accessibilityRole="button"
         accessibilityLabel={`${event.title}. ${when}. ${event.location.name}`}
-        style={({ pressed }) => [{ opacity: pressed ? 0.85 : cancelled ? 0.7 : 1 }]}
+        style={({ pressed }) => [
+          {
+            opacity: pressed ? 0.92 : cancelled ? 0.7 : 1,
+            transform: [{ scale: pressed ? 0.985 : 1 }],
+          },
+        ]}
       >
         <View style={{ borderRadius: theme.radius.lg, overflow: 'hidden' }}>
           <EventCover
@@ -144,7 +149,11 @@ export function EventCard({
       accessibilityLabel={`${event.title}. ${when}. ${event.location.name}`}
       style={({ pressed }) => [
         styles.row,
-        { gap: theme.spacing(4), opacity: pressed ? 0.7 : cancelled ? 0.7 : 1 },
+        {
+          gap: theme.spacing(4),
+          opacity: pressed ? 0.75 : cancelled ? 0.7 : 1,
+          transform: [{ scale: pressed ? 0.99 : 1 }],
+        },
       ]}
     >
       <EventCover event={event} category={category} size="stamp" width={STAMP} height={STAMP} />

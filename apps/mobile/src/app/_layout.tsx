@@ -42,11 +42,16 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AppProvider>
-        <Stack screenOptions={{ headerShown: false }}>
+        <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
           <Stack.Screen name="event/[id]" options={{ presentation: 'card' }} />
-          <Stack.Screen name="live/[id]" options={{ presentation: 'card' }} />
+          {/* The live map is something you drop into and out of, not a page
+              you navigate to: it comes up from the bottom. */}
+          <Stack.Screen
+            name="live/[id]"
+            options={{ presentation: 'card', animation: 'slide_from_bottom' }}
+          />
         </Stack>
         <StatusBar style="auto" />
       </AppProvider>
