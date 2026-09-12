@@ -40,8 +40,17 @@ pnpm --filter @agora/web dev
 - Panel del ayuntamiento: <http://localhost:3000>
 - Página pública de un evento: <http://localhost:3000/e/la-zubia/lz-cabalgata>
 
-Para que funcione el lector de carteles, copia `apps/web/.env.example` a `apps/web/.env.local` y
-pon tu `ANTHROPIC_API_KEY`. Sin clave el panel funciona igual: el botón avisa de que falta.
+Para que funcionen los carteles, copia `apps/web/.env.example` a `apps/web/.env.local` y pon tus
+claves: `ANTHROPIC_API_KEY` para leerlos y `GEMINI_API_KEY` para dibujarlos (se saca gratis en
+[AI Studio](https://aistudio.google.com/apikey), unas 50 imágenes al día sin tarjeta). Sin claves el
+panel funciona igual: el botón avisa de cuál falta.
+
+El panel hace las dos direcciones del cartel. Si el evento ya tiene uno, se sube y la IA rellena el
+formulario. Si no lo tiene, el técnico escribe una frase y se dibuja: Claude convierte esa frase en
+una instrucción visual completa y el modelo de imagen la dibuja. Por defecto dibuja solo el fondo y
+el panel compone encima el título, la fecha, el lugar y el color del municipio, para que esos datos
+salgan siempre bien; el cartel entero dibujado por la IA, texto incluido, está en el desplegable.
+Ver D-018, que incluye una advertencia sobre el nivel gratuito de Google y protección de datos.
 
 ### App móvil
 

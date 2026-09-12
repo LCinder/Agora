@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { ScrollView, View } from 'react-native';
 
 import { EventCard } from '../../components/event-card';
+import { CalendarSkeleton } from '../../components/skeleton';
 import { Display, EmptyState, Loading, Screen, Subtitle } from '../../components/ui';
 import { useMunicipalityData } from '../../hooks/use-municipality-data';
 import { useApp } from '../../providers/app-provider';
@@ -33,7 +34,7 @@ export default function MyEventsScreen() {
   if (!ready) {
     return (
       <Screen>
-        <Loading label={t('common.loading')} />
+        <CalendarSkeleton />
       </Screen>
     );
   }

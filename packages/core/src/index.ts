@@ -7,6 +7,8 @@
  */
 
 export * from './category';
+export * from './color';
+export * from './cover';
 export * from './event';
 export * from './filters';
 export * from './format';
@@ -14,6 +16,7 @@ export * from './geo';
 export * from './grouping';
 export * from './links';
 export * from './live-session';
+export * from './month';
 export * from './municipality';
 export * from './organization';
 export * from './time';

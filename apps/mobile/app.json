@@ -14,7 +14,7 @@
     "android": {
       "package": "com.agora.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#121211",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -30,17 +30,23 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#E6F4FE",
+          "backgroundColor": "#121211",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 160
+          "imageWidth": 200,
+          "dark": {
+            "backgroundColor": "#121211",
+            "image": "./assets/images/splash-icon.png"
+          }
         }
       ],
       "expo-localization",
-      "@maplibre/maplibre-react-native"
+      "@maplibre/maplibre-react-native",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": false,
       "reactCompiler": true
-    }
+    },
+    "backgroundColor": "#121211"
   }
 }

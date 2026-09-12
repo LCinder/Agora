@@ -1,12 +1,13 @@
-import { findNearest } from '@agora/core';
+import { findNearest, readableOn } from '@agora/core';
 import type { MunicipalitySummary } from '@agora/data';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Body, Button, Caption, Card, Display, Loading, Screen, Subtitle } from '../components/ui';
+import { Body, Button, Caption, Card, Loading, Screen, Subtitle } from '../components/ui';
+import { FONTS } from '../theme/theme';
 import { addRequestedMunicipality } from '../lib/storage';
 import { useApp } from '../providers/app-provider';
 
@@ -25,6 +26,23 @@ type LocationState =
   | { status: 'suggested'; municipality: MunicipalitySummary }
   | { status: 'denied' }
   | { status: 'unavailable' };
+
+/**
+ * "La Zubia" reads as LZ, "Villa de Otura" as VO, "Cájar" as CÁ.
+ *
+ * Capitalised words carry the name; the lowercase joiners of a Spanish place
+ * name — de, del, la — do not, and Spanish spells them lowercase inside a name
+ * exactly when they are joiners.
+ */
+function initialsOf(name: string): string {
+  const words = name
+    .split(/\s+/)
+    .filter((word) => word !== '' && word[0] === word[0]?.toUpperCase());
+
+  const source = words.length > 1 ? words.map((word) => word[0]).join('') : (words[0] ?? name);
+
+  return source.slice(0, 2).toUpperCase();
+}
 
 /** Makes "Ogíjares" findable by typing "ogijares". */
 function normalise(value: string): string {
@@ -96,7 +114,12 @@ export default function WelcomeScreen() {
   return (
     <Screen>
       <View style={{ gap: theme.spacing(3), padding: theme.spacing(5) }}>
-        <Display>{t('welcome.title')}</Display>
+        <Text style={[styles.eyebrow, { color: theme.colors.textMuted }]}>
+          {t('calendar.municipalAgenda').toUpperCase()}
+        </Text>
+        <Text style={[styles.headline, { color: theme.colors.text }]}>
+          {t('welcome.title').toUpperCase()}
+        </Text>
         <Body tone="muted">{t('welcome.subtitle')}</Body>
 
         <View
@@ -135,20 +158,44 @@ export default function WelcomeScreen() {
           paddingHorizontal: theme.spacing(5),
         }}
         renderItem={({ item }) => (
-          <Card
+          <Pressable
             onPress={() => void choose(item.id)}
+            accessibilityRole="button"
             accessibilityLabel={`${item.name}, ${item.province}`}
+            style={({ pressed }) => [
+              styles.town,
+              {
+                borderColor: theme.colors.border,
+                borderRadius: theme.radius.md,
+                gap: theme.spacing(4),
+                minHeight: 68,
+                opacity: pressed ? 0.7 : 1,
+                paddingHorizontal: theme.spacing(4),
+                transform: [{ scale: pressed ? 0.99 : 1 }],
+              },
+            ]}
           >
-            <View style={styles.row}>
-              <View style={styles.grow}>
-                <Subtitle>{item.name}</Subtitle>
-                <Caption>
-                  {item.province} · {t('welcome.inhabitants', { count: item.population })}
-                </Caption>
-              </View>
-              <Ionicons name="chevron-forward" size={22} color={theme.colors.textMuted} />
+            <View
+              style={[
+                styles.stamp,
+                {
+                  backgroundColor: theme.colors.surfaceMuted,
+                  borderRadius: theme.radius.sm,
+                },
+              ]}
+            >
+              <Text style={[styles.initials, { color: theme.colors.textMuted }]}>
+                {initialsOf(item.name)}
+              </Text>
             </View>
-          </Card>
+            <View style={styles.grow}>
+              <Text style={[styles.townName, { color: theme.colors.text }]}>{item.name}</Text>
+              <Caption>
+                {item.province} · {t('welcome.inhabitants', { count: item.population })}
+              </Caption>
+            </View>
+            <Ionicons name="chevron-forward" size={22} color={theme.colors.textMuted} />
+          </Pressable>
         )}
         ListEmptyComponent={
           <Card>
@@ -222,13 +269,23 @@ function LocationBlock({
         { minHeight: theme.touchTarget, opacity: pressed ? 0.85 : 1 },
       ]}
     >
-      <Ionicons name="locate" size={20} color={theme.colors.primary} />
+      <Ionicons
+        name="locate"
+        size={20}
+        color={readableOn(theme.colors.primary, theme.colors.background, 3)}
+      />
       <Body tone="primary">{t('welcome.useLocation')}</Body>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  eyebrow: { fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 1.5 },
+  headline: { fontFamily: FONTS.black, fontSize: 38, letterSpacing: -0.8, lineHeight: 38 },
+  initials: { fontFamily: FONTS.black, fontSize: 15, letterSpacing: -0.3 },
+  stamp: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
+  town: { alignItems: 'center', borderWidth: 1, flexDirection: 'row' },
+  townName: { fontFamily: FONTS.bold, fontSize: 18, letterSpacing: -0.2 },
   grow: { flex: 1 },
   locationButton: { alignItems: 'center', flexDirection: 'row', gap: 8 },
   row: { alignItems: 'center', flexDirection: 'row', gap: 12 },

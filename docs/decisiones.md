@@ -215,3 +215,108 @@ Cada vez que algo entra en `main` —una fusión de rama incluida— el workflow
 **Arquitecturas:** solo `arm64-v8a` por defecto, que es cualquier móvil de los últimos años, para que el APK pese lo menos posible. El lanzamiento manual permite incluir `armeabi-v7a` y las de emulador.
 
 **iOS queda fuera:** compilar para iOS exige cuenta de Apple Developer de pago y certificados de firma, y no se puede hacer en un runner de GitHub. Cuando haya cuenta, iOS irá por EAS.
+
+---
+
+## D-018 — Dibujar carteles: Gemini para la imagen, Claude para la instrucción
+**Fecha:** 2026-09-11 · **Estado:** aceptada (provisional) · **Ref.:** amplía D-009 y D-014
+
+El panel hace ahora las dos direcciones del cartel. Leerlo, que ya estaba, y dibujarlo: el técnico escribe una frase y sale un cartel.
+
+**Dos pasos, no uno.** Lo que escribe un técnico municipal es «concurso de tortillas en la plaza», que describe bien el evento y sirve muy mal de instrucción para un modelo de imagen. Así que Claude Opus 5 la convierte primero en una instrucción visual completa, con salida validada por Zod, y solo después dibuja el modelo de imagen. El técnico no tiene que aprender a escribir instrucciones para una IA, que es exactamente lo que no va a hacer.
+
+**Por qué Gemini:** Claude no genera imágenes. `gemini-3.1-flash-image` (Nano Banana 2) es hoy la opción gratuita más generosa —unas 50 imágenes al día por la API de Google AI Studio, sin tarjeta— y la que mejor escribe texto dentro de la imagen, que aquí es justo lo que más cuesta.
+
+**Dos modos, y el que se recomienda no es el vistoso.** Un cartel municipal es una comunicación oficial: si la fecha sale mal, el problema no es una errata. Por eso el modo por defecto pide al modelo una ilustración **sin texto** y el panel compone encima el título, la fecha, el lugar y el color del municipio, que son datos que ya tiene en el formulario. Salen bien siempre y se pueden corregir sin volver a dibujar. El modo de cartel entero, con el texto dentro de la imagen, queda disponible en un desplegable y avisa de que hay que repasarlo.
+
+**Sin llave, el panel sigue funcionando**, igual que con el lector de carteles: el botón avisa de qué falta y el técnico rellena el formulario a mano.
+
+**La composición ocurre en el navegador**, sobre un `canvas`, porque el panel no tiene servidor donde renderizar (D-013). El cartel se descarga; no se guarda en el evento, porque el panel persiste en el navegador y un JPEG en base64 se comería la cuota de almacenamiento.
+
+### Lo que queda abierto, y hay que cerrar antes de Fase 2
+
+**El nivel gratuito de Google usa lo que se le envía para entrenar sus modelos**, con revisión humana declarada, y desde marzo de 2026 sus términos dicen que AI Studio no es para uso de consumidor. Vendemos a ayuntamientos, donde el ayuntamiento es responsable del tratamiento y nosotros encargados (sección 10 del documento de proyecto): montar una función del producto sobre esos términos no se sostiene en un contrato del artículo 28.
+
+Se ha aceptado a sabiendas para Fase 0 y Fase 1, porque en una demo no hay datos de nadie y porque quita fricción para probarlo. **Antes de que un ayuntamiento lo use de verdad hay que pasar a nivel de pago**, donde Google no entrena con lo enviado: es activar la facturación, la misma clave y ni una línea de código distinta. El coste es despreciable —unos pocos carteles al mes por municipio— y cabe de sobra en el objetivo de pocos euros al mes por municipio.
+
+**Y no cierra la elección de proveedor:** son una llamada HTTP y una variable de entorno. Cambiar a otro modelo de imagen es reescribir esa llamada, no tocar el panel.
+
+---
+
+## D-019 — Vista de mes: rejilla con puntos, no una agenda en miniatura
+**Fecha:** 2026-09-11 · **Estado:** aceptada
+
+La agenda tiene ahora un conmutador «Lista / Mes». La lista sigue siendo lo que se abre por defecto.
+
+**Por qué existe:** la lista responde a «qué hay pronto», que es para lo que un vecino abre la app. El mes responde a «qué hay cuando yo esté libre», que es lo que pregunta quien organiza un finde o viene de fuera a las fiestas. Y es la forma en la que el ayuntamiento ya publica su programación, así que es la vista que un concejal reconoce de un vistazo.
+
+**Puntos, no números:** cada día muestra hasta tres puntos con el color de la categoría, no un contador. De un vistazo lo que se quiere saber es si hay algo, y contar viene después. Ningún significado depende solo del color: cada día dice en voz alta su fecha y cuántos eventos tiene para los lectores de pantalla, que es lo que exige el RD 1112/2018.
+
+**De lunes a domingo**, porque es un calendario para España. Las iniciales de los días viven en `@agora/i18n`, así que el inglés no hereda «L M X J V S D».
+
+**El día elegido se despliega debajo** con las mismas tarjetas de la lista, en vez de abrir otra pantalla. Un mes sin poder ver qué hay en un día es una decoración.
+
+**La lógica está en `@agora/core`**, con 13 pruebas: una rejilla de calendario es engañosa en los finales de mes, los años bisiestos y el vecino que abre la app desde el extranjero, y nada de eso es algo que apetezca depurar mirando un móvil. Los días se calculan en la zona horaria del municipio, nunca en la del dispositivo, igual que la agrupación: una verbena que acaba a la 01:30 sale en los dos días, y un evento de varios días sale en todos ellos.
+
+**De paso:** la fila de filtros se estiraba en vertical cuando el contenido de debajo era corto, y los chips salían como óvalos altos. Existía desde antes; la vista de mes, con un mes vacío, lo dejó a la vista.
+
+---
+
+## D-020 — Dirección C implementada: portada por categoría, destacado y oscuro por defecto
+**Fecha:** 2026-09-11 · **Estado:** aceptada · **Ref.:** sustituye el aspecto anterior, ver `.design/`
+
+La app pasa de parecer un formulario a parecer un cartel. De las tres direcciones del lienzo se eligió la C: fondo oscuro, color plano de la categoría, celosía y tipografía de gran tamaño.
+
+**La app dibuja la portada.** Casi ningún evento trae imagen —la charla de una asociación, un taller municipal, un partido de liga— y un calendario de rectángulos grises es exactamente el problema que había. Así que la portada se genera con las dos cosas que todo evento sí tiene: el color de su categoría y su fecha. El día del mes en grande **es** el gráfico. Cuando el evento sí trae cartel, manda el cartel y el dibujo se aparta.
+
+**Una portada por categoría, no una por municipio.** `coverTreatmentFor` en `@agora/core` reparte cuatro tratamientos —fecha, celosía, tipográfica y bandas— con asignación deliberada para las seis categorías compartidas y un hash estable para las que se inventa cada municipio. Nadie en el ayuntamiento tiene que configurar nada, y una categoría no cambia de aspecto entre dos aperturas de la app.
+
+**Los colores de categoría se calculan, no se tabulan.** Están escritos para papel y se hunden sobre fondo oscuro: `#6D28D9` da 2,9:1 sobre `#121211`. `readableOn` de `@agora/core` recorre la luminosidad conservando el tono hasta cruzar el 4,5:1. Se calcula porque cada municipio trae sus propias categorías con sus propios colores, así que ninguna lista de pares elegidos a mano puede cubrirlos. El plano de la portada sí conserva el color exacto: ahí el texto va en blanco.
+
+**El destacado manda.** Solo un bloque de la agenda lleva evento grande —el primero con contenido, y dentro de él el marcado como destacado— para que la pantalla tenga un foco y no una fila de iguales. Es lo que un ayuntamiento quiere empujar.
+
+**Oscuro por defecto, claro en Ajustes.** No se sigue el ajuste del teléfono salvo que el vecino elija «Automático»: una agenda que se consulta en la calle en agosto merece que la decisión sea suya. Las tres opciones viven en Ajustes y se guardan en el dispositivo.
+
+**El color del municipio se repliega.** En esta dirección el color lo llevan las portadas, así que los filtros seleccionados se invierten contra el fondo en vez de teñirse de la marca: una fila de pastillas verdes peleaba con cada cartel de debajo. La marca queda en la barra inferior y en el botón de «Me interesa» —y ahí también pasa por `readableOn`, porque el verde de La Zubia sobre la barra oscura daba 2,38:1.
+
+**La celosía se dibuja con vistas, no con SVG.** Una rejilla de rombos son unas cuantas `View` giradas 45°; traer un renderizador nativo de SVG costaría una dependencia y una recompilación a todos los municipios.
+
+**Lo que queda con el aspecto anterior:** la pantalla de bienvenida, el directo y el mapa heredan la paleta nueva pero no se han recompuesto.
+
+---
+
+## D-021 — Tipografía propia y los detalles que separan «tematizado» de «diseñado»
+**Fecha:** 2026-09-11 · **Estado:** aceptada · **Ref.:** remata D-020
+
+D-020 dejó la app coherente pero todavía se leía como una app de React Native bien tematizada. Cinco cosas lo delataban, y las cinco eran de oficio, no de dirección.
+
+**1. La fuente del sistema.** Era lo que más cantaba. Ahora la app trae **Archivo** empaquetada, en cinco pesos, cargada con `expo-font` antes del primer fotograma: una app que enseña la fuente del sistema y luego reflowa es lo más barato que se puede hacer. Archivo es una grotesca con un negro muy pesado; aguanta un titular de cartel y también compone una línea de detalle de 15px.
+
+Detalle que se come a mucha gente: **React Native no sintetiza pesos de una fuente empaquetada**. Cada peso es su propia familia y `fontWeight` no se usa nunca con ellas, porque en Android cae en silencio a la fuente del sistema. Por eso `theme.fonts` expone los cinco nombres y no queda ni un `fontWeight` en la app. La auditoría encontró además `Body` y `Caption` sin familia, que es el clásico fallo de fuentes mezcladas: titulares en Archivo y cuerpo en la del sistema.
+
+**2. Dos filas de pastillas apiladas.** El conmutador Lista/Mes y los filtros tenían la misma forma, así que ninguno de los dos se leía como una elección. El conmutador pasa a ser un control segmentado en la cabecera, y el nombre del municipio se convierte en el propio control para cambiar de pueblo —como en cualquier app con selector de ubicación—, lo que elimina una fila entera.
+
+**3. Un panel opaco sobre el destacado.** Un rectángulo de borde duro encima de un cartel parece una pegatina pegada por encima. Ahora es un degradado (`expo-linear-gradient`), y el destacado baja de 296 a 264 px porque sobraba aire en medio.
+
+**4. Filas flotando.** Un filete entre eventos para que la lista se lea como una lista.
+
+**5. Iconos siempre rellenos** en la barra inferior. Contorno cuando está inactivo y relleno cuando está activo, que es la convención de las dos plataformas.
+
+**Y dos de tipografía fina:** el nombre del municipio llevaba un tracking de -0,9 que cerraba «LA ZUBIA» en una sola palabra, y la meta de cada fila gastaba la hora de fin, que empujaba el lugar fuera de pantalla. El lugar es lo que un vecino busca; la hora de fin no.
+
+---
+
+## D-022 — Movimiento, esqueletos, las pantallas que faltaban y la marca
+**Fecha:** 2026-09-12 · **Estado:** aceptada · **Ref.:** cierra lo que D-021 dejó pendiente
+
+Los cuatro huecos que quedaban entre «se ve bien» y «se ve acabada».
+
+**1. Movimiento.** La agenda entra escalonada —el destacado primero y las filas 40 ms detrás, en orden de lectura—, cambiar de lista a mes cruza en vez de saltar, y pulsar una tarjeta la encoge un 1,5%. Con `react-native-reanimated`, que ya era dependencia. Las transiciones de pantalla tienen intención: el detalle empuja desde la derecha, el directo sube desde abajo, porque es algo a lo que se entra y de lo que se sale, no una página a la que se navega.
+
+**2. Esqueletos en vez de ruleta.** Un indicador girando dice que algo pasa; un esqueleto dice **qué** va a aparecer, y la pantalla no da un salto cuando llega. Los bloques copian el ritmo real —una portada grande, luego sellos y líneas— así que la llegada es un relleno, no un redibujado. La ruleta se queda solo donde todavía no se sabe de qué municipio se trata.
+
+**3. Bienvenida, directo y mapa.** La bienvenida pasa al lenguaje de cartel con titular pesado y sello de iniciales por municipio —«La Zubia» da LZ, «Villa de Otura» da VO, «Cájar» da CÁ: las mayúsculas llevan el nombre y los enlaces en minúscula de un topónimo español no—. El directo pasa a mapa a pantalla completa con los controles flotando encima y un panel inferior, porque seguir una procesión es mirar el mapa. **Y el mapa tiene ahora un estilo por tema:** uno claro dentro de una app oscura es un agujero en la pantalla, y de noche es lo más brillante que va a mirar un vecino.
+
+**4. Icono y arranque propios.** Eran los de la plantilla de Expo, y es lo primero que ve un concejal al instalarla. La marca es una celosía: un rombo con otro dentro. Es lo que la app dibuja en cada portada, es la celosía de cualquier tapia andaluza y es la forma de un día en una rejilla, que es lo que el producto es. Se dibuja con un script (`apps/mobile/scripts/make-icons.py`) en lugar de exportarse a mano, para que todo el juego —icono, capas adaptativas de Android, arranque y favicon— se regenere solo cuando cambien los colores.
+
+**De paso, más contraste.** `tone="primary"` pintaba el color del municipio en crudo, y el verde de La Zubia da 2,38:1 sobre el fondo oscuro. Ahora pasa por `readableOn` en un solo sitio, así que todo lo que lo usa queda cubierto: sube a 4,86:1 para texto y 3,29:1 para objetos gráficos, y sobre el tema claro no lo toca, porque ahí ya daba 7,10:1. Lo mismo con la línea del recorrido y el marcador del mapa, que van sobre el basemap y no sobre el fondo de la app.

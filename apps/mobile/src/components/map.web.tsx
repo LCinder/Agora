@@ -3,8 +3,10 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 import { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { readableOn } from '@agora/core';
+
 import { useTheme } from '../providers/app-provider';
-import { MAP_STYLE_URL, type MapProps } from './map-shared';
+import { mapStyleUrl, type MapProps } from './map-shared';
 
 /**
  * Map for the web build, on the MapLibre JS renderer.
@@ -18,12 +20,14 @@ export function Map({ latitude, longitude, route, live, marker = true, style }: 
   const map = useRef<MapLibreMap | null>(null);
   const liveMarker = useRef<maplibregl.Marker | null>(null);
 
+  const routeColor = readableOn(theme.colors.primary, theme.colors.background, 3);
+
   useEffect(() => {
     if (!container.current || map.current) return;
 
     const instance = new maplibregl.Map({
       container: container.current,
-      style: MAP_STYLE_URL,
+      style: mapStyleUrl(theme.scheme),
       center: [longitude, latitude],
       zoom: route ? 13 : 15,
       attributionControl: { compact: true },
@@ -40,7 +44,7 @@ export function Map({ latitude, longitude, route, live, marker = true, style }: 
           type: 'line',
           source: 'planned-route',
           paint: {
-            'line-color': theme.colors.primary,
+            'line-color': routeColor,
             'line-width': 4,
             'line-opacity': 0.9,
           },
@@ -48,7 +52,7 @@ export function Map({ latitude, longitude, route, live, marker = true, style }: 
       }
 
       if (marker) {
-        new maplibregl.Marker({ color: theme.colors.primary })
+        new maplibregl.Marker({ color: routeColor })
           .setLngLat([longitude, latitude])
           .addTo(instance);
       }

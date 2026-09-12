@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 
 import type { PosterReading } from '../app/api/poster/route';
 import { usePanel } from '../lib/panel-store';
-import { Button, Card } from './ui';
+import { Button } from './ui';
 
 /**
  * Poster import.
@@ -55,9 +55,8 @@ export function PosterImport({ onRead }: { onRead: (reading: PosterReading) => v
   }
 
   return (
-    <Card className="h-fit">
-      <h2 className="text-lg font-semibold">Crear desde el cartel</h2>
-      <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+    <div>
+      <p className="text-sm text-neutral-600 dark:text-neutral-400">
         Sube la foto del cartel y rellenamos el formulario. Revísalo antes de publicar.
       </p>
 
@@ -96,6 +95,6 @@ export function PosterImport({ onRead }: { onRead: (reading: PosterReading) => v
           {state.message}
         </p>
       ) : null}
-    </Card>
+    </div>
   );
 }

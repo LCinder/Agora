@@ -112,7 +112,7 @@ Logo y color de La Zubia aplicados desde su `municipality.json`, accesibilidad b
 
 ## Desviaciones respecto al documento de proyecto
 
-- **Vista de mes:** el documento la incluye en Fase 0; aquí baja al paso 14 como opcional. La vista de lista cubre la mayor parte del uso real.
+- ~~**Vista de mes:** el documento la incluye en Fase 0; aquí baja al paso 14 como opcional.~~ Se dejó fuera al cerrar la Fase 0 y **ya está hecha** (D-019). La vista de lista sigue siendo la de entrada, porque cubre la mayor parte del uso real.
 - **Notificaciones:** el paso 9 simula el envío, como ya preveía el documento.
 - **Multi-municipio:** el documento lo deja fuera de Fase 0 ("multi-municipio real"). Aquí sí se construye la **estructura** multi-municipio (selector, módulos, aislamiento de datos por municipio), porque retrofitarla después sería reescribir la app. Lo que sigue fuera es el backend multi-inquilino real, que llega en Fase 2.
 - **Cartel con IA:** el documento lo sitúa en el backlog de Fase 3. Se adelanta a Fase 0 por su impacto comercial y su bajo coste de construcción.
@@ -146,5 +146,6 @@ Logo y color de La Zubia aplicados desde su `municipality.json`, accesibilidad b
   la CI compila el APK de Android en cada fusión con `main` y lo deja descargable en Actions
   (D-017). Solo volvería a hacer falta para iOS o para publicar en tiendas.
 - `ANTHROPIC_API_KEY` en `apps/web/.env.local` para el lector de carteles.
-- Vista de mes: se dejó fuera a propósito (ver desviaciones más arriba). Es media tarde de trabajo
-  si en una reunión resulta que la piden.
+- ~~Vista de mes: se dejó fuera a propósito.~~ Hecha. Conmutador «Lista / Mes» en la agenda, con
+  rejilla de lunes a domingo, puntos del color de cada categoría y el día elegido desplegado
+  debajo. Ver D-019.

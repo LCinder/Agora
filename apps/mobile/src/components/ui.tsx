@@ -1,3 +1,4 @@
+import { readableOn, readableTextOn } from '@agora/core';
 import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
@@ -13,6 +14,7 @@ import {
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
 import { useTheme } from '../providers/app-provider';
+import { FONTS } from '../theme/theme';
 
 /**
  * The small set of primitives every screen is built from.
@@ -58,7 +60,10 @@ function toneColor(tone: TextTone, theme: ReturnType<typeof useTheme>): string {
     case 'muted':
       return theme.colors.textMuted;
     case 'primary':
-      return theme.colors.primary;
+      // The town's colour is chosen for a letterhead, not for a dark screen:
+      // La Zubia's green sits at 2.4:1 on the ink ground. Lift it wherever it
+      // has to carry text.
+      return readableOn(theme.colors.primary, theme.colors.background);
     case 'danger':
       return theme.colors.danger;
     default:
@@ -79,7 +84,11 @@ export function Display({ children, tone = 'default', style }: TypeProps) {
     <Text
       accessibilityRole="header"
       style={[
-        { color: toneColor(tone, theme), fontSize: theme.fontSize.display, fontWeight: '700' },
+        {
+          color: toneColor(tone, theme),
+          fontFamily: FONTS.black,
+          fontSize: theme.fontSize.display,
+        },
         style,
       ]}
     >
@@ -94,7 +103,7 @@ export function Title({ children, tone = 'default', style, numberOfLines }: Type
     <Text
       numberOfLines={numberOfLines}
       style={[
-        { color: toneColor(tone, theme), fontSize: theme.fontSize.title, fontWeight: '600' },
+        { color: toneColor(tone, theme), fontFamily: FONTS.bold, fontSize: theme.fontSize.title },
         style,
       ]}
     >
@@ -109,7 +118,11 @@ export function Subtitle({ children, tone = 'default', style, numberOfLines }: T
     <Text
       numberOfLines={numberOfLines}
       style={[
-        { color: toneColor(tone, theme), fontSize: theme.fontSize.subtitle, fontWeight: '600' },
+        {
+          color: toneColor(tone, theme),
+          fontFamily: FONTS.semibold,
+          fontSize: theme.fontSize.subtitle,
+        },
         style,
       ]}
     >
@@ -124,7 +137,12 @@ export function Body({ children, tone = 'default', style, numberOfLines }: TypeP
     <Text
       numberOfLines={numberOfLines}
       style={[
-        { color: toneColor(tone, theme), fontSize: theme.fontSize.body, lineHeight: 24 },
+        {
+          color: toneColor(tone, theme),
+          fontFamily: FONTS.regular,
+          fontSize: theme.fontSize.body,
+          lineHeight: 24,
+        },
         style,
       ]}
     >
@@ -138,7 +156,14 @@ export function Caption({ children, tone = 'muted', style, numberOfLines }: Type
   return (
     <Text
       numberOfLines={numberOfLines}
-      style={[{ color: toneColor(tone, theme), fontSize: theme.fontSize.caption }, style]}
+      style={[
+        {
+          color: toneColor(tone, theme),
+          fontFamily: FONTS.regular,
+          fontSize: theme.fontSize.caption,
+        },
+        style,
+      ]}
     >
       {children}
     </Text>
@@ -232,7 +257,7 @@ export function Button({
         style={{
           color: isPrimary ? theme.colors.onPrimary : theme.colors.text,
           fontSize: theme.fontSize.body,
-          fontWeight: '600',
+          fontFamily: FONTS.semibold,
         }}
       >
         {label}
@@ -253,7 +278,10 @@ export function Chip({
   color?: string;
 }) {
   const theme = useTheme();
-  const accent = color ?? theme.colors.primary;
+  // A selected filter reverses out of the ground rather than taking the town's
+  // colour: on this design the colour belongs to the event covers, and a row of
+  // brand-coloured pills fights every poster under it.
+  const accent = color ?? theme.colors.contrast;
 
   return (
     <Pressable
@@ -261,7 +289,7 @@ export function Chip({
       accessibilityRole="button"
       accessibilityState={{ selected }}
       style={({ pressed }) => ({
-        backgroundColor: selected ? accent : theme.colors.surface,
+        backgroundColor: selected ? accent : 'transparent',
         borderColor: selected ? accent : theme.colors.border,
         borderRadius: theme.radius.pill,
         borderWidth: 1,
@@ -273,9 +301,9 @@ export function Chip({
     >
       <Text
         style={{
-          color: selected ? '#FFFFFF' : theme.colors.text,
+          color: selected ? readableTextOn(accent) : theme.colors.textMuted,
           fontSize: theme.fontSize.caption,
-          fontWeight: '600',
+          fontFamily: selected ? FONTS.bold : FONTS.semibold,
         }}
       >
         {label}
@@ -297,7 +325,7 @@ export function Badge({ label, color }: { label: string; color: string }) {
         paddingVertical: theme.spacing(1),
       }}
     >
-      <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '700' }}>{label}</Text>
+      <Text style={{ color: '#FFFFFF', fontFamily: FONTS.bold, fontSize: 12 }}>{label}</Text>
     </View>
   );
 }
@@ -307,7 +335,7 @@ export function Loading({ label }: { label: string }) {
 
   return (
     <View style={[styles.flex, styles.centred, { gap: theme.spacing(3) }]}>
-      <ActivityIndicator color={theme.colors.primary} />
+      <ActivityIndicator color={readableOn(theme.colors.primary, theme.colors.background, 3)} />
       <Caption>{label}</Caption>
     </View>
   );

@@ -9,8 +9,10 @@ import {
 import { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { readableOn } from '@agora/core';
+
 import { useTheme } from '../providers/app-provider';
-import { MAP_STYLE_URL, type MapProps } from './map-shared';
+import { mapStyleUrl, type MapProps } from './map-shared';
 
 /**
  * Map for iOS and Android, on MapLibre with OpenStreetMap tiles.
@@ -24,6 +26,10 @@ export function Map({ latitude, longitude, route, live, marker = true, style }: 
   const theme = useTheme();
   const camera = useRef<CameraRef>(null);
 
+  // The route is drawn over the map, not the app ground, and a dark green on
+  // a dark basemap disappears.
+  const routeColor = readableOn(theme.colors.primary, theme.colors.background, 3);
+
   useEffect(() => {
     if (!live) return;
 
@@ -32,7 +38,7 @@ export function Map({ latitude, longitude, route, live, marker = true, style }: 
 
   return (
     <View style={[styles.container, { borderRadius: theme.radius.md }, style]}>
-      <MapLibreMap style={StyleSheet.absoluteFill} mapStyle={MAP_STYLE_URL} attribution>
+      <MapLibreMap style={StyleSheet.absoluteFill} mapStyle={mapStyleUrl(theme.scheme)} attribution>
         <Camera
           ref={camera}
           initialViewState={{
@@ -49,14 +55,14 @@ export function Map({ latitude, longitude, route, live, marker = true, style }: 
             <Layer
               id="planned-route-line"
               type="line"
-              paint={{ 'line-color': theme.colors.primary, 'line-width': 4, 'line-opacity': 0.9 }}
+              paint={{ 'line-color': routeColor, 'line-width': 4, 'line-opacity': 0.9 }}
             />
           </GeoJSONSource>
         ) : null}
 
         {marker ? (
           <Marker id="event-location" lngLat={[longitude, latitude]}>
-            <View style={[styles.pin, { backgroundColor: theme.colors.primary }]} />
+            <View style={[styles.pin, { backgroundColor: routeColor }]} />
           </Marker>
         ) : null}
 

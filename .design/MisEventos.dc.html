@@ -1,0 +1,120 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Black&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Archivo', system-ui, sans-serif; background: #121211; color: #F4F3F0; -webkit-font-smoothing: antialiased; }
+    a { color: #E8763C; text-decoration: none; } a:hover { color: #f09a6c; }
+    .black { font-family: 'Archivo Black', 'Archivo', system-ui, sans-serif; font-weight: 400; }
+    .cat { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+    .sello { position: relative; width: 72px; height: 72px; border-radius: 12px; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+    .saved { display: flex; gap: 14px; align-items: center; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; display: flex; flex-direction: column; background: #121211; overflow: hidden">
+
+  <div style="display: flex; flex-direction: column; gap: 4px; padding: 32px 20px 0 20px">
+    <span class="cat" style="color: #8A867A">4 guardados</span>
+    <h1 class="black" style="margin: 0; font-size: 34px; line-height: 0.94; letter-spacing: -0.025em; text-transform: uppercase">Mis eventos</h1>
+  </div>
+
+  <!-- Aviso -->
+  <div style="margin: 20px 20px 0 20px; border-radius: 12px; background: #2A1C0C; border: 1px solid #5C3D12; padding: 14px 16px; display: flex; gap: 12px">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#E8A33C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-top: 2px"><path d="M12 3l9.5 16.5H2.5z"/><path d="M12 9.5v4M12 16.8h.01"/></svg>
+    <div style="display: flex; flex-direction: column; gap: 3px">
+      <span class="cat" style="color: #E8A33C">Cambio de hora</span>
+      <span style="font-size: 15px; line-height: 1.42; color: #E0D8C6">La procesión sale a las 20:30 en lugar de a las 20:00.</span>
+    </div>
+  </div>
+
+  <div style="flex: 1; display: flex; flex-direction: column; gap: 16px; padding: 24px 20px 0 20px; overflow: hidden">
+
+    <div style="display: flex; align-items: center; gap: 10px">
+      <span class="cat" style="color: #F4F3F0">Esta semana</span>
+      <div style="flex: 1; height: 1px; background: #26251F"></div>
+    </div>
+
+    <div class="saved">
+      <div class="sello" style="background: #6D28D9">
+        <svg style="position: absolute; inset: 0" width="72" height="72" aria-hidden="true">
+          <defs>
+            <pattern id="me-lace" width="24" height="24" patternUnits="userSpaceOnUse">
+              <path d="M12 0 L24 12 L12 24 L0 12 Z" fill="none" stroke="#FFFFFF" stroke-opacity="0.2" stroke-width="1.5"/>
+            </pattern>
+          </defs>
+          <rect width="72" height="72" fill="url(#me-lace)"/>
+        </svg>
+        <span class="black" style="position: relative; font-size: 27px; line-height: 0.9; color: #FFFFFF; letter-spacing: -0.03em">11</span>
+        <span class="cat" style="position: relative; font-size: 10px; color: rgba(255,255,255,0.92)">Vie</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0">
+        <span class="cat" style="color: #A98BE8">Cultura</span>
+        <h3 style="margin: 0; font-size: 19px; font-weight: 700; line-height: 1.16; letter-spacing: -0.015em">Cine a la fresca</h3>
+        <span style="font-size: 15px; color: #8A867A">22:00 · Parque de la Encina</span>
+      </div>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="#F4F3F0" style="flex: none"><path d="M12 20.5l-1.4-1.3C5.4 14.5 2.5 11.9 2.5 8.7 2.5 6.1 4.6 4 7.2 4c1.5 0 2.9.7 3.8 1.8L12 6.9l1-1.1C13.9 4.7 15.3 4 16.8 4c2.6 0 4.7 2.1 4.7 4.7 0 3.2-2.9 5.8-8.1 10.5z"/></svg>
+    </div>
+
+    <div class="saved">
+      <div class="sello" style="background: #0369A1">
+        <svg style="position: absolute; inset: 0" width="72" height="72" aria-hidden="true"><rect width="72" height="72" fill="url(#me-lace)"/></svg>
+        <span class="black" style="position: relative; font-size: 27px; line-height: 0.9; color: #FFFFFF; letter-spacing: -0.03em">12</span>
+        <span class="cat" style="position: relative; font-size: 10px; color: rgba(255,255,255,0.92)">Sáb</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0">
+        <span class="cat" style="color: #4CAEEA">Infantil</span>
+        <h3 style="margin: 0; font-size: 19px; font-weight: 700; line-height: 1.16; letter-spacing: -0.015em">Cuentacuentos</h3>
+        <span style="font-size: 15px; color: #8A867A">18:00 · Biblioteca Municipal</span>
+      </div>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="#F4F3F0" style="flex: none"><path d="M12 20.5l-1.4-1.3C5.4 14.5 2.5 11.9 2.5 8.7 2.5 6.1 4.6 4 7.2 4c1.5 0 2.9.7 3.8 1.8L12 6.9l1-1.1C13.9 4.7 15.3 4 16.8 4c2.6 0 4.7 2.1 4.7 4.7 0 3.2-2.9 5.8-8.1 10.5z"/></svg>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; margin-top: 2px">
+      <span class="cat" style="color: #F4F3F0">Más adelante</span>
+      <div style="flex: 1; height: 1px; background: #26251F"></div>
+    </div>
+
+    <div class="saved">
+      <div class="sello" style="background: #C2410C">
+        <svg style="position: absolute; inset: 0" width="72" height="72" aria-hidden="true"><rect width="72" height="72" fill="url(#me-lace)"/></svg>
+        <span class="black" style="position: relative; font-size: 27px; line-height: 0.9; color: #FFFFFF; letter-spacing: -0.03em">26</span>
+        <span class="cat" style="position: relative; font-size: 10px; color: rgba(255,255,255,0.92)">Sáb</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0">
+        <span class="cat" style="color: #EE7B48">Fiestas</span>
+        <h3 style="margin: 0; font-size: 19px; font-weight: 700; line-height: 1.16; letter-spacing: -0.015em">Feria de San Miguel</h3>
+        <span style="font-size: 15px; color: #8A867A">Recinto ferial</span>
+      </div>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="#F4F3F0" style="flex: none"><path d="M12 20.5l-1.4-1.3C5.4 14.5 2.5 11.9 2.5 8.7 2.5 6.1 4.6 4 7.2 4c1.5 0 2.9.7 3.8 1.8L12 6.9l1-1.1C13.9 4.7 15.3 4 16.8 4c2.6 0 4.7 2.1 4.7 4.7 0 3.2-2.9 5.8-8.1 10.5z"/></svg>
+    </div>
+  </div>
+
+  <div style="flex: none; display: flex; background: #1A1A17; border-top: 1px solid #26251F; padding: 8px 0 18px 0">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8A867A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+      <span style="font-size: 12px; font-weight: 600; color: #8A867A">Agenda</span>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="#F4F3F0"><path d="M12 20.5l-1.4-1.3C5.4 14.5 2.5 11.9 2.5 8.7 2.5 6.1 4.6 4 7.2 4c1.5 0 2.9.7 3.8 1.8L12 6.9l1-1.1C13.9 4.7 15.3 4 16.8 4c2.6 0 4.7 2.1 4.7 4.7 0 3.2-2.9 5.8-8.1 10.5z"/></svg>
+      <span style="font-size: 12px; font-weight: 700; color: #F4F3F0">Mis eventos</span>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8A867A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8 2 2 0 11-2.7 2.7 1.6 1.6 0 00-1.8.3 1.6 1.6 0 00-1 1.5 2 2 0 11-4 0 1.6 1.6 0 00-1-1.5 1.6 1.6 0 00-1.8-.3 2 2 0 11-2.7-2.7 1.6 1.6 0 00.3-1.8 1.6 1.6 0 00-1.5-1 2 2 0 110-4 1.6 1.6 0 001.5-1 1.6 1.6 0 00-.3-1.8 2 2 0 112.7-2.7 1.6 1.6 0 001.8.3 1.6 1.6 0 001-1.5 2 2 0 114 0 1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3 2 2 0 112.7 2.7 1.6 1.6 0 00-.3 1.8 1.6 1.6 0 001.5 1 2 2 0 110 4 1.6 1.6 0 00-1.5 1z"/></svg>
+      <span style="font-size: 12px; font-weight: 600; color: #8A867A">Ajustes</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

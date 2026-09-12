@@ -5,7 +5,7 @@ es que en tres minutos entienda **qué problema suyo resuelve** y **qué se llev
 
 ## Antes de entrar
 
-- [ ] Móvil con la *development build* instalada y **cargado**.
+- [ ] Móvil con el APK instalado desde la release `android-latest` y **cargado**. Arranca solo, sin portátil (D-017).
 - [ ] Portátil con el panel arrancado en `http://localhost:3000` y el navegador en pantalla completa.
 - [ ] Pulsa **«Reiniciar demo»** en el panel para empezar limpio.
 - [ ] Si vas a enseñar el lector de carteles, comprueba que `ANTHROPIC_API_KEY` está puesta.

@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Black&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Archivo', system-ui, sans-serif; background: #121211; color: #F4F3F0; -webkit-font-smoothing: antialiased; }
+    a { color: #7FD68A; text-decoration: none; } a:hover { color: #a8e3af; }
+    .black { font-family: 'Archivo Black', 'Archivo', system-ui, sans-serif; font-weight: 400; }
+    .cat { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; position: relative; background: #1B1A18; overflow: hidden">
+
+  <!-- Mapa -->
+  <div style="position: absolute; inset: 0; background: linear-gradient(155deg, #232220 0%, #1C1B19 50%, #202320 100%)"></div>
+  <div style="position: absolute; left: 0; right: 0; top: 33%; height: 12px; background: #2C2B27"></div>
+  <div style="position: absolute; left: 0; right: 0; top: 62%; height: 9px; background: #2C2B27"></div>
+  <div style="position: absolute; top: 0; bottom: 0; left: 26%; width: 10px; background: #2C2B27"></div>
+  <div style="position: absolute; top: 0; bottom: 0; left: 68%; width: 8px; background: #2C2B27"></div>
+  <div style="position: absolute; left: 40px; top: 300px; width: 120px; height: 80px; border-radius: 8px; background: #262A26"></div>
+  <div style="position: absolute; right: 34px; top: 430px; width: 100px; height: 96px; border-radius: 8px; background: #262A26"></div>
+
+  <!-- Recorrido previsto -->
+  <svg style="position: absolute; inset: 0" width="390" height="844" viewBox="0 0 390 844" fill="none">
+    <path d="M56 706 L104 706 L104 524 L246 524 L246 330 L332 330" stroke="#4A4843" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 16"/>
+    <path d="M56 706 L104 706 L104 524 L246 524" stroke="#C2410C" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+
+  <!-- Posición actual -->
+  <div style="position: absolute; left: 226px; top: 504px; width: 40px; height: 40px; border-radius: 999px; background: rgba(194,65,12,0.28)"></div>
+  <div style="position: absolute; left: 236px; top: 514px; width: 20px; height: 20px; border-radius: 999px; background: #C2410C; border: 3px solid #FFFFFF"></div>
+
+  <!-- Salida y llegada -->
+  <div style="position: absolute; left: 46px; top: 696px; width: 20px; height: 20px; border-radius: 999px; background: #1B1A18; border: 3px solid #8A8578"></div>
+  <div style="position: absolute; left: 322px; top: 320px; width: 20px; height: 20px; border-radius: 999px; background: #1B1A18; border: 3px solid #8A8578"></div>
+
+  <!-- Cabecera -->
+  <div style="position: absolute; top: 0; left: 0; right: 0; padding: 24px 16px 40px 16px; background: linear-gradient(180deg, rgba(19,19,19,0.92) 0%, rgba(19,19,19,0.72) 55%, rgba(19,19,19,0) 100%); display: flex; align-items: flex-start; gap: 12px">
+    <div style="width: 48px; height: 48px; border-radius: 999px; background: rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; flex: none">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4F3F0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 5px; padding-top: 4px; flex: 1; min-width: 0">
+      <div style="display: flex; align-items: center; gap: 7px">
+        <div style="width: 9px; height: 9px; border-radius: 999px; background: #EF4444"></div>
+        <span class="cat" style="color: #EF4444">En directo</span>
+      </div>
+      <h1 class="black" style="margin: 0; font-size: 27px; line-height: 1.02; letter-spacing: -0.025em; color: #FFFFFF; text-transform: uppercase">Procesión del Cristo</h1>
+    </div>
+  </div>
+
+  <!-- Panel inferior -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; background: #1A1A17; border-top: 1px solid #35342F; border-radius: 20px 20px 0 0; padding: 10px 22px 26px 22px; display: flex; flex-direction: column; gap: 16px">
+    <div style="width: 42px; height: 4px; border-radius: 999px; background: #4A4843; align-self: center"></div>
+
+    <div style="display: flex; align-items: center; gap: 12px">
+      <div style="width: 44px; height: 44px; border-radius: 999px; background: rgba(194,65,12,0.18); display: flex; align-items: center; justify-content: center; flex: none">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E8763C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.6 7-11a7 7 0 10-14 0c0 5.4 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></svg>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0">
+        <span style="font-size: 18px; font-weight: 700; color: #FFFFFF">Calle Real, a la altura del 24</span>
+        <span style="font-size: 15px; color: #B5B2A8">Actualizado hace 1 min</span>
+      </div>
+    </div>
+
+    <!-- Progreso del recorrido -->
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="height: 8px; border-radius: 999px; background: #2E2E2A; overflow: hidden">
+        <div style="width: 62%; height: 8px; border-radius: 999px; background: #C2410C"></div>
+      </div>
+      <div style="display: flex; justify-content: space-between">
+        <span style="font-size: 14px; color: #B5B2A8">Salida · Parroquia</span>
+        <span style="font-size: 14px; font-weight: 700; color: #F4F3F0">Llega en ~25 min</span>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px">
+      <div style="flex: 1; height: 50px; border-radius: 12px; background: #F4F3F0; display: flex; align-items: center; justify-content: center; gap: 8px">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#121211" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg>
+        <span class="black" style="font-size: 16px; color: #121211; letter-spacing: -0.01em">Ver el evento</span>
+      </div>
+      <div style="width: 50px; height: 50px; border-radius: 12px; border: 1px solid #4A4843; display: flex; align-items: center; justify-content: center; flex: none">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F4F3F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13M12 3l-4 4M12 3l4 4"/><path d="M5 14v5a2 2 0 002 2h10a2 2 0 002-2v-5"/></svg>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>
