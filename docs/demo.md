@@ -8,7 +8,7 @@ es que en tres minutos entienda **qué problema suyo resuelve** y **qué se llev
 - [ ] Móvil con el APK instalado desde la release `android-latest` y **cargado**. Arranca solo, sin portátil (D-017).
 - [ ] Portátil con el panel arrancado en `http://localhost:3000` y el navegador en pantalla completa.
 - [ ] Pulsa **«Reiniciar demo»** en el panel para empezar limpio.
-- [ ] Si vas a enseñar el lector de carteles, comprueba que `ANTHROPIC_API_KEY` está puesta.
+- [ ] Si vas a enseñar los carteles, comprueba que `GEMINI_API_KEY`, `CLOUDFLARE_ACCOUNT_ID` y `CLOUDFLARE_API_TOKEN` están puestas.
 - [ ] Ten a mano **un cartel real de su ayuntamiento** (descárgalo de su web o de su Facebook antes
       de la reunión). Es el momento que más impresiona.
 - [ ] Wifi comprobado. Si no hay, el calendario sigue funcionando: dilo, es una ventaja.

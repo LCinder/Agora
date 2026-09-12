@@ -1,7 +1,7 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+
+import { geminiErrorResponse, geminiJson } from '../../../lib/gemini';
 
 /**
  * Reads an event poster and fills in the form for the municipal officer.
@@ -12,45 +12,99 @@ import { z } from 'zod';
  * of a poster in a WhatsApp group, so that is the input the panel accepts.
  *
  * The result is never published on its own: it fills a form a person reviews
- * and confirms. An LLM reading a date off a poster is right most of the time,
+ * and confirms. A model reading a date off a poster is right most of the time,
  * and most of the time is not good enough to publish unattended.
+ *
+ * Runs on Gemini Flash for its free tier — see `lib/gemini.ts` and D-024.
  */
 
-const MODEL = 'claude-opus-5';
 const MAX_BYTES = 8 * 1024 * 1024;
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const;
 
 const posterSchema = z.object({
-  title: z.string().describe('Título del evento, tal y como aparece en el cartel'),
-  description: z
-    .string()
-    .describe(
-      'Resumen breve del cartel, en español, de una o dos frases. Vacío si no hay más información.',
-    ),
-  startDate: z
-    .string()
-    .describe('Fecha de inicio en formato AAAA-MM-DD. Cadena vacía si el cartel no la indica.'),
-  startTime: z
-    .string()
-    .describe('Hora de inicio en formato HH:mm, 24 horas. Cadena vacía si no aparece.'),
-  endTime: z.string().describe('Hora de fin en formato HH:mm. Cadena vacía si no aparece.'),
-  locationName: z.string().describe('Lugar del evento. Cadena vacía si no aparece.'),
-  isFree: z
-    .boolean()
-    .describe('true si el cartel dice que la entrada es gratuita o no menciona precio'),
-  priceInfo: z
-    .string()
-    .describe('Precio tal y como aparece en el cartel. Cadena vacía si es gratis.'),
-  organizerName: z
-    .string()
-    .describe('Quién organiza, si el cartel lo dice. Cadena vacía en caso contrario.'),
-  confidence: z
-    .enum(['high', 'medium', 'low'])
-    .describe('Cuánta confianza hay en los datos extraídos, sobre todo en la fecha'),
+  title: z.string(),
+  description: z.string(),
+  startDate: z.string(),
+  startTime: z.string(),
+  endTime: z.string(),
+  locationName: z.string(),
+  isFree: z.boolean(),
+  priceInfo: z.string(),
+  organizerName: z.string(),
+  confidence: z.enum(['high', 'medium', 'low']),
 });
 
 export type PosterReading = z.infer<typeof posterSchema>;
+
+/**
+ * The same fields in Gemini's response-schema dialect. `propertyOrdering` is
+ * not decoration: the model fills the object in this order, and letting it
+ * settle the title and the date before the judgement call on confidence gives
+ * a better answer than asking for confidence first.
+ */
+const RESPONSE_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    title: { type: 'STRING', description: 'Título del evento, tal y como aparece en el cartel' },
+    description: {
+      type: 'STRING',
+      description:
+        'Resumen breve del cartel, en español, de una o dos frases. Vacío si no hay más.',
+    },
+    startDate: {
+      type: 'STRING',
+      description: 'Fecha de inicio en formato AAAA-MM-DD. Cadena vacía si el cartel no la indica.',
+    },
+    startTime: {
+      type: 'STRING',
+      description: 'Hora de inicio en formato HH:mm, 24 horas. Cadena vacía si no aparece.',
+    },
+    endTime: { type: 'STRING', description: 'Hora de fin en HH:mm. Cadena vacía si no aparece.' },
+    locationName: { type: 'STRING', description: 'Lugar del evento. Cadena vacía si no aparece.' },
+    isFree: {
+      type: 'BOOLEAN',
+      description: 'true si el cartel dice que la entrada es gratuita o no menciona precio',
+    },
+    priceInfo: {
+      type: 'STRING',
+      description: 'Precio tal y como aparece en el cartel. Cadena vacía si es gratis.',
+    },
+    organizerName: {
+      type: 'STRING',
+      description: 'Quién organiza, si el cartel lo dice. Cadena vacía en caso contrario.',
+    },
+    confidence: {
+      type: 'STRING',
+      enum: ['high', 'medium', 'low'],
+      description: 'Cuánta confianza hay en los datos extraídos, sobre todo en la fecha',
+    },
+  },
+  required: [
+    'title',
+    'description',
+    'startDate',
+    'startTime',
+    'endTime',
+    'locationName',
+    'isFree',
+    'priceInfo',
+    'organizerName',
+    'confidence',
+  ],
+  propertyOrdering: [
+    'title',
+    'startDate',
+    'startTime',
+    'endTime',
+    'locationName',
+    'organizerName',
+    'isFree',
+    'priceInfo',
+    'description',
+    'confidence',
+  ],
+} as const;
 
 const SYSTEM_PROMPT = `Eres el asistente de un ayuntamiento andaluz. Lees carteles de eventos municipales y extraes sus datos para que un técnico los revise antes de publicarlos.
 
@@ -62,25 +116,7 @@ Reglas:
 - Si el cartel no indica el año, usa el año en curso que se te da más abajo, salvo que la fecha ya haya pasado hace más de dos meses, en cuyo caso usa el siguiente.
 - Marca la confianza como baja si la fecha es ambigua o poco legible.`;
 
-function client(): Anthropic | null {
-  if (!process.env.ANTHROPIC_API_KEY) return null;
-  return new Anthropic();
-}
-
 export async function POST(request: Request): Promise<NextResponse> {
-  const anthropic = client();
-
-  if (!anthropic) {
-    return NextResponse.json(
-      {
-        error: 'missing_api_key',
-        message:
-          'Falta ANTHROPIC_API_KEY. Añádela a apps/web/.env.local para leer carteles de verdad.',
-      },
-      { status: 503 },
-    );
-  }
-
   const form = await request.formData();
   const file = form.get('poster');
 
@@ -110,62 +146,34 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const data = Buffer.from(await file.arrayBuffer()).toString('base64');
 
-  try {
-    const response = await anthropic.messages.parse({
-      model: MODEL,
-      max_tokens: 4000,
-      system: SYSTEM_PROMPT,
-      output_config: { format: zodOutputFormat(posterSchema) },
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: file.type as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
-                data,
-              },
-            },
-            {
-              type: 'text',
-              text: `Extrae los datos de este cartel. Hoy es ${new Date().toISOString().slice(0, 10)}.`,
-            },
-          ],
-        },
-      ],
-    });
+  const result = await geminiJson({
+    system: SYSTEM_PROMPT,
+    schema: RESPONSE_SCHEMA as unknown as Record<string, unknown>,
+    parts: [
+      { inlineData: { mimeType: file.type, data } },
+      {
+        text: `Extrae los datos de este cartel. Hoy es ${new Date().toISOString().slice(0, 10)}.`,
+      },
+    ],
+    parse: (value) => {
+      const parsed = posterSchema.safeParse(value);
+      return parsed.success ? parsed.data : null;
+    },
+  });
 
-    if (response.stop_reason === 'refusal' || !response.parsed_output) {
-      return NextResponse.json(
-        {
-          error: 'not_readable',
-          message: 'No hemos podido leer este cartel. Rellena los datos a mano.',
-        },
-        { status: 422 },
-      );
-    }
+  if (result.ok) return NextResponse.json(result.value);
 
-    return NextResponse.json(response.parsed_output);
-  } catch (error) {
-    if (error instanceof Anthropic.AuthenticationError) {
-      return NextResponse.json(
-        { error: 'bad_api_key', message: 'La clave de la API de Claude no es válida.' },
-        { status: 503 },
-      );
-    }
-
-    if (error instanceof Anthropic.RateLimitError) {
-      return NextResponse.json(
-        { error: 'rate_limited', message: 'Demasiadas peticiones. Inténtalo en un momento.' },
-        { status: 429 },
-      );
-    }
-
+  // A poster the model could not make sense of is not an error the officer can
+  // act on, so it gets its own message: fill it in by hand and carry on.
+  if (result.failure === 'refused') {
     return NextResponse.json(
-      { error: 'unknown', message: 'No hemos podido leer el cartel. Rellena los datos a mano.' },
-      { status: 500 },
+      {
+        error: 'not_readable',
+        message: 'No hemos podido leer este cartel. Rellena los datos a mano.',
+      },
+      { status: 422 },
     );
   }
+
+  return geminiErrorResponse(result.failure, 'leer carteles');
 }
