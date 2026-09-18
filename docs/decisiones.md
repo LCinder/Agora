@@ -373,3 +373,66 @@ FLUX schnell está además bajo licencia Apache 2.0, lo que evita una conversaci
 **Lo que esto no arregla.** El nivel gratuito de Gemini **sigue usando lo enviado para mejorar los productos de Google**; la propia página de precios lo marca como _Yes_. Para la demo, con carteles de eventos ya públicos, es asumible. **Antes de tocar datos reales de un ayuntamiento hay que pasar a nivel de pago**, y eso va en el contrato de encargo del tratamiento. Cloudflare cobra por ampliar cuota, no por privacidad, así que ahí el salto es solo de volumen.
 
 **Verificado y no verificado.** Las dos rutas responden 503 con el mensaje correcto cuando falta cada credencial, comprobado con el panel levantado. **El camino bueno no está probado**: no hay claves en este entorno, y el navegador del contenedor no tiene salida a ninguno de los dos proveedores. La primera prueba real es pegar las claves y dibujar un cartel.
+
+---
+
+## D-017 — Backend en AWS. D-001 cerrada
+**Fecha:** 2026-09-18 · **Estado:** aceptada
+
+La decisión de backend, que se dejó abierta a propósito en la Fase 0, se cierra a favor de **AWS**.
+
+**Por qué:** es donde está la experiencia de María, que es el activo técnico del equipo. La recomendación original (Supabase) valía por velocidad de montaje, y esa ventaja pesa menos cuando una de las dos personas lleva años en AWS.
+
+---
+
+## D-018 — DynamoDB, y por tanto sin VPC
+**Fecha:** 2026-09-18 · **Estado:** aceptada
+
+La restricción que manda es **coste cero mientras no haya clientes**. Una base de datos relacional gestionada cuesta por existir; DynamoDB bajo demanda no cuesta nada cuando nadie la usa.
+
+**El efecto de segundo orden es el importante:** sin una base de datos dentro de una VPC, las Lambdas no necesitan estar en una VPC, y sin VPC no hace falta pasarela NAT. La NAT costaba unos 32 €/mes, más que la propia base de datos. Con ella desaparecen subredes, grupos de seguridad, endpoints y RDS Proxy.
+
+**Lo que cuesta:** el trabajo de `infra/db/` deja de usarse. El modelo de permisos que documenta sigue siendo el bueno y se reproduce en DynamoDB; lo que se tira es la implementación.
+
+**Cómo se conserva el aislamiento** sin seguridad por fila:
+1. La clave de partición nombra siempre el municipio.
+2. Una sola capa de acceso donde los tipos impiden llamar sin municipio.
+3. Índices dispersos: un evento sin aprobar no está en el índice que lee el calendario público, así que esa consulta no puede devolverlo.
+4. Roles de IAM por Lambda, con denegación explícita del índice de recordatorios en todos menos en la tarea que lo necesita.
+
+Los 23 tests de aislamiento se portan a DynamoDB Local. Eso no se negocia.
+
+---
+
+## D-019 — Panel estático, no OpenNext ni Vercel
+**Fecha:** 2026-09-18 · **Estado:** aceptada
+
+El panel se despliega como export estático a S3 y CloudFront. La página pública de evento, que sí necesita servidor por las etiquetas Open Graph, es una Lambda aparte.
+
+**Por qué no Vercel:** su plan gratuito excluye el uso comercial, así que harían falta unos 40 $/mes para dos personas, y además saca los datos de la cuenta de AWS y añade un subencargado del tratamiento al contrato con cada ayuntamiento.
+
+**Por qué no OpenNext:** genera función de servidor, optimización de imágenes, cola de revalidación, bucket de caché y función de calentamiento. Son seis piezas para servir un panel que usan tres técnicos municipales, y persigue las versiones de Next.
+
+**Lo que se pierde:** renderizado en servidor del panel. Nadie posiciona en Google el panel interno de un ayuntamiento.
+
+---
+
+## D-020 — El directo se cachea, no se emite
+**Fecha:** 2026-09-18 · **Estado:** aceptada
+
+El seguimiento en directo no usa WebSockets. El móvil consulta `/live/{eventId}` cada cinco segundos y CloudFront lo sirve con un TTL de cinco segundos.
+
+**Por qué:** con 5.000 vecinos mirando una procesión, WebSockets significan mantener 5.000 conexiones y hacer 5.000 envíos cada cinco segundos, unas 1.000 llamadas por segundo desde Lambda. Con caché, esas mismas 1.000 peticiones por segundo las absorbe el borde y el origen recibe **una cada cinco segundos**.
+
+El desfase cabe dentro del criterio de aceptación, que pide una posición cada 5-10 segundos. El terabyte mensual gratuito de CloudFront cubre el tráfico.
+
+---
+
+## D-021 — Los vecinos no están en Cognito
+**Fecha:** 2026-09-18 · **Estado:** aceptada
+
+Cognito es solo para el personal municipal y las asociaciones. Los vecinos se identifican con un testigo firmado que emite la propia plataforma.
+
+**Por qué:** todo lo que hace un vecino es leer datos públicos, que salen de la caché sin tocar una Lambda. Lo único que necesita identidad es «Me interesa». Meter a los vecinos en un grupo de identidades de Cognito sería pagar complejidad por una identidad que no tienen.
+
+**Y los permisos no salen del testigo.** Cognito responde a «quién eres»; qué puede hacer sale de la tabla, porque un rol es por municipio y los grupos de Cognito no saben de municipios. La ventaja práctica: dar de baja a un técnico que se va del ayuntamiento es borrar una fila, no esperar a que caduque un JWT.

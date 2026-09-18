@@ -53,3 +53,11 @@ pnpm-debug.log*
 # Test output
 coverage/
 .expo-smoke/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+*.auto.tfvars
+crash.log

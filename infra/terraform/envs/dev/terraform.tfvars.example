@@ -1,0 +1,9 @@
+# Copy to terraform.tfvars and fill in. The real file is gitignored: it names
+# your AWS account, and that does not belong in a public repository.
+aws_profile    = "agora"
+aws_account_id = "000000000000"
+alert_email    = "tu@correo.es"
+
+# While there is no domain, the panel is served from CloudFront. Add the real
+# origin here once there is one.
+allowed_origins = ["http://localhost:3000"]

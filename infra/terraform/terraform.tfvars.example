@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars and fill in. The real file is gitignored: it names
+# your account, and that does not belong in a public repository.
+aws_profile    = "agora"
+aws_account_id = "000000000000"
+
+# Where the monthly budget alarm sends its warning.
+budget_alert_email = "tu@correo.es"
