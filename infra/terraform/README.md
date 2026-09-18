@@ -42,7 +42,8 @@ infra/terraform/
 ├─ envs/
 │  ├─ dev/
 │  └─ prod/
-└─ lambda-src/     manejadores (ahora mismo, esqueletos)
+└─ (los manejadores ya no están aquí: son apps/functions, en TypeScript, y esta
+    configuración comprime su dist/ — ver D-035)
 ```
 
 ## Puesta en marcha
@@ -76,7 +77,10 @@ backend "s3" {
 
 ### 3. Aplicar
 
+Las funciones se compilan antes, porque Terraform comprime lo que encuentre y no compila nada:
+
 ```bash
+pnpm --filter @agora/functions build
 cd infra/terraform/envs/dev
 cp terraform.tfvars.example terraform.tfvars      # rellena perfil, cuenta y correo
 terraform init
@@ -139,15 +143,17 @@ origin access control no añade `.html` por su cuenta. Está en `modules/web/fun
 
 ## Qué falta
 
-- [ ] **Los manejadores de verdad.** `lambda-src/` son esqueletos que responden 501. El autorizador
-      de dispositivos deniega todo, que es lo único seguro que puede hacer un esqueleto. El de
-      carteles es el que tiene el camino más corto: la lógica ya existe en el panel
-      (`apps/web/src/lib/gemini.ts` y los dos `route.dynamic.ts`).
+- [x] **La API pública y la de dispositivos.** Hechas y probadas contra DynamoDB Local: calendario,
+      municipios, evento visible, alta de dispositivo con testigo firmado, «Me interesa» y el
+      autorizador. En `apps/functions/src/handlers/`.
+- [ ] **El resto de los manejadores.** El panel, la página pública de evento y los carteles todavía
+      responden 501. El de carteles es el que tiene el camino más corto: la lógica ya existe en el
+      panel (`apps/web/src/lib/gemini.ts` y los dos `route.dynamic.ts`).
+- [ ] **El directo:** `GET /live/{eventId}` responde 501 y falta la emisión del voluntario.
 - [x] **Portar los tests de aislamiento** a DynamoDB Local y engancharlos a la CI. Hechos:
       `packages/store`, 29 tests, y la CI levanta un DynamoDB Local en cada cambio.
-- [ ] **Empaquetado de las Lambdas.** Los manejadores son `.mjs` que se comprimen tal cual, así que
-      todavía no pueden importar `@agora/store`, que es TypeScript. Hace falta un paso de compilación
-      (esbuild) antes del `archive_file`.
+- [x] **Empaquetado de las Lambdas.** Hecho: `apps/functions` con esbuild, un directorio por función
+      (D-035). Hay que compilar antes de aplicar, y el Terraform falla diciéndolo si no se ha hecho.
 - [ ] **Migrar los datos semilla** de `content/` a la tabla.
 - [ ] **Emisión del directo:** solo existe `GET /live/{eventId}`. Falta la ruta por la que el
       voluntario publica su posición y el canje del código por un testigo de sesión.

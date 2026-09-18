@@ -12,4 +12,7 @@ minimumReleaseAgeExclude:
   - '@expo/*'
 
 allowBuilds:
+  # esbuild fetches its platform binary in a postinstall script. It bundles the
+  # Lambdas of apps/functions and never ships in the app or the panel.
+  esbuild: true
   unrs-resolver: true

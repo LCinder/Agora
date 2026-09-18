@@ -287,7 +287,11 @@ locals {
     "GET /municipalities/{municipalityId}/events",
     "GET /municipalities/{municipalityId}/categories",
     "GET /municipalities/{municipalityId}/organizations",
-    "GET /events/{eventId}",
+    # Under the municipality, and not a bare `/events/{eventId}`: the partition
+    # key of an event names its municipality, so a lookup that does not name one
+    # would need an index or a scan of the whole table. Every link the product
+    # produces already carries the town — `/e/<slug>/<id>` — so nothing is lost.
+    "GET /municipalities/{municipalityId}/events/{eventId}",
     # Under its own prefix so CloudFront can give it a 5 second cache rule
     # without touching anything else.
     "GET /live/{eventId}",

@@ -30,6 +30,16 @@ data "archive_file" "package" {
   type        = "zip"
   source_dir  = var.source_dir
   output_path = "${path.root}/.terraform/build/${var.name}.zip"
+
+  lifecycle {
+    # Terraform zips what the build produced; it does not produce it. Without
+    # this the failure is "source_dir not found", which does not tell anybody
+    # what to do about it.
+    precondition {
+      condition     = fileexists("${var.source_dir}/index.mjs")
+      error_message = "No hay nada que empaquetar en ${var.source_dir}. Compila las funciones antes de aplicar:\n\n  pnpm --filter @agora/functions build\n"
+    }
+  }
 }
 
 resource "aws_iam_role" "this" {

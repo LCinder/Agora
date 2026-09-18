@@ -533,3 +533,37 @@ Que el municipio **no sea un parámetro** del almacén del panel es la parte que
 **Y hay un test contra la deriva.** `table-definition.test.ts` lee `infra/terraform/modules/data/main.tf` y falla si las claves, los índices o las proyecciones dejan de coincidir con lo que el paquete espera. Existe por lo que habría pillado: este mismo repositorio tenía la infraestructura describiendo una cosa y el código haciendo otra en cuatro sitios.
 
 **Lo que falta para que esto llegue a producción:** las Lambdas se empaquetan comprimiendo `.mjs` tal cual, así que todavía no pueden importar TypeScript de un paquete del monorepo. Hace falta un paso de compilación con esbuild antes del `archive_file`, y ese es el siguiente trabajo de infraestructura.
+
+---
+
+## D-035 — Las Lambdas se compilan antes de empaquetarse, y viven en `apps/functions`
+
+**Fecha:** 2026-09-18 · **Estado:** aceptada
+
+Los manejadores eran ficheros `.mjs` sueltos dentro de `infra/terraform/lambda-src/`, que Terraform comprimía tal cual. Eso valía mientras respondían 501 y dejó de valer en cuanto necesitaron `@agora/store`: una Lambda no puede importar TypeScript de un paquete del monorepo.
+
+**Ahora son un paquete del espacio de trabajo,** `apps/functions`, con los manejadores en TypeScript y un `build.mjs` que los empaqueta con esbuild en un directorio por función. Terraform apunta a `apps/functions/dist` y sigue haciendo lo único que hacía: comprimir.
+
+**Terraform no compila.** Podría hacerlo con un `local-exec`, pero `archive_file` es un origen de datos que se lee en la fase de plan, antes de que se ejecute cualquier recurso, así que la compilación tendría que pasar igualmente antes. En vez de esconderlo, el módulo tiene una precondición que falla diciendo qué comando falta:
+
+```
+pnpm --filter @agora/functions build
+```
+
+**No se marca nada como externo, ni el SDK de AWS.** El tiempo de ejecución de Node 22 lo trae, y excluirlo bajaría las funciones que lo usan de unos dos megas a unos kilos. Pero también significaría ejecutar contra la versión del SDK que AWS despliegue ese mes, y una comprobación `instanceof` entre dos copias del mismo cliente falla de formas que cuestan una tarde de entender. Dos megas son menos de medio comprimido.
+
+**Las funciones que no tocan la tabla siguen pesando ocho kilos,** y eso se cuida: `lib/http.ts` importa la clase de error desde `@agora/store/errors` y no desde la raíz del paquete, porque la raíz arrastra el cliente de DynamoDB. Es la diferencia entre un stub de 8 KB y uno de 6,5 MB.
+
+**Y la CI compila.** Antes solo pasaba lint, tipos y tests, así que ni el export estático del panel ni el empaquetado de las funciones se comprobaban en ningún sitio: las dos cosas se rompen sin que falle un test.
+
+---
+
+## D-036 — El evento se pide por municipio, no por su identificador a secas
+
+**Fecha:** 2026-09-18 · **Estado:** aceptada
+
+La API declaraba `GET /events/{eventId}`. No se puede servir: la clave de partición de un evento nombra su municipio, así que una búsqueda que no lo nombre necesita un índice nuevo o un recorrido de la tabla entera, y las dos cosas contradicen el diseño (D-026).
+
+La ruta pasa a ser `GET /municipalities/{municipalityId}/events/{eventId}`. No se pierde nada: todos los enlaces que genera el producto ya llevan el municipio — `/e/<slug>/<id>` —, y el selector de la app resuelve el slug a su identificador al entrar.
+
+Los intereses hacen lo mismo por el mismo motivo: `PUT /me/interests/{eventId}?municipalityId=…`. La marca se guarda bajo el dispositivo y tiene que decir a qué municipio pertenece el evento, porque un vecino puede seguir más de un pueblo.

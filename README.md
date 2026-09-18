@@ -25,6 +25,7 @@ no lo siguen a propósito: ver [`docs/renombrar-la-app.md`](docs/renombrar-la-ap
 | `packages/data`          | Interfaz `DataSource` y su implementación de datos semilla.                            |
 | `packages/i18n`          | Textos de interfaz (español por defecto, inglés preparado).                            |
 | `packages/store`         | Tabla única de DynamoDB: un almacén por rol. Lo usan las Lambdas, nunca la app.        |
+| `apps/functions`         | Manejadores de las Lambdas. `pnpm --filter @agora/functions build` los empaqueta.      |
 | `content/municipalities` | Configuración y datos de cada municipio. Ver [`content/README.md`](content/README.md). |
 
 ## Requisitos

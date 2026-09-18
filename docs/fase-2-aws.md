@@ -73,8 +73,7 @@ municipio** y los grupos de Cognito no saben de eso.
     │         │          │             │
   Lambda    Lambda     Lambda        Lambda
   pública   panel      carteles      voluntario
-                       (Gemini +     (todavía sin
-                        Cloudflare)   escribir)
+  (hecha)   (501)      (501)         (sin escribir)
     │         │          │             │
     └─────────┴────┬─────┴─────────────┘
                    │
@@ -85,6 +84,10 @@ municipio** y los grupos de Cognito no saben de eso.
 ```
 
 Ninguna pieza está dentro de una VPC. Todo vive en tu cuenta de AWS, en `eu-central-1`.
+
+Los manejadores están en `apps/functions`, en TypeScript, y se empaquetan con esbuild antes de
+aplicar (D-035). La API pública y la de dispositivos están escritas y probadas contra DynamoDB Local;
+el panel, la página de evento y los carteles responden 501 todavía, y lo dicen.
 
 ---
 

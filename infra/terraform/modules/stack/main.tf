@@ -17,8 +17,13 @@ terraform {
 }
 
 locals {
-  prefix             = "${var.infra_name}-${var.environment}"
-  lambda_source_root = "${path.module}/../../lambda-src"
+  prefix = "${var.infra_name}-${var.environment}"
+
+  # One directory per function, produced by `pnpm --filter @agora/functions build`
+  # (esbuild). The handlers used to be loose `.mjs` files zipped as they were,
+  # which stopped working the moment they needed to import @agora/store: a Lambda
+  # cannot import TypeScript from a workspace package. See D-035.
+  lambda_source_root = "${path.module}/../../../../apps/functions/dist"
 
   # The commercial name is still pending, so it is read from the one file that
   # holds it — the same one the app and the panel read — instead of being
