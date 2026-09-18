@@ -3,11 +3,17 @@
 Monorepo del proyecto. Nombre comercial pendiente; `agora` es el nombre provisional del espacio de
 trabajo.
 
+El nombre que ve la gente vive en un solo fichero, **`packages/core/src/brand.json`**, y cambiarlo
+cambia la app, el panel, el APK y los correos del panel a la vez. Los nombres de los recursos de AWS
+no lo siguen a propósito: ver [`docs/renombrar-la-app.md`](docs/renombrar-la-app.md).
+
 - Contexto de negocio y alcance: [`CLAUDE.md`](CLAUDE.md)
 - Plan de la fase actual: [`docs/plan-fase-0.md`](docs/plan-fase-0.md)
 - Decisiones técnicas y su motivo: [`docs/decisiones.md`](docs/decisiones.md)
 - Módulos contratables por municipio: [`docs/modulos-por-municipio.md`](docs/modulos-por-municipio.md)
 - **Guion de la demostración: [`docs/demo.md`](docs/demo.md)**
+- Arquitectura en AWS de la Fase 2: [`docs/fase-2-aws.md`](docs/fase-2-aws.md)
+- Cómo renombrar la aplicación: [`docs/renombrar-la-app.md`](docs/renombrar-la-app.md)
 
 ## Qué hay dentro
 
@@ -41,16 +47,25 @@ pnpm --filter @agora/web dev
 - Página pública de un evento: <http://localhost:3000/e/la-zubia/lz-cabalgata>
 
 Para que funcionen los carteles, copia `apps/web/.env.example` a `apps/web/.env.local` y pon tus
-claves: `ANTHROPIC_API_KEY` para leerlos y `GEMINI_API_KEY` para dibujarlos (se saca gratis en
-[AI Studio](https://aistudio.google.com/apikey), unas 50 imágenes al día sin tarjeta). Sin claves el
-panel funciona igual: el botón avisa de cuál falta.
+claves: `GEMINI_API_KEY` para leer el cartel y escribir la instrucción del dibujo, y
+`CLOUDFLARE_ACCOUNT_ID` con `CLOUDFLARE_API_TOKEN` para dibujarlo. Las dos son gratuitas y no piden
+tarjeta; el propio `.env.example` explica de dónde se saca cada una. Sin claves el panel funciona
+igual: el botón avisa de cuál falta.
 
 El panel hace las dos direcciones del cartel. Si el evento ya tiene uno, se sube y la IA rellena el
-formulario. Si no lo tiene, el técnico escribe una frase y se dibuja: Claude convierte esa frase en
-una instrucción visual completa y el modelo de imagen la dibuja. Por defecto dibuja solo el fondo y
-el panel compone encima el título, la fecha, el lugar y el color del municipio, para que esos datos
-salgan siempre bien; el cartel entero dibujado por la IA, texto incluido, está en el desplegable.
-Ver D-018, que incluye una advertencia sobre el nivel gratuito de Google y protección de datos.
+formulario. Si no lo tiene, el técnico escribe una frase y se dibuja: un modelo de texto convierte
+esa frase en una instrucción visual completa y el modelo de imagen la dibuja. Por defecto dibuja solo
+el fondo y el panel compone encima el título, la fecha, el lugar y el color del municipio, para que
+esos datos salgan siempre bien; el cartel entero dibujado por la IA, texto incluido, está en el
+desplegable. Ver D-024, que incluye una advertencia sobre el nivel gratuito de Google y protección de
+datos.
+
+En la nube estos dos endpoints no los sirve el panel, que es estático, sino la Lambda de carteles
+(D-031). Para compilar el panel tal y como se sube a S3:
+
+```bash
+pnpm --filter @agora/web build:static     # deja el resultado en apps/web/out
+```
 
 ### App móvil
 

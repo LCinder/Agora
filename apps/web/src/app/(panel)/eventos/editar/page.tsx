@@ -2,8 +2,8 @@
 
 import { publicEventPath } from '@agora/core';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useState } from 'react';
 
 import { EventForm } from '../../../../components/event-form';
 import {
@@ -25,11 +25,31 @@ const NOTICE_TYPES: { value: EventNotice['type']; label: string }[] = [
   { value: 'notice', label: 'Aviso' },
 ];
 
+/**
+ * Edit an event.
+ *
+ * The id arrives as `?id=`, not as a path segment. A static export can only
+ * produce the pages it can enumerate at build time, and the events of a
+ * municipality are not knowable then — the panel invents them in the browser
+ * (D-013). A query string costs nothing to serve and works for an event created
+ * a minute ago. See D-031.
+ *
+ * `useSearchParams` needs a Suspense boundary to be prerendered, hence the
+ * split between this component and the view below.
+ */
 export default function EditEventPage() {
-  const params = useParams<{ id: string }>();
+  return (
+    <Suspense fallback={<p className="text-sm text-neutral-500">Cargando…</p>}>
+      <EditEventView />
+    </Suspense>
+  );
+}
+
+function EditEventView() {
+  const id = useSearchParams().get('id') ?? '';
   const { addNotice, cancelEvent, events, loading, municipality, notices } = usePanel();
 
-  const event = events.find((entry) => entry.id === params.id);
+  const event = events.find((entry) => entry.id === id);
 
   if (loading || !municipality) {
     return <p className="text-sm text-neutral-500">Cargando…</p>;

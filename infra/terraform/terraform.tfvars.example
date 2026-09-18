@@ -1,7 +1,10 @@
-# Copy to terraform.tfvars and fill in. The real file is gitignored: it names
-# your account, and that does not belong in a public repository.
+# Variables of the bootstrap stack. Copy to bootstrap/terraform.tfvars and fill
+# in. The real file is gitignored: it names your AWS account, and that does not
+# belong in a public repository.
 aws_profile    = "agora"
 aws_account_id = "000000000000"
 
-# Where the monthly budget alarm sends its warning.
-budget_alert_email = "tu@correo.es"
+# infra_name is the prefix of every physical resource name and defaults to
+# "agora". It is not the commercial name and it does not change when the
+# product gets one: see docs/renombrar-la-app.md.
+# infra_name = "agora"

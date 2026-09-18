@@ -18,17 +18,14 @@ terraform {
 }
 
 locals {
-  prefix = "${var.project}-${var.environment}"
+  prefix = "${var.infra_name}-${var.environment}"
 }
 
 data "aws_iam_policy_document" "reminders" {
   statement {
-    effect  = "Allow"
-    actions = ["dynamodb:GetItem", "dynamodb:Query", "dynamodb:UpdateItem"]
-    resources = concat(
-      [var.table_arn, var.reminders_index_arn],
-      var.public_index_arns,
-    )
+    effect    = "Allow"
+    actions   = ["dynamodb:GetItem", "dynamodb:Query", "dynamodb:UpdateItem"]
+    resources = [var.table_arn, var.calendar_index_arn, var.reminders_index_arn]
   }
 }
 

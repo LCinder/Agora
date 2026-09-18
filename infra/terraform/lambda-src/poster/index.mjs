@@ -1,6 +1,11 @@
 /**
- * Reads an event poster with Claude and returns the fields for a person to
- * confirm. Touches no table and publishes nothing.
+ * The poster, both ways round: reads one with Gemini and returns the fields for
+ * a person to confirm, or turns a description into a drawing with Cloudflare
+ * Workers AI. Touches no table and publishes nothing.
+ *
+ * The logic already exists in the panel, in `apps/web/src/lib/gemini.ts` and
+ * the two `route.dynamic.ts` handlers next to it. Moving it here is what makes
+ * the panel a static export: a browser cannot hold these credentials.
  *
  * Placeholder. The infrastructure is real; this handler is not yet. Replaced
  * when the API is written, and answering honestly until then rather than

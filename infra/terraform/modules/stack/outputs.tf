@@ -33,6 +33,8 @@ output "secret_parameters" {
   description = "Created empty on purpose. Fill them with the AWS CLI; see the README."
   value = [
     aws_ssm_parameter.device_token_key.name,
-    aws_ssm_parameter.anthropic_key.name,
+    aws_ssm_parameter.gemini_key.name,
+    aws_ssm_parameter.cloudflare_account.name,
+    aws_ssm_parameter.cloudflare_token.name,
   ]
 }

@@ -38,7 +38,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Project     = var.project
+      Project     = var.infra_name
       Environment = "dev"
       ManagedBy   = "terraform"
     }
@@ -48,10 +48,12 @@ provider "aws" {
 module "stack" {
   source = "../../modules/stack"
 
-  project            = var.project
-  environment        = "dev"
-  region             = var.region
-  allowed_origins    = var.allowed_origins
-  alert_email        = var.alert_email
-  monthly_budget_eur = var.monthly_budget_eur
+  infra_name            = var.infra_name
+  app_name              = var.app_name
+  environment           = "dev"
+  region                = var.region
+  allowed_origins       = var.allowed_origins
+  alert_email           = var.alert_email
+  monthly_budget_amount = var.monthly_budget_amount
+  budget_currency       = var.budget_currency
 }

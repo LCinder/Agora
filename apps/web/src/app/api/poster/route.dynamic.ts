@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
 
 import { geminiErrorResponse, geminiJson } from '../../../lib/gemini';
+import { posterReadingSchema } from '../../../lib/poster-contract';
 
 /**
  * Reads an event poster and fills in the form for the municipal officer.
@@ -16,26 +16,15 @@ import { geminiErrorResponse, geminiJson } from '../../../lib/gemini';
  * and most of the time is not good enough to publish unattended.
  *
  * Runs on Gemini Flash for its free tier — see `lib/gemini.ts` and D-024.
+ *
+ * Named `.dynamic.ts` because it needs a server: the static export of the
+ * panel leaves it out and the poster Lambda answers the same path instead.
+ * See `next.config.ts` and D-031.
  */
 
 const MAX_BYTES = 8 * 1024 * 1024;
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const;
-
-const posterSchema = z.object({
-  title: z.string(),
-  description: z.string(),
-  startDate: z.string(),
-  startTime: z.string(),
-  endTime: z.string(),
-  locationName: z.string(),
-  isFree: z.boolean(),
-  priceInfo: z.string(),
-  organizerName: z.string(),
-  confidence: z.enum(['high', 'medium', 'low']),
-});
-
-export type PosterReading = z.infer<typeof posterSchema>;
 
 /**
  * The same fields in Gemini's response-schema dialect. `propertyOrdering` is
@@ -156,7 +145,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       },
     ],
     parse: (value) => {
-      const parsed = posterSchema.safeParse(value);
+      const parsed = posterReadingSchema.safeParse(value);
       return parsed.success ? parsed.data : null;
     },
   });

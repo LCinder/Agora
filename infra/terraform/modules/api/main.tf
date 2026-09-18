@@ -21,7 +21,7 @@ terraform {
 }
 
 locals {
-  prefix = "${var.project}-${var.environment}"
+  prefix = "${var.infra_name}-${var.environment}"
 
   common_env = {
     TABLE_NAME  = var.table_name
@@ -35,20 +35,20 @@ locals {
 
 data "aws_iam_policy_document" "public_api" {
   statement {
-    effect  = "Allow"
-    actions = ["dynamodb:GetItem", "dynamodb:Query"]
-    resources = concat(
-      [var.table_arn],
-      var.public_index_arns,
-    )
+    effect    = "Allow"
+    actions   = ["dynamodb:GetItem", "dynamodb:Query"]
+    resources = [var.table_arn, var.calendar_index_arn]
   }
 
-  # Belt and braces. Nothing above grants gsi3, but saying so out loud means no
-  # later policy can quietly add it either.
+  # Belt and braces, and not only a formality. The review queue holds events
+  # the town hall has not approved, and the reminder index holds who is
+  # interested in what: neither is a resident's business, and neither is
+  # granted above. Denying them out loud means no later edit can add one back
+  # by widening a list.
   statement {
     effect    = "Deny"
     actions   = ["dynamodb:*"]
-    resources = [var.reminders_index_arn]
+    resources = [var.review_index_arn, var.reminders_index_arn]
   }
 }
 
@@ -82,7 +82,7 @@ data "aws_iam_policy_document" "device_api" {
   statement {
     effect    = "Deny"
     actions   = ["dynamodb:*"]
-    resources = [var.reminders_index_arn]
+    resources = [var.review_index_arn, var.reminders_index_arn]
   }
 
   statement {
@@ -137,10 +137,7 @@ data "aws_iam_policy_document" "panel_api" {
       "dynamodb:DeleteItem",
       "dynamodb:BatchWriteItem",
     ]
-    resources = concat(
-      [var.table_arn],
-      var.public_index_arns,
-    )
+    resources = [var.table_arn, var.calendar_index_arn, var.review_index_arn]
   }
 
   statement {
@@ -170,18 +167,22 @@ module "panel_api" {
 }
 
 # ---------------------------------------------------------------------------
-# The poster reader.
+# The poster function, both ways round: reading a poster and drawing one.
 #
-# Touches no table: it reads an image, asks Claude what is on it and returns
-# the answer for a person to confirm. Thirty seconds because a large poster
-# takes a while, and nothing else.
+# Touches no table. It reads an image and asks a model what is on it, or takes
+# a description and has one drawn, and either way a person confirms the result
+# before anything is published.
+#
+# The providers are Gemini Flash for the text and Cloudflare Workers AI for the
+# image, both on free tiers (D-024). Their credentials are the reason this runs
+# in a Lambda at all rather than in the panel: a static site cannot keep a key.
 # ---------------------------------------------------------------------------
 
 data "aws_iam_policy_document" "poster" {
   statement {
     effect    = "Allow"
-    actions   = ["ssm:GetParameter"]
-    resources = [var.anthropic_key_secret_arn]
+    actions   = ["ssm:GetParameter", "ssm:GetParameters"]
+    resources = var.poster_parameter_arns
   }
 }
 
@@ -191,13 +192,17 @@ module "poster" {
   name        = "${local.prefix}-poster"
   source_dir  = "${var.lambda_source_root}/poster"
   policy_json = data.aws_iam_policy_document.poster.json
-  timeout     = 30
+  # Drawing is two calls to two providers, one of them a diffusion model, so
+  # this is the slowest thing the API does. 29 seconds and not more because an
+  # HTTP API cuts the integration off at 30: a longer timeout would only keep
+  # the function running after the panel has already given up.
+  timeout     = 29
   memory_size = 1024
 
-  environment_variables = {
-    ENVIRONMENT         = var.environment
-    ANTHROPIC_PARAMETER = var.anthropic_key_parameter_name
-  }
+  environment_variables = merge(
+    { ENVIRONMENT = var.environment },
+    var.poster_parameter_names,
+  )
 }
 
 # ---------------------------------------------------------------------------
@@ -357,9 +362,14 @@ resource "aws_apigatewayv2_route" "panel" {
   authorizer_id      = aws_apigatewayv2_authorizer.staff.id
 }
 
+# `/poster` reads one, `/poster/generate` draws one. The panel calls both at
+# these exact paths, so they are also what `next.config.ts` points at through
+# NEXT_PUBLIC_POSTER_API_BASE.
 resource "aws_apigatewayv2_route" "poster" {
+  for_each = toset(["POST /poster", "POST /poster/generate"])
+
   api_id             = aws_apigatewayv2_api.main.id
-  route_key          = "POST /poster"
+  route_key          = each.value
   target             = "integrations/${aws_apigatewayv2_integration.poster.id}"
   authorization_type = "JWT"
   authorizer_id      = aws_apigatewayv2_authorizer.staff.id

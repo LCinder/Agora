@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { geminiErrorResponse, geminiJson } from '../../../../lib/gemini';
+import { type PosterDrawing, posterBriefSchema } from '../../../../lib/poster-contract';
 
 /**
  * Draws an event poster from a one-line description.
@@ -19,6 +20,10 @@ import { geminiErrorResponse, geminiJson } from '../../../../lib/gemini';
  *
  * The two steps run on two providers, both free and both key-only (D-024):
  * Gemini Flash writes the brief, Cloudflare Workers AI draws with FLUX schnell.
+ *
+ * Named `.dynamic.ts` because it needs a server, and because the credentials
+ * of both providers must never reach a browser. The static export of the panel
+ * leaves it out and the poster Lambda answers the same path. See D-031.
  */
 
 /**
@@ -44,17 +49,6 @@ const requestSchema = z.object({
     municipalityName: z.string().default(''),
   }),
 });
-
-const briefSchema = z.object({
-  imagePrompt: z.string().min(1),
-  altText: z.string(),
-});
-
-export type PosterBrief = z.infer<typeof briefSchema>;
-
-export type PosterDrawing = PosterBrief & {
-  image: { mimeType: string; data: string };
-};
 
 const BRIEF_SCHEMA = {
   type: 'OBJECT',
@@ -143,7 +137,7 @@ ${details ? `Datos del evento:\n${details}` : 'Todavía no hay datos del evento.
       },
     ],
     parse: (value) => {
-      const result = briefSchema.safeParse(value);
+      const result = posterBriefSchema.safeParse(value);
       return result.success ? result.data : null;
     },
   });

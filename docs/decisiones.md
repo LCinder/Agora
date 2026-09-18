@@ -376,7 +376,7 @@ FLUX schnell está además bajo licencia Apache 2.0, lo que evita una conversaci
 
 ---
 
-## D-017 — Backend en AWS. D-001 cerrada
+## D-025 — Backend en AWS. D-001 cerrada
 **Fecha:** 2026-09-18 · **Estado:** aceptada
 
 La decisión de backend, que se dejó abierta a propósito en la Fase 0, se cierra a favor de **AWS**.
@@ -385,7 +385,7 @@ La decisión de backend, que se dejó abierta a propósito en la Fase 0, se cier
 
 ---
 
-## D-018 — DynamoDB, y por tanto sin VPC
+## D-026 — DynamoDB, y por tanto sin VPC
 **Fecha:** 2026-09-18 · **Estado:** aceptada
 
 La restricción que manda es **coste cero mientras no haya clientes**. Una base de datos relacional gestionada cuesta por existir; DynamoDB bajo demanda no cuesta nada cuando nadie la usa.
@@ -404,7 +404,7 @@ Los 23 tests de aislamiento se portan a DynamoDB Local. Eso no se negocia.
 
 ---
 
-## D-019 — Panel estático, no OpenNext ni Vercel
+## D-027 — Panel estático, no OpenNext ni Vercel
 **Fecha:** 2026-09-18 · **Estado:** aceptada
 
 El panel se despliega como export estático a S3 y CloudFront. La página pública de evento, que sí necesita servidor por las etiquetas Open Graph, es una Lambda aparte.
@@ -417,7 +417,7 @@ El panel se despliega como export estático a S3 y CloudFront. La página públi
 
 ---
 
-## D-020 — El directo se cachea, no se emite
+## D-028 — El directo se cachea, no se emite
 **Fecha:** 2026-09-18 · **Estado:** aceptada
 
 El seguimiento en directo no usa WebSockets. El móvil consulta `/live/{eventId}` cada cinco segundos y CloudFront lo sirve con un TTL de cinco segundos.
@@ -428,7 +428,7 @@ El desfase cabe dentro del criterio de aceptación, que pide una posición cada 
 
 ---
 
-## D-021 — Los vecinos no están en Cognito
+## D-029 — Los vecinos no están en Cognito
 **Fecha:** 2026-09-18 · **Estado:** aceptada
 
 Cognito es solo para el personal municipal y las asociaciones. Los vecinos se identifican con un testigo firmado que emite la propia plataforma.
@@ -436,3 +436,75 @@ Cognito es solo para el personal municipal y las asociaciones. Los vecinos se id
 **Por qué:** todo lo que hace un vecino es leer datos públicos, que salen de la caché sin tocar una Lambda. Lo único que necesita identidad es «Me interesa». Meter a los vecinos en un grupo de identidades de Cognito sería pagar complejidad por una identidad que no tienen.
 
 **Y los permisos no salen del testigo.** Cognito responde a «quién eres»; qué puede hacer sale de la tabla, porque un rol es por municipio y los grupos de Cognito no saben de municipios. La ventaja práctica: dar de baja a un técnico que se va del ayuntamiento es borrar una fila, no esperar a que caduque un JWT.
+
+---
+
+## D-030 — El nombre comercial vive en un solo fichero, y los nombres de AWS no lo siguen
+
+**Fecha:** 2026-09-18 · **Estado:** aceptada
+
+El nombre comercial está sin decidir (decisión 1 del documento de proyecto) y va a cambiar. Todo lo que un usuario lee sale de **`packages/core/src/brand.json`**: nombre, slug, esquema de enlaces profundos, identificador de Android y de iOS.
+
+Lo leen los tres sitios que lo necesitan sin pasar por el compilador de TypeScript: `apps/mobile/app.config.ts` (que inyecta esos valores en la configuración de Expo), el workflow de Android (que nombra el APK y la release) y el Terraform, con `jsondecode(file(...))`. El panel y la app lo leen como `BRAND` desde `@agora/core`.
+
+**Lo que NO sigue al nombre comercial:** los nombres físicos de AWS. Son `infra_name`, que se queda en `agora` para siempre. El motivo es que una tabla de DynamoDB no se renombra: Terraform la destruye y crea otra, y eso significa perder los datos de todos los municipios. Lo mismo vale para los buckets y el grupo de usuarios de Cognito. Así que hay dos nombres a propósito, y la variable que no se toca lo dice en su propia descripción.
+
+`app_name` en Terraform es el nombre que se lee en el correo de invitación al panel, en el comentario de la distribución de CloudFront y en las alarmas. Si no se define, sale de `brand.json`.
+
+**Cómo se renombra el producto:** [`docs/renombrar-la-app.md`](renombrar-la-app.md).
+
+---
+
+## D-031 — El panel se exporta estático de verdad: dos compilaciones de la misma aplicación
+
+**Fecha:** 2026-09-18 · **Estado:** aceptada
+
+D-027 decidió servir el panel como export estático desde S3, pero el código no podía exportarse: `next.config.ts` no tenía `output: 'export'` y el panel incluye dos endpoints de servidor (los de carteles) y la página pública de evento, que es `force-dynamic`. La decisión estaba tomada y el código la contradecía.
+
+**Cómo se resuelve, sin duplicar la aplicación:**
+
+1. **Dos compilaciones.** `next build` lo incluye todo, que es lo que hace falta en local y en la demo. `PANEL_STATIC_EXPORT=1 next build` (`pnpm --filter @agora/web build:static`) exporta solo el panel, a `apps/web/out`, que es lo que se sincroniza con S3.
+2. **El mecanismo es `pageExtensions`.** Los ficheros que necesitan servidor se llaman `route.dynamic.ts` y `page.dynamic.tsx`; la compilación de export no incluye esa extensión en la lista, así que dejan de ser rutas. Se descartó un segundo proyecto de Next (duplica la configuración) y un script que mueve carpetas antes de compilar (produce una compilación que no se puede reproducir a mano).
+3. **El identificador del evento viaja en la query**, `/eventos/editar?id=…`, no como segmento de ruta. Un export solo puede generar las páginas que se pueden enumerar al compilar, y los eventos de un municipio no se conocen entonces: el panel los crea en el navegador (D-013). Con la query funciona también un evento creado hace un minuto.
+4. **Las URLs limpias se resuelven en el borde.** S3 leído por origin access control es un almacén de objetos: no añade `.html` ni sirve `index.html` de una carpeta. Una función de CloudFront de 15 líneas lo hace en la petición del visitante, y solo en el comportamiento del panel.
+5. **Se quita la reescritura de 404 a `index.html`.** Era un `custom_error_response` que devolvía el panel con código 200 para cualquier ruta no encontrada, y esa opción es de toda la distribución: un evento inexistente en `/e/…` — la página de la que WhatsApp saca la previsualización — respondía el HTML del panel con un 200, igual que un 404 de la API. Ya no hace falta, porque cada página del panel es un fichero real.
+
+**Lo que cuesta:** una URL mal escrita del panel muestra el error de S3 en vez de una página con diseño. Es el lado correcto del intercambio, y desaparece cuando haya dominio propio y una distribución por nombre de host.
+
+**Y el lector de carteles:** las credenciales de Gemini y Cloudflare no pueden estar en un sitio estático. En local responden los dos `route.dynamic.ts`; en la nube responde la Lambda de carteles, y el panel apunta a ella con `NEXT_PUBLIC_POSTER_API_BASE`. Los tipos y las rutas están en `apps/web/src/lib/poster-contract.ts`, que es lo único que comparten.
+
+---
+
+## D-032 — Permisos por índice, no por «los índices públicos»
+
+**Fecha:** 2026-09-18 · **Estado:** aceptada
+
+La primera versión del Terraform daba a la Lambda pública una lista llamada `public_index_arns` que incluía `gsi1` **y `gsi2`**. `gsi2` es la bandeja de revisión: los eventos que una asociación ha enviado y el ayuntamiento todavía no ha aprobado. Con los manejadores sin escribir no era explotable, pero contradecía el modelo que documenta D-026 y era exactamente el tipo de error que una lista con nombre genérico facilita.
+
+Ahora cada índice se pasa por su nombre y cada rol recibe el que le corresponde:
+
+| Función | `gsi1` calendario | `gsi2` revisión | `gsi3` interesados |
+| --- | --- | --- | --- |
+| pública | sí | **denegado** | **denegado** |
+| dispositivos | no | **denegado** | **denegado** |
+| panel | sí | sí | **denegado** |
+| página pública de evento | no | **denegado** | **denegado** |
+| recordatorios | sí | no | sí |
+
+Las denegaciones son explícitas además de no estar concedidas: una denegación en IAM no la puede anular una concesión posterior, así que ampliar una lista por error no abre nada.
+
+**Y las alarmas dicen de quién es el error.** La alarma de errores de Lambda no tenía dimensión `FunctionName`, así que sumaba todas las funciones de la cuenta, incluidas las de proyectos ajenos: una alarma que avisa por código que no es tuyo se deja de leer. Ahora hay una por función, más una de 5xx de la API y una de throttling de la tabla, que es la señal de que la caché del directo no está haciendo su trabajo.
+
+El presupuesto tenía otro descuido: la variable se llamaba `monthly_budget_eur` y la unidad era `USD`. Ahora son `monthly_budget_amount` y `budget_currency`.
+
+---
+
+## D-033 — Los secretos del lector de carteles siguen al proveedor de verdad
+
+**Fecha:** 2026-09-18 · **Estado:** aceptada
+
+El Terraform creaba un parámetro `anthropic-api-key` y se lo pasaba a la Lambda de carteles, pero D-024 había movido los carteles a **Gemini** para leer y escribir y a **Cloudflare Workers AI** para dibujar. La infraestructura aprovisionaba una credencial que el producto ya no usa y ninguna de las que necesita.
+
+Ahora crea tres parámetros: `gemini-api-key` y `cloudflare-api-token` como `SecureString`, y `cloudflare-account-id` como texto plano, porque un identificador de cuenta no es un secreto. La Lambda los recibe como un mapa (`poster_parameter_names`), no como una variable por proveedor: este es el segundo cambio de proveedor del proyecto y no será el último.
+
+Faltaba además la ruta `POST /poster/generate`, así que dibujar un cartel no tenía endpoint en la API. Las dos rutas existen ya y son las mismas que llama el panel.

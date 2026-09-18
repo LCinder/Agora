@@ -5,6 +5,11 @@
  * remove. A bootstrapped project cannot afford to find out about a runaway
  * bill at the end of the month, and every free tier in this architecture has a
  * ceiling somebody could walk through by accident.
+ *
+ * The alarms watch the three things that actually go wrong here: a function
+ * erroring, the API answering 5xx, and the table throttling. Each one names
+ * what it watches, because an alarm that adds up every Lambda in the account
+ * fires for code that is not ours and then nobody reads it.
  */
 
 terraform {
@@ -17,14 +22,15 @@ terraform {
 }
 
 locals {
-  prefix = "${var.project}-${var.environment}"
+  prefix = "${var.infra_name}-${var.environment}"
+  label  = "${var.app_name} (${var.environment})"
 }
 
 resource "aws_budgets_budget" "monthly" {
   name         = "${local.prefix}-monthly"
   budget_type  = "COST"
-  limit_amount = var.monthly_budget_eur
-  limit_unit   = "USD"
+  limit_amount = var.monthly_budget_amount
+  limit_unit   = var.budget_currency
   time_unit    = "MONTHLY"
 
   # Warn on the way up, not once it has happened.
@@ -55,11 +61,13 @@ resource "aws_sns_topic_subscription" "email" {
   endpoint  = var.alert_email
 }
 
-# Errors in any function of this environment. One alarm rather than one per
-# function: with a handful of Lambdas, a single "something is failing" signal
-# is what actually gets read.
+# One alarm per function, each naming its own. Five errors in five minutes is
+# noise-tolerant enough for a retry storm and low enough to catch a function
+# that is simply broken.
 resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
-  alarm_name          = "${local.prefix}-lambda-errors"
+  for_each = toset(var.function_names)
+
+  alarm_name          = "${each.value}-errors"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
   period              = 300
@@ -68,6 +76,52 @@ resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
   namespace           = "AWS/Lambda"
   metric_name         = "Errors"
   treat_missing_data  = "notBreaching"
-  alarm_description   = "More than five Lambda errors in five minutes."
+  alarm_description   = "More than five errors in five minutes in ${each.value} — ${local.label}."
   alarm_actions       = [aws_sns_topic.alerts.arn]
+
+  dimensions = {
+    FunctionName = each.value
+  }
+}
+
+# A 5xx is the API failing, as opposed to a client sending nonsense, which is a
+# 4xx and not something to wake anybody about.
+resource "aws_cloudwatch_metric_alarm" "api_5xx" {
+  alarm_name          = "${local.prefix}-api-5xx"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  period              = 300
+  threshold           = 5
+  statistic           = "Sum"
+  namespace           = "AWS/ApiGateway"
+  metric_name         = "5xx"
+  treat_missing_data  = "notBreaching"
+  alarm_description   = "The HTTP API is answering 5xx — ${local.label}."
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+
+  dimensions = {
+    ApiId = var.api_id
+  }
+}
+
+# On-demand tables throttle when a partition gets hammered faster than DynamoDB
+# expands it, which here would mean one event everybody is looking at — exactly
+# what a procession is. It is the signal that the caching in front is not doing
+# its job.
+resource "aws_cloudwatch_metric_alarm" "table_throttles" {
+  alarm_name          = "${local.prefix}-table-throttled"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  period              = 300
+  threshold           = 0
+  statistic           = "Sum"
+  namespace           = "AWS/DynamoDB"
+  metric_name         = "ThrottledRequests"
+  treat_missing_data  = "notBreaching"
+  alarm_description   = "The table is throttling requests — ${local.label}."
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+
+  dimensions = {
+    TableName = var.table_name
+  }
 }

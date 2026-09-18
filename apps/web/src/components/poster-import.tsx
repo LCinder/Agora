@@ -2,8 +2,8 @@
 
 import { useRef, useState } from 'react';
 
-import type { PosterReading } from '../app/api/poster/route';
 import { usePanel } from '../lib/panel-store';
+import { type PosterReading, posterEndpoint } from '../lib/poster-contract';
 import { Button } from './ui';
 
 /**
@@ -33,7 +33,7 @@ export function PosterImport({ onRead }: { onRead: (reading: PosterReading) => v
     body.append('poster', file);
 
     try {
-      const response = await fetch('/api/poster', { method: 'POST', body });
+      const response = await fetch(posterEndpoint('read'), { method: 'POST', body });
       const payload: unknown = await response.json();
 
       if (!response.ok) {

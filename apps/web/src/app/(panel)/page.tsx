@@ -111,7 +111,7 @@ export default function PanelHome() {
                     <div className="flex items-center gap-3">
                       <StatusBadge status={event.status} />
                       <Link
-                        href={`/eventos/${event.id}`}
+                        href={`/eventos/editar?id=${event.id}`}
                         className="text-sm font-semibold underline"
                       >
                         Editar

@@ -6,6 +6,8 @@ node_modules/
 dist/
 build/
 .next/
+# Static export of the panel, produced by `pnpm --filter @agora/web build:static`
+out/
 .turbo/
 *.tsbuildinfo
 

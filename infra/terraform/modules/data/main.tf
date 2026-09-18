@@ -15,7 +15,7 @@
  */
 
 resource "aws_dynamodb_table" "main" {
-  name         = "${var.project}-${var.environment}"
+  name         = "${var.infra_name}-${var.environment}"
   billing_mode = "PAY_PER_REQUEST" # No capacity to reserve, nothing to pay when idle.
   hash_key     = "pk"
   range_key    = "sk"
@@ -101,7 +101,16 @@ resource "aws_dynamodb_table" "main" {
     enabled = var.environment == "prod"
   }
 
+  # Two different guards, because they stop two different mistakes. This one
+  # stops AWS from deleting the table at all, whoever asks and however: a
+  # `terraform destroy`, a console click, a script. Off in dev, where throwing
+  # the environment away is a normal afternoon.
+  deletion_protection_enabled = var.environment == "prod"
+
   lifecycle {
-    prevent_destroy = false # Flip to true once a real municipality is live.
+    # And this one stops Terraform from planning a replacement — which is what
+    # renaming the table would be, or adding an attribute to a key. `false`
+    # while there is no real municipality in it; `true` the day there is.
+    prevent_destroy = false
   }
 }

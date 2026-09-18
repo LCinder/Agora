@@ -1,18 +1,13 @@
 {
   "expo": {
-    "name": "Agora",
-    "slug": "agora",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "agora",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.agora.app"
+      "supportsTablet": true
     },
     "android": {
-      "package": "com.agora.app",
       "adaptiveIcon": {
         "backgroundColor": "#121211",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

@@ -1,5 +1,13 @@
-variable "project" {
-  description = "Short name used as a prefix for every resource."
+variable "infra_name" {
+  description = <<-EOT
+    Prefix of every physical resource name. Stays "agora" for good.
+
+    This is NOT the commercial name. Renaming it renames the DynamoDB table,
+    the buckets and the user pool, and Terraform cannot rename those: it
+    destroys and recreates them, which for the table means losing the data of
+    every municipality. The name residents see lives in `app_name`, and in
+    `packages/core/src/brand.json` for the applications.
+  EOT
   type        = string
   default     = "agora"
 }

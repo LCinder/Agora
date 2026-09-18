@@ -1,5 +1,10 @@
-variable "project" {
+variable "infra_name" {
   type = string
+}
+
+variable "app_name" {
+  description = "Commercial name, for the strings a person reads."
+  type        = string
 }
 
 variable "environment" {
@@ -18,8 +23,14 @@ variable "table_arn" {
   type = string
 }
 
+variable "review_index_arn" {
+  description = "gsi2: unapproved events. The public page denies itself access to it."
+  type        = string
+}
+
 variable "reminders_index_arn" {
-  type = string
+  description = "gsi3: who is interested in an event. Denied here too."
+  type        = string
 }
 
 variable "api_host" {

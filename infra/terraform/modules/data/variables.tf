@@ -1,4 +1,4 @@
-variable "project" {
+variable "infra_name" {
   type = string
 }
 

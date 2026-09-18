@@ -30,6 +30,12 @@ El panel son componentes de cliente de principio a fin: no renderiza nada en ser
 como export estático desde S3 y CloudFront, cuesta cero y su Terraform son un bucket y una
 distribución.
 
+Que el panel *pudiera* exportarse fue lo último en llegar, y no era gratis: hay dos compilaciones
+de la misma aplicación, el identificador del evento viaja por la query en vez de por la ruta, y las
+URLs limpias las resuelve una función de CloudFront. Está explicado en D-031, y el resumen es que
+`pnpm --filter @agora/web build:static` deja en `apps/web/out` exactamente lo que se sincroniza con
+S3.
+
 Lo único que necesita servidor es la **página pública de evento**, y por una sola razón: las
 etiquetas Open Graph de la previsualización de WhatsApp. Eso es una Lambda pequeña, no un servidor
 de Next.
@@ -67,6 +73,8 @@ municipio** y los grupos de Cognito no saben de eso.
     │         │          │             │
   Lambda    Lambda     Lambda        Lambda
   pública   panel      carteles      voluntario
+                       (Gemini +     (todavía sin
+                        Cloudflare)   escribir)
     │         │          │             │
     └─────────┴────┬─────┴─────────────┘
                    │
@@ -119,6 +127,19 @@ La consecuencia importa: **la consulta del calendario público no puede devolver
 aprobar**, porque ese evento no está en el índice que la consulta lee. No es una comprobación que
 el código pueda olvidarse de hacer; es una propiedad de dónde vive el dato. Es lo mismo que nos
 daba `events_public_read` en Postgres, conseguido de otra manera.
+
+### Qué índice puede leer cada función
+
+Cada índice se pasa a cada módulo por su nombre, no dentro de una lista llamada «los públicos»
+(D-032). El reparto es este, y las denegaciones son explícitas además de no estar concedidas:
+
+| Función | `gsi1` calendario | `gsi2` revisión | `gsi3` interesados |
+| --- | --- | --- | --- |
+| pública | sí | denegado | denegado |
+| dispositivos | no | denegado | denegado |
+| panel | sí | sí | **denegado** |
+| página pública de evento | no | denegado | denegado |
+| recordatorios | sí | no | sí |
 
 ### El índice que el panel no puede leer
 
@@ -221,6 +242,7 @@ puede enterarse del gasto a fin de mes.
   evento se comparte con una URL de CloudFront, que en un WhatsApp queda mal. No bloquea nada
   técnico; se añade el día que haya nombre.
 - **Notificaciones push.** Expo Push es gratis y ya usáis Expo; SNS sería más «AWS puro» y bastante
-  más trabajo. Propuesta: Expo.
+  más trabajo. Propuesta: Expo. No hay nada montado todavía: el planificador existe y la Lambda de
+  recordatorios se ejecuta, pero no tiene por dónde enviar.
 - **Migración de los datos semilla** de `content/` a DynamoDB, para que un municipio nuevo se dé de
   alta cargando su carpeta.

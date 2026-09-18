@@ -12,7 +12,7 @@
  */
 
 resource "aws_s3_bucket" "media" {
-  bucket = "${var.project}-${var.environment}-media"
+  bucket = "${var.infra_name}-${var.environment}-media"
 }
 
 resource "aws_s3_bucket_public_access_block" "media" {

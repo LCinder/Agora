@@ -97,7 +97,10 @@ export default function EventsPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <StatusBadge status={event.status} />
-                    <Link href={`/eventos/${event.id}`} className="text-sm font-semibold underline">
+                    <Link
+                      href={`/eventos/editar?id=${event.id}`}
+                      className="text-sm font-semibold underline"
+                    >
                       Editar
                     </Link>
                   </div>

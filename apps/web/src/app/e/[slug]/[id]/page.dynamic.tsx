@@ -14,7 +14,9 @@ import { notFound } from 'next/navigation';
  */
 
 // Seed events are anchored to the current day, so this page is rendered per
-// request rather than baked at build time.
+// request rather than baked at build time. That is also why the file is named
+// `.dynamic.tsx`: the static export of the panel leaves it out, and in phase 2
+// this page is the `event-page` Lambda behind CloudFront. See D-031.
 export const dynamic = 'force-dynamic';
 
 interface PageProps {

@@ -37,3 +37,31 @@ jobs:
 
       - name: Test
         run: pnpm run test
+
+  infra:
+    name: Terraform format and validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1.5.7 is the last MPL release and matches the version the project is
+      # written for. Pinned rather than "latest" so a Terraform release cannot
+      # turn a green pull request red on its own.
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.7
+          terraform_wrapper: false
+
+      - name: Check formatting
+        run: terraform fmt -check -recursive infra/terraform
+
+      # -backend=false: no credentials and no state, so this runs on a pull
+      # request from anywhere. It checks the configuration, not the account.
+      - name: Validate every stack
+        run: |
+          for stack in bootstrap envs/dev envs/prod; do
+            echo "::group::$stack"
+            terraform -chdir="infra/terraform/$stack" init -backend=false -input=false
+            terraform -chdir="infra/terraform/$stack" validate
+            echo "::endgroup::"
+          done
