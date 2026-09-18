@@ -206,8 +206,11 @@ Cuando un piloto pida revisión de seguridad, se añade el quinto nivel: **polí
 con `dynamodb:LeadingKeys`**, que hacen que sea AWS y no tu código quien rechace el acceso a otro
 municipio. Es el patrón que documenta AWS para SaaS multi-inquilino y es media tarde de trabajo.
 
-Los 23 tests de aislamiento se portan a DynamoDB Local y siguen corriendo en la CI. Eso no se
-negocia: es el requisito que el documento de proyecto marca como prioridad máxima.
+Los tests de aislamiento **ya están portados**: `packages/store` los ejecuta contra DynamoDB Local y
+la CI levanta uno en cada cambio (D-034). Son 29 y cubren lo mismo que los 23 de PostgreSQL, más lo
+que aquí es nuevo: que aprobar mueve el evento de un índice al otro y que rechazar lo deja fuera de
+los dos. Eso no se negocia: es el requisito que el documento de proyecto marca como prioridad
+máxima.
 
 ---
 

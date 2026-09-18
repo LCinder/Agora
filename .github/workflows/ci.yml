@@ -13,6 +13,22 @@ jobs:
   check:
     name: Format, lint, typecheck and test
     runs-on: ubuntu-latest
+
+    # The tenant isolation tests run against a real DynamoDB, because half of
+    # what they prove is how DynamoDB itself answers a query on a sparse index.
+    # They are the highest priority tests in the product (CLAUDE.md, section 10),
+    # so they run in the same job as everything else rather than in one that
+    # could be forgotten. Without this endpoint they would skip, and a skipped
+    # suite that looks green is how a guarantee rots.
+    services:
+      dynamodb:
+        image: amazon/dynamodb-local:3.3.1
+        ports:
+          - 8000:8000
+
+    env:
+      DYNAMODB_ENDPOINT: http://127.0.0.1:8000
+
     steps:
       - uses: actions/checkout@v4
 

@@ -508,3 +508,28 @@ El Terraform creaba un parámetro `anthropic-api-key` y se lo pasaba a la Lambda
 Ahora crea tres parámetros: `gemini-api-key` y `cloudflare-api-token` como `SecureString`, y `cloudflare-account-id` como texto plano, porque un identificador de cuenta no es un secreto. La Lambda los recibe como un mapa (`poster_parameter_names`), no como una variable por proveedor: este es el segundo cambio de proveedor del proyecto y no será el último.
 
 Faltaba además la ruta `POST /poster/generate`, así que dibujar un cartel no tenía endpoint en la API. Las dos rutas existen ya y son las mismas que llama el panel.
+
+---
+
+## D-034 — La tabla se toca desde un paquete aparte, con un almacén por rol
+
+**Fecha:** 2026-09-18 · **Estado:** aceptada
+
+El acceso a DynamoDB vive en **`packages/store`** y no en `@agora/data`. El motivo es concreto: la app y el panel importan `@agora/data`, y si el SDK de AWS entrara ahí acabaría en el bundle de una aplicación que habla con la API por HTTP y no tiene nada que hacer con DynamoDB. `@agora/data` se queda con la interfaz y los datos semilla; `@agora/store` es lo que responde al otro lado, desde las Lambdas.
+
+**Un almacén por rol, no un cliente genérico.** Son cuatro, y son exactamente los mismos cortes que hacen las políticas de IAM (D-032):
+
+| Almacén | Quién lo usa | Qué alcanza |
+| --- | --- | --- |
+| `createPublicStore` | Lambda pública | Calendario y evento visible. Nada más existe como método. |
+| `createStaffStore` | Lambda del panel | Un actor, en un municipio. El municipio no es parámetro de ningún método. |
+| `createDeviceStore` | Lambda de dispositivos | Las marcas del propio dispositivo. |
+| `createReminderStore` | Tarea de recordatorios | De un evento a los dispositivos interesados. El único sitio donde existe ese camino. |
+
+Que el municipio **no sea un parámetro** del almacén del panel es la parte que importa: no es que leer otro municipio esté prohibido, es que no se puede escribir la llamada. Es la misma idea que la clave de partición, una capa más arriba.
+
+**El aislamiento se prueba contra DynamoDB de verdad.** 29 tests en `packages/store/src/isolation.test.ts`, sobre DynamoDB Local en Docker, que cubren lo mismo que los 23 de PostgreSQL más lo que aquí es nuevo. Un cliente falso en memoria no probaría nada: la mitad de la garantía está en cómo responde DynamoDB a una consulta sobre un índice disperso. La CI levanta el contenedor en el mismo job que el resto de comprobaciones, para que no se pueda olvidar; en una máquina sin Docker los tests se saltan diciéndolo por consola.
+
+**Y hay un test contra la deriva.** `table-definition.test.ts` lee `infra/terraform/modules/data/main.tf` y falla si las claves, los índices o las proyecciones dejan de coincidir con lo que el paquete espera. Existe por lo que habría pillado: este mismo repositorio tenía la infraestructura describiendo una cosa y el código haciendo otra en cuatro sitios.
+
+**Lo que falta para que esto llegue a producción:** las Lambdas se empaquetan comprimiendo `.mjs` tal cual, así que todavía no pueden importar TypeScript de un paquete del monorepo. Hace falta un paso de compilación con esbuild antes del `archive_file`, y ese es el siguiente trabajo de infraestructura.

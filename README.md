@@ -24,6 +24,7 @@ no lo siguen a propósito: ver [`docs/renombrar-la-app.md`](docs/renombrar-la-ap
 | `packages/core`          | Modelo de dominio, esquemas Zod y lógica pura. Sin React, sin Expo, sin Next.          |
 | `packages/data`          | Interfaz `DataSource` y su implementación de datos semilla.                            |
 | `packages/i18n`          | Textos de interfaz (español por defecto, inglés preparado).                            |
+| `packages/store`         | Tabla única de DynamoDB: un almacén por rol. Lo usan las Lambdas, nunca la app.        |
 | `content/municipalities` | Configuración y datos de cada municipio. Ver [`content/README.md`](content/README.md). |
 
 ## Requisitos

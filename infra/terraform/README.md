@@ -143,7 +143,11 @@ origin access control no añade `.html` por su cuenta. Está en `modules/web/fun
       de dispositivos deniega todo, que es lo único seguro que puede hacer un esqueleto. El de
       carteles es el que tiene el camino más corto: la lógica ya existe en el panel
       (`apps/web/src/lib/gemini.ts` y los dos `route.dynamic.ts`).
-- [ ] **Portar los 23 tests de aislamiento** a DynamoDB Local y engancharlos a la CI.
+- [x] **Portar los tests de aislamiento** a DynamoDB Local y engancharlos a la CI. Hechos:
+      `packages/store`, 29 tests, y la CI levanta un DynamoDB Local en cada cambio.
+- [ ] **Empaquetado de las Lambdas.** Los manejadores son `.mjs` que se comprimen tal cual, así que
+      todavía no pueden importar `@agora/store`, que es TypeScript. Hace falta un paso de compilación
+      (esbuild) antes del `archive_file`.
 - [ ] **Migrar los datos semilla** de `content/` a la tabla.
 - [ ] **Emisión del directo:** solo existe `GET /live/{eventId}`. Falta la ruta por la que el
       voluntario publica su posición y el canje del código por un testigo de sesión.

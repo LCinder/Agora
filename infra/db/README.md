@@ -1,5 +1,11 @@
 # Base de datos — punto de partida de la Fase 2
 
+> **Histórico.** La decisión de backend se cerró a favor de DynamoDB (D-026), así que estos ficheros
+> ya no se usan. Se conservan porque el modelo de permisos que documentan sigue siendo el bueno y
+> porque son lo que se le enseña a un ayuntamiento que pregunte por protección de datos. La
+> implementación viva está en `packages/store`, y los tests de aislamiento portados a DynamoDB en
+> `packages/store/src/isolation.test.ts` (D-034).
+
 **Esto no está en uso todavía.** La Fase 0 funciona con los ficheros de `content/` y no toca ninguna
 base de datos. Estos ficheros son el punto de partida del MVP, escritos ahora por dos razones:
 
