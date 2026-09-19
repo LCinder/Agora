@@ -169,6 +169,7 @@ module "web" {
   reminders_index_arn = module.data.reminders_index_arn
 
   api_host = module.api.api_host
+  site_url = var.site_url
 
   media_bucket_name   = module.storage.media_bucket_name
   media_bucket_arn    = module.storage.media_bucket_arn

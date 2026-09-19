@@ -655,3 +655,21 @@ Seis piezas que faltaban en `@agora/store` para que el panel pueda existir. Cada
 **Y el cuerpo de la petición se valida con Zod**, con una frontera explícita: un campo opcional que no viene llega como `undefined` y los almacenes distinguen «ausente» de «presente y vacío», así que hay una función que quita los `undefined` y **deja pasar los `null`**, porque en un evento `null` es un valor — «no tiene hora de fin» — y no un hueco.
 
 **Lo que falta para invitar a una persona de verdad:** hoy `POST /panel/.../staff` recibe el `sub` de Cognito ya creado. Falta la llamada `AdminCreateUser`, el permiso de IAM para hacerla y el identificador del grupo de usuarios en el entorno. No lo he escrito porque no puedo ejecutarlo contra un Cognito real, y escribir autenticación sin poder probarla es la forma más fácil de dar por hecho algo que no lo está.
+
+---
+
+## D-041 — Los carteles y la página de evento, con una sola implementación de cada cosa
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+**La página pública de evento** ya la sirve su Lambda. Es la única cosa del sistema que devuelve HTML, y existe por las etiquetas Open Graph: sin ellas, un enlace pegado en un grupo de WhatsApp es una URL pelada en vez de una tarjeta con el título, la fecha y el pueblo. Esa tarjeta es el bucle de crecimiento del producto, no un adorno.
+
+Sin framework y con los estilos dentro: una sola petición, nada que cachear aparte y nada que pueda faltar. Va cacheada un minuto, así que el mismo enlace en un grupo de cuatrocientas personas llega a la función una vez. Un borrador responde **exactamente lo mismo** que un evento que no existe, porque si no, un enlace compartido se convierte en una forma de averiguar qué está preparando el ayuntamiento. Y todo lo que se escribe en la página pasa por un escapado: el texto lo teclea un técnico municipal y no un desconocido, pero «nuestros usuarios no harían eso» es como se escriben los fallos de inyección, y un título con un ampersand es un martes cualquiera.
+
+**Los carteles pasan a un paquete, `@agora/poster`.** Estaban en el panel, y la Lambda tenía un esqueleto: dos copias, una a punto de ser la verdad y la otra a punto de podrirse. Ahora hay una, sin framework, y **nada dentro lee el entorno**: las credenciales son argumentos, porque los dos llamantes las guardan en sitios distintos — un `.env.local` en desarrollo, Parameter Store en la nube. Las rutas del panel y el manejador de la Lambda son adaptadores de veinte líneas.
+
+La taxonomía de fallos también se comparte, y esa es la parte que se nota: una cuota agotada, una clave mal, un modelo que contesta algo inservible. Cada uno llega al técnico como una frase distinta y con su código HTTP, y los dos caminos dan la misma. Están probados con la red simulada, que es donde se puede provocar un 429 a voluntad.
+
+**Una incoherencia que encontré al juntarlos:** el panel enviaba el cartel como `multipart` y la Lambda esperaba JSON, así que en la nube habría fallado. Ahora los dos usan JSON con la imagen en base64 — una forma para los dos, y una Lambda que no tiene que interpretar multipart a mano. El límite baja a **6 MB** por el transporte y no por el modelo: base64 infla un tercio y el cuerpo de una petición no puede pasar de 10 MB. Una foto de móvil suele pasarse de ahí, así que el panel debería reescalarla antes de subirla; queda apuntado.
+
+**Y una dependencia circular evitada:** la página necesita su dirección absoluta para las etiquetas Open Graph, y no se puede leer de la distribución de CloudFront porque la propia página es uno de sus orígenes — Terraform se perseguiría la cola. Es una variable, `site_url`, vacía en el primer `apply` y rellenada en el segundo con la salida. Con la variable vacía la página funciona igual: omite las dos etiquetas en vez de escribirlas mal.

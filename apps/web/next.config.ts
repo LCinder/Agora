@@ -30,7 +30,7 @@ const nextConfig: NextConfig = {
   pageExtensions: staticExport ? ['tsx', 'ts'] : ['dynamic.tsx', 'dynamic.ts', 'tsx', 'ts'],
 
   // Workspace packages ship TypeScript source, so Next has to compile them.
-  transpilePackages: ['@agora/core', '@agora/data', '@agora/i18n'],
+  transpilePackages: ['@agora/core', '@agora/data', '@agora/i18n', '@agora/poster'],
   // Next drops its own CLAUDE.md and AGENTS.md into this folder on every dev
   // run. The project already has one at the root, and a second, untracked
   // copy inside the panel is just something waiting to be committed by

@@ -50,6 +50,7 @@ module "stack" {
 
   infra_name            = var.infra_name
   app_name              = var.app_name
+  site_url              = var.site_url
   environment           = "dev"
   region                = var.region
   allowed_origins       = var.allowed_origins

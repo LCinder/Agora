@@ -49,3 +49,17 @@ variable "media_bucket_arn" {
 variable "media_bucket_domain" {
   type = string
 }
+
+variable "site_url" {
+  description = <<-EOT
+    Public address of the site, e.g. https://d111111abcdef8.cloudfront.net or
+    https://hoyq.es. Used by the public event page for its canonical and Open
+    Graph URLs, which have to be absolute.
+
+    Empty is allowed and is what the first apply uses: the distribution does not
+    exist yet, and the page leaves those tags out rather than writing a wrong one.
+    Fill it in on the second apply with the `site_url` output.
+  EOT
+  type        = string
+  default     = ""
+}

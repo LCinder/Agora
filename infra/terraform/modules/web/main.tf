@@ -82,6 +82,13 @@ module "event_page" {
   environment_variables = {
     TABLE_NAME  = var.table_name
     ENVIRONMENT = var.environment
+    # Where the page is served from, for its canonical and Open Graph URLs. It
+    # cannot be read from the distribution below: this function is one of that
+    # distribution's origins, so Terraform would be chasing its own tail. Set it
+    # to the CloudFront domain after the first apply, or to the real domain the
+    # day there is one; until then the page leaves those two tags out rather than
+    # writing them wrong.
+    SITE_URL = var.site_url
   }
 }
 

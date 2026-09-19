@@ -166,9 +166,15 @@ origin access control no añade `.html` por su cuenta. Está en `modules/web/fun
 - [ ] **Invitar a una persona** implica crear su usuario en Cognito (`AdminCreateUser`) y quedarse con
       su `sub`. Hoy `POST /panel/.../staff` recibe el `sub` ya creado: falta la llamada a Cognito, el
       permiso de IAM para hacerla y el identificador del grupo de usuarios en el entorno.
-- [ ] **La página pública de evento y los carteles** todavía responden 501. El de carteles es el que
-      tiene el camino más corto: la lógica ya existe en el panel (`apps/web/src/lib/gemini.ts` y los
-      dos `route.dynamic.ts`).
+- [x] **La página pública de evento y los carteles.** Hechos (D-041). La página se sirve desde la
+      Lambda con sus etiquetas Open Graph, y los carteles comparten implementación con el panel.
+- [ ] **`site_url` en el segundo apply.** La página de evento necesita su dirección absoluta para las
+      etiquetas Open Graph, y no se puede leer de la distribución porque la propia página es uno de
+      sus orígenes. Tras el primer `apply`, copia la salida `site_url` a `terraform.tfvars` y vuelve a
+      aplicar. Sin ella la página funciona, pero comparte peor.
+- [ ] **Reducir la foto antes de subirla.** El cartel viaja en base64 y el cuerpo de una petición no
+      puede pasar de 10 MB, así que el límite está en 6 MB. Una foto de móvil suele pasarse: el panel
+      debería reescalarla a unos 1500 píxeles antes de enviarla.
 - [ ] **El directo:** `GET /live/{eventId}` responde 501 y falta la emisión del voluntario.
 - [x] **Portar los tests de aislamiento** a DynamoDB Local y engancharlos a la CI. Hechos:
       `packages/store`, 29 tests, y la CI levanta un DynamoDB Local en cada cambio.

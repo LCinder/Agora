@@ -68,3 +68,9 @@ variable "budget_currency" {
   type        = string
   default     = "USD"
 }
+
+variable "site_url" {
+  description = "Public address of the site, for the public event page. Empty on the first apply; then fill it with the site_url output."
+  type        = string
+  default     = ""
+}

@@ -25,6 +25,7 @@ cambia la app, el panel, el APK y los correos del panel a la vez. Ver
 | `packages/core`          | Modelo de dominio, esquemas Zod y lógica pura. Sin React, sin Expo, sin Next.          |
 | `packages/data`          | Interfaz `DataSource` y su implementación de datos semilla.                            |
 | `packages/i18n`          | Textos de interfaz (español por defecto, inglés preparado).                            |
+| `packages/poster`        | Leer y dibujar carteles con IA. Lo usan el panel en local y la Lambda de carteles.     |
 | `packages/store`         | Tabla única de DynamoDB: un almacén por rol. Lo usan las Lambdas, nunca la app.        |
 | `apps/functions`         | Manejadores de las Lambdas. `pnpm --filter @agora/functions build` los empaqueta.      |
 | `apps/tools`             | Herramientas de operación. Hoy, cargar un municipio en la tabla.                       |

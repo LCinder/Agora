@@ -43,3 +43,9 @@ variable "budget_currency" {
   type        = string
   default     = "USD"
 }
+
+variable "site_url" {
+  description = "Public address of the site, for the public event page's absolute URLs. Empty on the first apply."
+  type        = string
+  default     = ""
+}
