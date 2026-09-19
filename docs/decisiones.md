@@ -573,3 +573,25 @@ La API declaraba `GET /events/{eventId}`. No se puede servir: la clave de partic
 La ruta pasa a ser `GET /municipalities/{municipalityId}/events/{eventId}`. No se pierde nada: todos los enlaces que genera el producto ya llevan el municipio — `/e/<slug>/<id>` —, y el selector de la app resuelve el slug a su identificador al entrar.
 
 Los intereses hacen lo mismo por el mismo motivo: `PUT /me/interests/{eventId}?municipalityId=…`. La marca se guarda bajo el dispositivo y tiene que decir a qué municipio pertenece el evento, porque un vecino puede seguir más de un pueblo.
+
+---
+
+## D-037 — El nombre comercial es HoyQ. Decisión pendiente nº 1, cerrada
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada, revisable antes de publicar en tiendas
+
+**HoyQ**, de «¿hoy qué hacemos?», que es la pregunta con la que un vecino abre la aplicación y exactamente lo que responde la pantalla de inicio con sus bloques de «Hoy» y «Este finde». El lema pasa a ser **«¿Hoy qué hacemos?»**, porque es lo que explica un nombre abreviado.
+
+Cambia en un fichero, `packages/core/src/brand.json` (D-030): nombre, slug, esquema de enlaces e identificadores de tienda. `infra_name` sigue siendo `agora` y no se toca.
+
+**Lo que se sopesó en contra, para que quede escrito:**
+
+1. **No se dicta bien.** «HoyQ» por teléfono es «hache, o, i griega, cu», y este producto se difunde de boca en boca en un pueblo, entre gente de todas las edades. La alternativa que resolvía justo eso era «HoyQué», con tilde. Queda apuntada por si el nombre se prueba en voz alta y no aguanta.
+2. **«Hoy» está poblado en la misma categoría:** existen «Hoy Madrid – Ocio y Cultura», «Hoy Barcelona – Ocio y Cultura», una app llamada «Hoy» y «HoyQuedas», que suena casi igual. Y HOY es un diario de Extremadura. A efectos de marca, «Hoy» no da exclusividad; lo registrable es el conjunto.
+3. **«Hoy» describe al vecino, no al cliente.** El ayuntamiento paga por el calendario completo — la Semana Santa entera, la feria, los recordatorios de la semana que viene, los datos de la memoria anual — y el nombre no lo dice.
+
+**Lo que queda abierto, y es de la Fase E:**
+
+- **Los identificadores de tienda son `com.hoyq.app`**, es decir, llevan la marca. Son **inmutables una vez publicada la app**, así que si el nombre cambia después de publicar, el identificador se queda con el viejo. Lo recomendable es que salgan de algo estable (la empresa o un dominio propio) y no del producto; no se ha hecho porque todavía no hay ni empresa ni dominio. Es un cambio de un minuto **mientras no se publique**.
+- **Marca y dominio sin confirmar.** `hoyq.es` y `hoyq.com` no tienen DNS, lo que no significa que estén libres. Hay que comprobarlo en un registrador y buscar en OEPM y EUIPO antes de imprimir nada o mandar una oferta a un ayuntamiento.
+- El icono no depende del nombre: es la celosía geométrica que dibuja `apps/mobile/scripts/make-icons.py`, no una letra.

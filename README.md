@@ -1,11 +1,12 @@
 # App de eventos municipales
 
-Monorepo del proyecto. Nombre comercial pendiente; `agora` es el nombre provisional del espacio de
-trabajo.
+Monorepo del proyecto. El nombre comercial es **HoyQ**, de «¿hoy qué hacemos?». El espacio de trabajo
+y los recursos de AWS siguen llamándose `agora`, y eso es deliberado: una tabla de DynamoDB no se
+renombra.
 
 El nombre que ve la gente vive en un solo fichero, **`packages/core/src/brand.json`**, y cambiarlo
-cambia la app, el panel, el APK y los correos del panel a la vez. Los nombres de los recursos de AWS
-no lo siguen a propósito: ver [`docs/renombrar-la-app.md`](docs/renombrar-la-app.md).
+cambia la app, el panel, el APK y los correos del panel a la vez. Ver
+[`docs/renombrar-la-app.md`](docs/renombrar-la-app.md).
 
 - Contexto de negocio y alcance: [`CLAUDE.md`](CLAUDE.md)
 - Plan de la fase actual: [`docs/plan-fase-0.md`](docs/plan-fase-0.md)

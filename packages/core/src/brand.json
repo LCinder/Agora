@@ -1,8 +1,8 @@
 {
-  "name": "Agora",
-  "slug": "agora",
-  "scheme": "agora",
-  "androidPackage": "com.agora.app",
-  "iosBundleId": "com.agora.app",
-  "tagline": "Lo que pasa en tu pueblo"
+  "name": "HoyQ",
+  "slug": "hoyq",
+  "scheme": "hoyq",
+  "androidPackage": "com.hoyq.app",
+  "iosBundleId": "com.hoyq.app",
+  "tagline": "¿Hoy qué hacemos?"
 }
