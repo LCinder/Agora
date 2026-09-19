@@ -1,5 +1,6 @@
 import { TransactionCanceledException } from '@aws-sdk/client-dynamodb';
 import {
+  DeleteCommand,
   PutCommand,
   QueryCommand,
   TransactWriteCommand,
@@ -43,6 +44,16 @@ export interface DeviceStore {
   listInterests(): Promise<Interest[]>;
   markInterest(municipalityId: string, eventId: string): Promise<void>;
   unmarkInterest(municipalityId: string, eventId: string): Promise<void>;
+  /**
+   * Deletes everything this device ever wrote: the marks, the counters of the
+   * anti-spam cap, the push token and the device itself.
+   *
+   * What "borrar mis datos" in Settings promises, on the server side too. The
+   * marks go through the same path as unmarking one by one, so the counters the
+   * town hall reads stay right — deleting a mark without decrementing would leave
+   * the panel reporting interest from a phone that asked to be forgotten.
+   */
+  forget(): Promise<void>;
 }
 
 export function createDeviceStore(
@@ -186,6 +197,35 @@ export function createDeviceStore(
 
     async markInterest(municipalityId, eventId) {
       await move(municipalityId, eventId, 1);
+    },
+
+    async forget() {
+      const rows = await client.send(
+        new QueryCommand({
+          TableName: tableName,
+          KeyConditionExpression: 'pk = :pk',
+          ExpressionAttributeValues: { ':pk': devicePk(deviceId) },
+          ProjectionExpression: 'pk, sk, municipalityId, eventId',
+        }),
+      );
+
+      for (const item of rows.Items ?? []) {
+        const sk = String(item['sk']);
+
+        if (sk.startsWith('INT#')) {
+          await move(String(item['municipalityId']), String(item['eventId']), -1);
+
+          continue;
+        }
+
+        // The device row itself, and the daily counters of the cap.
+        await client.send(
+          new DeleteCommand({
+            TableName: tableName,
+            Key: { pk: String(item['pk']), sk },
+          }),
+        );
+      }
     },
 
     async unmarkInterest(municipalityId, eventId) {

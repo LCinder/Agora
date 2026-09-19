@@ -175,11 +175,37 @@ describe.skipIf(local === null)('the notification job', () => {
     );
   });
 
+  it('leaves nothing behind when a resident asks to be forgotten', async () => {
+    const store = createNotificationStore(client, TABLE);
+    const devices = createDeviceStore(client, TABLE, DEVICE_ONE);
+
+    await devices.register({ platform: 'android', locale: 'es' });
+    await devices.setPushToken('ExponentPushToken[one]');
+    await devices.markInterest(ZUBIA, EVENTS.zubiaPublished);
+    await store.reserveDailyNotification(DEVICE_ONE, ZUBIA, DAY, 3);
+
+    await devices.forget();
+
+    // No address to send to, no mark pointing at the phone, and the count the
+    // panel reads went back down: a device that asked to be forgotten must not
+    // keep showing up as interest.
+    expect(await store.pushTargets([DEVICE_ONE])).toEqual([]);
+    expect(await store.devicesInterestedIn(EVENTS.zubiaPublished)).not.toContain(DEVICE_ONE);
+    expect(await devices.listInterests()).toEqual([]);
+    expect(await store.reserveDailyNotification(DEVICE_ONE, ZUBIA, DAY, 1)).toBe(true);
+  });
+
   it('forgets a token whose app was uninstalled', async () => {
     const store = createNotificationStore(client, TABLE);
+    const devices = createDeviceStore(client, TABLE, DEVICE_ONE);
+
+    await devices.register({ platform: 'android', locale: 'es' });
+    await devices.setPushToken('ExponentPushToken[gone]');
 
     await store.clearPushToken(DEVICE_ONE);
 
+    // The device row stays: it is still a phone with the app on it as far as
+    // anybody knows, and its marks are still its own. What is gone is the address.
     expect(await store.pushTargets([DEVICE_ONE])).toEqual([]);
   });
 });

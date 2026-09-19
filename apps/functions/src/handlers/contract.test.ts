@@ -10,6 +10,7 @@ import {
   type StoreClient,
   createLiveReader,
   createLiveStore,
+  createNotificationStore,
   createPublicStore,
   createStoreClient,
   createVolunteerStore,
@@ -102,6 +103,14 @@ const ROUTES: { method: string; pattern: RegExp; routeKey: string; names: string
     pattern: /^\/me\/interests\/([^/]+)$/,
     routeKey: 'DELETE /me/interests/{eventId}',
     names: ['eventId'],
+  },
+  { method: 'PUT', pattern: /^\/me\/push-token$/, routeKey: 'PUT /me/push-token', names: [] },
+  { method: 'DELETE', pattern: /^\/me$/, routeKey: 'DELETE /me', names: [] },
+  {
+    method: 'DELETE',
+    pattern: /^\/me\/push-token$/,
+    routeKey: 'DELETE /me/push-token',
+    names: [],
   },
   {
     method: 'GET',
@@ -340,6 +349,27 @@ describe.skipIf(local === null)('the app against the API', () => {
     expect(await devices.listInterests()).toEqual([]);
   });
 
+  it('leaves the address the reminders are sent to, and takes it away again', async () => {
+    await devices.setPushToken('ExponentPushToken[contract]');
+
+    const store = createNotificationStore(client, TABLE);
+    const registration = await devices.register();
+
+    expect(await store.pushTargets([registration.deviceId])).toEqual([
+      { deviceId: registration.deviceId, token: 'ExponentPushToken[contract]', locale: 'es' },
+    ]);
+
+    await devices.setPushToken(null);
+
+    expect(await store.pushTargets([registration.deviceId])).toEqual([]);
+  });
+
+  it('refuses something that is not an Expo token, rather than storing it', async () => {
+    await expect(devices.setPushToken('not-a-token')).rejects.toMatchObject({
+      failure: { kind: 'status', status: 400 },
+    });
+  });
+
   it('refuses a mark from a token that was not signed by us', async () => {
     const forged = createDeviceClient({
       baseUrl: BASE,
@@ -403,6 +433,28 @@ describe.skipIf(local === null)('the app against the API', () => {
     // And the token survives it, because the same volunteer carries on when they
     // resume it.
     expect(volunteerSession).not.toBeNull();
+  });
+
+  it('forgets the device when the resident asks to be forgotten', async () => {
+    await devices.mark(ZUBIA, EVENTS.zubiaPublished);
+    await devices.setPushToken('ExponentPushToken[goodbye]');
+
+    const before = await devices.register();
+
+    await devices.forget();
+
+    const store = createNotificationStore(client, TABLE);
+
+    expect(await store.pushTargets([before.deviceId])).toEqual([]);
+    expect(await store.devicesInterestedIn(EVENTS.zubiaPublished)).not.toContain(before.deviceId);
+
+    // And the app carries on as a different, equally anonymous phone: the stored
+    // registration is cleared by the caller, so the next call registers again.
+    stored = null;
+
+    const after = await devices.register();
+
+    expect(after.deviceId).not.toBe(before.deviceId);
   });
 
   it('says it is offline rather than throwing something unreadable', async () => {

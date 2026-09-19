@@ -35,6 +35,7 @@
         }
       ],
       "expo-localization",
+      "expo-notifications",
       "@maplibre/maplibre-react-native",
       "expo-font"
     ],

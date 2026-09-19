@@ -20,6 +20,8 @@ import {
 import { useColorScheme } from 'react-native';
 
 import { dataSource } from '../lib/data';
+import { forgetDevice, pushInterest, syncInterests } from '../lib/devices';
+import { enablePush, refreshPushToken } from '../lib/push';
 import {
   clearAllData,
   interestKey,
@@ -101,6 +103,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setInterests(storedInterests);
       if (isAppearance(storedAppearance)) setAppearanceState(storedAppearance);
       setReady(true);
+
+      // After the screen is up, never before it: the calendar must not wait for
+      // the network to paint. Both of these are no-ops in the demo build.
+      void syncInterests(storedInterests);
+      void refreshPushToken();
     }
 
     void bootstrap();
@@ -146,11 +153,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       setInterests(next);
       await saveInterests(next);
+
+      const interested = !interests.includes(key);
+
+      void pushInterest(municipality.id, eventId, interested);
+
+      // The first mark is the moment asking for notifications makes sense: the
+      // neighbour has just said they care about something that has a date. Asking
+      // on the welcome screen, before they have seen a single event, is how an app
+      // gets its notifications turned off for ever.
+      if (interested) void enablePush();
     },
     [interests, municipality],
   );
 
   const forgetEverything = useCallback(async () => {
+    // The server first: clearing the phone's storage on its own would leave the
+    // marks and the push token behind, and the reminders would keep arriving.
+    await forgetDevice();
     await clearAllData();
     setInterests([]);
     setMunicipality(null);

@@ -48,6 +48,24 @@ export interface DeviceClient {
   listInterests(): Promise<RemoteInterest[]>;
   mark(municipalityId: string, eventId: string): Promise<void>;
   unmark(municipalityId: string, eventId: string): Promise<void>;
+  /**
+   * Where the reminders should be sent, or null to stop receiving them.
+   *
+   * Called after the neighbour grants the notification permission, and again on
+   * every launch: a push token is not forever — it changes when the app is
+   * reinstalled or restored onto another phone — and writing the same one twice
+   * costs one request and saves a reminder nobody gets.
+   */
+  setPushToken(token: string | null): Promise<void>;
+  /**
+   * Asks the API to delete this device and everything it wrote.
+   *
+   * The other half of "borrar mis datos": wiping the phone's own storage leaves
+   * the marks and the push token on the server, and the reminders would carry on
+   * arriving. The caller clears the stored registration afterwards, and the next
+   * mark registers a new, equally anonymous device.
+   */
+  forget(): Promise<void>;
 }
 
 export function createDeviceClient(options: DeviceClientOptions): DeviceClient {
@@ -106,6 +124,25 @@ export function createDeviceClient(options: DeviceClientOptions): DeviceClient {
     async unmark(municipalityId, eventId) {
       await register();
       await api.send('DELETE', interestPath(municipalityId, eventId));
+    },
+
+    async setPushToken(token) {
+      await register();
+
+      if (token === null) {
+        await api.send('DELETE', '/me/push-token');
+
+        return;
+      }
+
+      await api.send('PUT', '/me/push-token', { token });
+    },
+
+    async forget() {
+      await register();
+      await api.send('DELETE', '/me');
+
+      registration = null;
     },
   };
 }

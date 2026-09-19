@@ -1,3 +1,4 @@
+import { isExpoPushToken } from '@agora/push';
 import { type StoreClient, createDeviceStore, createStoreClient } from '@agora/store';
 
 import {
@@ -119,6 +120,39 @@ async function dispatch(event: ApiEvent, dependencies: DeviceApiDependencies): P
 
       return noContent();
     }
+
+    case 'PUT /me/push-token': {
+      let token: unknown;
+
+      try {
+        token = (JSON.parse(event.body ?? '{}') as { token?: unknown }).token;
+      } catch {
+        return badRequest('El cuerpo tiene que ser JSON.');
+      }
+
+      // Checked here rather than taken on trust: a value that is not an Expo
+      // token is a message the job will build, send and have refused, every time
+      // it runs, for as long as the row exists.
+      if (typeof token !== 'string' || !isExpoPushToken(token)) {
+        return badRequest('Ese testigo de notificaciones no vale.');
+      }
+
+      await store.setPushToken(token);
+
+      return noContent();
+    }
+
+    case 'DELETE /me/push-token':
+      await store.setPushToken(null);
+
+      return noContent();
+
+    // "Borrar mis datos", from Settings. The token the app is holding stops
+    // meaning anything the moment this returns: the device it named is gone.
+    case 'DELETE /me':
+      await store.forget();
+
+      return noContent();
 
     default:
       return error(404, 'not_found', 'Esa ruta no existe.');

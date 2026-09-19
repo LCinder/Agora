@@ -15,6 +15,7 @@ const KEYS = {
   requestedMunicipalities: 'agora.municipality.requested',
   appearance: 'agora.appearance',
   volunteerSession: 'agora.volunteer.session',
+  deviceRegistration: 'agora.device.registration',
 } as const;
 
 /** An interest is one event of one municipality. */
@@ -145,4 +146,26 @@ export async function clearVolunteerSession(): Promise<void> {
   } catch {
     // Same as above: the next read falls back to "no session".
   }
+}
+
+/**
+ * The identity the API knows this phone by: an id we invented and a signature.
+ *
+ * No account, no email, nothing asked of the person holding it (D-029). It is
+ * kept so the same phone keeps the same marks between launches, and "borrar mis
+ * datos" drops it — after which the phone is a different, equally anonymous one.
+ */
+export interface StoredDeviceRegistration {
+  deviceId: string;
+  token: string;
+}
+
+export async function loadDeviceRegistration(): Promise<StoredDeviceRegistration | null> {
+  return readJson<StoredDeviceRegistration | null>(KEYS.deviceRegistration, null);
+}
+
+export async function saveDeviceRegistration(
+  registration: StoredDeviceRegistration,
+): Promise<void> {
+  await writeJson(KEYS.deviceRegistration, registration);
 }

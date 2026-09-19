@@ -116,6 +116,14 @@ export interface Messages {
   'settings.appearanceLight': string;
   'settings.appearanceSystem': string;
   'settings.appearanceBody': string;
+  'settings.notifications': string;
+  'settings.notificationsBody': string;
+  'settings.notificationsOn': string;
+  'settings.notificationsOff': string;
+  'settings.notificationsEnable': string;
+  'settings.notificationsDisable': string;
+  'settings.notificationsDenied': string;
+  'settings.notificationsUnsupported': string;
   'settings.privacy': string;
   'settings.deleteData': string;
   'settings.deleteDataBody': string;
@@ -238,6 +246,16 @@ const es: Messages = {
   'settings.appearanceLight': 'Claro',
   'settings.appearanceSystem': 'Automático',
   'settings.appearanceBody': 'El claro se lee mejor a pleno sol.',
+  'settings.notifications': 'Avisos',
+  'settings.notificationsBody':
+    'Te recordamos por la tarde los eventos que te interesan y te avisamos si cambia la hora, el lugar o se cancelan.',
+  'settings.notificationsOn': 'Activados',
+  'settings.notificationsOff': 'Desactivados',
+  'settings.notificationsEnable': 'Activar avisos',
+  'settings.notificationsDisable': 'Desactivar avisos',
+  'settings.notificationsDenied':
+    'Los has bloqueado en los ajustes del móvil. Se activan desde ahí.',
+  'settings.notificationsUnsupported': 'En esta versión de demostración no se envían avisos.',
   'settings.privacy': 'Privacidad',
   'settings.deleteData': 'Borrar mis datos',
   'settings.deleteDataBody':
@@ -360,6 +378,15 @@ const en: Messages = {
   'settings.appearanceLight': 'Light',
   'settings.appearanceSystem': 'Automatic',
   'settings.appearanceBody': 'Light reads better in bright sunshine.',
+  'settings.notifications': 'Notifications',
+  'settings.notificationsBody':
+    'We remind you in the evening about the events you marked, and tell you if the time or the place changes, or they are called off.',
+  'settings.notificationsOn': 'On',
+  'settings.notificationsOff': 'Off',
+  'settings.notificationsEnable': 'Turn notifications on',
+  'settings.notificationsDisable': 'Turn notifications off',
+  'settings.notificationsDenied': 'You blocked them in your phone settings. Turn them on there.',
+  'settings.notificationsUnsupported': 'This demo build does not send notifications.',
   'settings.privacy': 'Privacy',
   'settings.deleteData': 'Delete my data',
   'settings.deleteDataBody':

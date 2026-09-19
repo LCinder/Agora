@@ -1,8 +1,10 @@
 import { SUPPORTED_LOCALES } from '@agora/i18n';
 import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { Body, Button, Caption, Card, Chip, Display, Screen, Subtitle } from '../../components/ui';
+import { type PushState, disablePush, enablePush, pushState } from '../../lib/push';
 import { useApp } from '../../providers/app-provider';
 import { APPEARANCES, type Appearance } from '../../theme/theme';
 
@@ -27,6 +29,31 @@ export default function SettingsScreen() {
   const { appearance, forgetEverything, locale, municipality, setAppearance, setLocale, t, theme } =
     useApp();
   const router = useRouter();
+
+  const [push, setPush] = useState<PushState | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    void pushState().then((state) => {
+      if (active) setPush(state);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function togglePush() {
+    if (push === 'granted') {
+      await disablePush();
+      setPush('undetermined');
+
+      return;
+    }
+
+    setPush(await enablePush());
+  }
 
   async function deleteEverything() {
     await forgetEverything();
@@ -82,6 +109,32 @@ export default function SettingsScreen() {
           <Body tone="muted" style={{ marginTop: theme.spacing(3) }}>
             {t('settings.appearanceBody')}
           </Body>
+        </Card>
+
+        <Card>
+          <Caption>{t('settings.notifications')}</Caption>
+          <Subtitle style={{ marginTop: theme.spacing(1) }}>
+            {push === 'granted' ? t('settings.notificationsOn') : t('settings.notificationsOff')}
+          </Subtitle>
+          <Body tone="muted" style={{ marginTop: theme.spacing(2) }}>
+            {push === 'unsupported'
+              ? t('settings.notificationsUnsupported')
+              : push === 'denied'
+                ? t('settings.notificationsDenied')
+                : t('settings.notificationsBody')}
+          </Body>
+          {push === 'unsupported' || push === 'denied' ? null : (
+            <Button
+              label={
+                push === 'granted'
+                  ? t('settings.notificationsDisable')
+                  : t('settings.notificationsEnable')
+              }
+              variant="secondary"
+              onPress={() => void togglePush()}
+              style={{ marginTop: theme.spacing(3) }}
+            />
+          )}
         </Card>
 
         <Card>

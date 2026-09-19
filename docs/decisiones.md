@@ -780,3 +780,23 @@ La decisión pendiente nº 6 y nº 7 del documento de producto, resueltas, y la 
 **Cada mensaje va en el idioma de su teléfono**, porque el testigo de push se guarda junto al idioma del dispositivo y los textos están en `@agora/i18n` desde la Fase 0. Y la hora se formatea en la zona del municipio: «Mañana a las 20:00» es la hora del cartel, no la del servidor.
 
 Lo que Expo contesta se usa para una cosa concreta: si un testigo vuelve como `DeviceNotRegistered`, la app se desinstaló de ese móvil y el testigo se borra. Un fallo de red no revienta la tarea —se cuenta, la orden se queda en el buzón y se reintenta al minuto siguiente—, porque quedan otros municipios por recorrer.
+
+---
+
+## D-047 — El testigo de notificaciones, y «borrar mis datos» también en el servidor
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+La otra mitad de D-046: la tarea sabe enviar, pero necesita una dirección a la que enviar, y esa la da el móvil.
+
+**El permiso se pide al marcar el primer evento, no al abrir la app.** Es el momento en que la pregunta tiene sentido para el vecino: acaba de decir que le interesa algo que tiene fecha y hora. Pedirlo en la pantalla de bienvenida, antes de que haya visto un solo evento, es la forma de que una app tenga las notificaciones desactivadas para siempre. Y en Ajustes hay un interruptor, porque quitarlo tiene que ser tan fácil como ponerlo.
+
+**El testigo se vuelve a enviar en cada arranque si el permiso ya estaba dado.** Un testigo de push no es para siempre: cambia al reinstalar la app o al restaurarla en otro móvil, y uno caducado es un recordatorio que no llega.
+
+**El testigo se valida en el manejador**, con el mismo patrón que usa el cliente de Expo. Un valor que no es un testigo de Expo es un mensaje que la tarea construiría, enviaría y vería rechazado, cada vez que se ejecuta, mientras la fila exista.
+
+**«Me interesa» ahora llega a la API**, que es lo que convierte la marca en un recordatorio: la tarea lee las marcas, así que una marca que no llegó es un recordatorio que no existe. El móvil es la autoridad —hay un registro por instalación, no hay un segundo dispositivo con el que discrepar— y al arrancar se reconcilia: lo que está en el móvil y no en la API se marca, lo que está en la API y no en el móvil se desmarca. Un fallo de red no se le cuenta al vecino: el corazón ya está pintado, la marca está en el teléfono y se arregla en el siguiente arranque. Eso es también el requisito de funcionamiento sin conexión de la sección 10.
+
+**Y «borrar mis datos» ahora borra de verdad.** Antes limpiaba el almacenamiento del móvil y dejaba en el servidor las marcas, los contadores y el testigo de push, así que los avisos habrían seguido llegando a un teléfono que pidió que lo olvidaran. Hay una ruta `DELETE /me` que borra el dispositivo, sus marcas —por el mismo camino que desmarcarlas una a una, para que los contadores que ve el ayuntamiento sigan siendo ciertos— y los contadores del tope diario. Después, la app es un teléfono distinto e igual de anónimo.
+
+Una cosa que **no** está hecha y no bloquea nada: el identificador del proyecto de Expo. Sin él, `getExpoPushTokenAsync` no puede pedir un testigo, así que el registro contesta `unsupported` y la pantalla de Ajustes lo dice. Se rellena con `EXPO_PUBLIC_EAS_PROJECT_ID` el día que se haga la primera build interna, sin tocar código.

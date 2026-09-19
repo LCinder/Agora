@@ -353,6 +353,12 @@ locals {
     "GET /me/interests",
     "PUT /me/interests/{eventId}",
     "DELETE /me/interests/{eventId}",
+    # Where the notification job sends. Behind the device authorizer like the
+    # rest: a token nobody signed cannot leave an address on somebody's phone.
+    "PUT /me/push-token",
+    "DELETE /me/push-token",
+    # "Borrar mis datos": the device, its marks and its counters.
+    "DELETE /me",
   ]
 }
 
