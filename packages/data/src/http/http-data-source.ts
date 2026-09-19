@@ -85,9 +85,11 @@ export function createHttpDataSource(options: HttpDataSourceOptions): DataSource
     },
 
     async getPlannedRoute(): Promise<Route | null> {
-      // Live tracking is the next piece of the backend: sessions and positions do
-      // not exist in the table yet, so there is no route to fetch. Null is what
-      // the map already handles.
+      // Against a real API the planned route is not a property of the calendar:
+      // it arrives with the live session, from `createLiveClient`, together with
+      // the position and the status. Null here, and the live screen asks the right
+      // client. In the seed there is one recorded route per municipality, which is
+      // why this method exists at all.
       return null;
     },
   };

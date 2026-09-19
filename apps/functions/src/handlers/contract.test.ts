@@ -3,6 +3,7 @@ import {
   type VolunteerSession,
   createDeviceClient,
   createHttpDataSource,
+  createLiveClient,
   createVolunteerClient,
 } from '@agora/data';
 import {
@@ -103,6 +104,12 @@ const ROUTES: { method: string; pattern: RegExp; routeKey: string; names: string
     names: ['eventId'],
   },
   {
+    method: 'GET',
+    pattern: /^\/live\/([^/]+)$/,
+    routeKey: 'GET /live/{eventId}',
+    names: ['eventId'],
+  },
+  {
     method: 'POST',
     pattern: /^\/volunteer\/redeem$/,
     routeKey: 'POST /volunteer/redeem',
@@ -189,7 +196,11 @@ describe.skipIf(local === null)('the app against the API', () => {
 
     if (event === null) return new Response('no such route', { status: 404 });
 
-    if (event.routeKey.includes('/municipalities') || event.routeKey.includes('/events')) {
+    if (
+      event.routeKey.includes('/municipalities') ||
+      event.routeKey.includes('/events') ||
+      event.routeKey.includes('/live/')
+    ) {
       return toResponse(await publicRoute(event, publicReadable(client, TABLE)));
     }
 
@@ -225,6 +236,7 @@ describe.skipIf(local === null)('the app against the API', () => {
   let volunteerSession: VolunteerSession | null = null;
 
   const data = createHttpDataSource({ baseUrl: BASE, fetch: apiAsFetch });
+  const live = createLiveClient({ baseUrl: BASE, fetch: apiAsFetch });
   const volunteers = createVolunteerClient({
     baseUrl: BASE,
     fetch: apiAsFetch,
@@ -366,10 +378,17 @@ describe.skipIf(local === null)('the app against the API', () => {
 
     expect(at).toBeInstanceOf(Date);
 
-    const view = await createLiveReader(client, TABLE).live(EVENTS.zubiaPublished);
+    // And the resident's map reads it back through the public route, which is the
+    // whole feature end to end: a code on a screen, a phone in the street, a dot.
+    const view = await live.view(EVENTS.zubiaPublished);
 
     expect(view?.status).toBe('active');
     expect(view?.position?.latitude).toBeCloseTo(37.113);
+    expect(view?.position?.recordedAt).toBeInstanceOf(Date);
+  });
+
+  it('answers null for an event with no live session', async () => {
+    expect(await live.view(EVENTS.zubiaDraft)).toBeNull();
   });
 
   it('stops recording when the town hall pauses the live session', async () => {

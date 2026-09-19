@@ -735,3 +735,21 @@ El otro extremo de D-043. Quien lleva el móvil en la procesión es alguien de l
 **En la demo funciona sin API**, porque el modo voluntario es una de las cosas que se enseñan en una reunión: acepta cualquier código, no envía nada y la pantalla lo dice.
 
 Y hay dos tests de contrato nuevos que recorren el camino entero contra los manejadores de verdad: el código que el ayuntamiento genera se convierte en testigo, la posición llega al mapa del vecino, y cuando el ayuntamiento pausa el directo la posición se rechaza sin que el voluntario pierda el código.
+
+---
+
+## D-045 — El mapa del vecino: la misma pantalla, dos fuentes
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+La pantalla del directo ya existía desde la Fase 0 replicando un recorrido grabado. Ahora, cuando hay API, pregunta por la última posición de verdad — y es **la misma pantalla**. La demo que se enseña en una reunión es la versión que se publica; lo único que cambia es de dónde sale el punto.
+
+**El cliente del directo va aparte del `DataSource`.** Todo lo que hay allí es el calendario, que se cachea un minuto y se pide una vez por pantalla. Esto se pide cada cinco segundos y se cachea cinco. Mezclarlos habría significado que uno de los dos tuviera el cacheo equivocado.
+
+**Cinco segundos de intervalo, porque la API cachea cinco.** Preguntar más rápido devolvería lo mismo y costaría dinero. Y el sondeo es sondeo, no WebSockets: para miles de vecinos mirando el mismo punto, una respuesta cacheada en CloudFront cuesta prácticamente nada y una conexión abierta por vecino no.
+
+**Un sondeo que falla no cambia nada en la pantalla, a propósito.** La posición anterior se queda en el mapa y su hora envejece, que es justo lo que la pantalla dice en voz alta. La cobertura se muere en una calle llena de gente y eso no es un estado de error. Pasados los dos minutos que el dominio tiene escritos desde la Fase 0, el punto y la etiqueta «EN DIRECTO» se vuelven grises y el texto pasa a «sin señal desde hace X min».
+
+**El recorrido que se dibuja es el previsto mientras dura y el simplificado cuando acaba**, así que un mapa abierto a la mañana siguiente sigue enseñando por dónde fue la procesión, sin decir nada de quién llevaba el teléfono.
+
+Y el test de contrato recorre ahora el camino entero: el código que genera el ayuntamiento se convierte en testigo, el móvil del voluntario manda una posición y el cliente del vecino la lee por la ruta pública.
