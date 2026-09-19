@@ -95,16 +95,29 @@ resource "aws_dynamodb_table" "main" {
     enabled        = true
   }
 
-  # Point-in-time recovery costs money per GB, so it is on where the data
-  # matters and off where it does not.
-  point_in_time_recovery {
-    enabled = var.environment == "prod"
-  }
+  # There is deliberately no `point_in_time_recovery` block: nothing here costs
+  # money for existing, and that is the constraint the whole architecture is
+  # built on (D-026).
+  #
+  # What it buys, for whoever reads this before the first pilot: it keeps a
+  # continuous log of changes for 35 days, so a migration that overwrites a
+  # municipality's programme can be restored to the second before it ran. It is
+  # the only thing in DynamoDB that recovers from our own mistakes — replication
+  # across three availability zones is automatic and protects against none of
+  # them — and there is no free version of it: on-demand backups are billed per
+  # gigabyte too.
+  #
+  # At pilot size the table is megabytes, so it would be cents a month:
+  #
+  #     point_in_time_recovery { enabled = true }
+  #
+  # Worth turning on in production the day a real municipality's events are in
+  # here rather than seed data. Until then there is nothing to lose.
 
-  # Two different guards, because they stop two different mistakes. This one
-  # stops AWS from deleting the table at all, whoever asks and however: a
-  # `terraform destroy`, a console click, a script. Off in dev, where throwing
-  # the environment away is a normal afternoon.
+  # Deletion protection stays, because it is free and stops a different mistake:
+  # AWS refuses to delete the table at all, whoever asks and however — a
+  # `terraform destroy`, a console click, a script. Off in dev, where throwing the
+  # environment away is a normal afternoon.
   deletion_protection_enabled = var.environment == "prod"
 
   lifecycle {

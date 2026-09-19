@@ -240,6 +240,11 @@ segundos** contra el origen.
 Lo primero que crea el Terraform es una **alarma de presupuesto**. Un proyecto autofinanciado no
 puede enterarse del gasto a fin de mes.
 
+La tabla no lleva recuperación a un instante: se paga por gigabyte y la restricción es que nada cueste
+por existir (D-032). A cambio, un error propio sobre datos de producción no se puede deshacer, y eso
+hay que resolverlo antes del primer piloto de verdad — son céntimos al mes y la línea está escrita en
+`modules/data`. Lo que sí está puesto, por gratis, es la protección contra el borrado de la tabla.
+
 Y una cuenta de CloudWatch tiene **diez alarmas gratuitas**, que es justo lo que cabe: el conjunto de
 un entorno son nueve, así que las tiene producción y dev no (D-032). Con eso la factura de AWS de
 `dev` y `prod` juntos se queda en céntimos.

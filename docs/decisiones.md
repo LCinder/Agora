@@ -497,6 +497,10 @@ Las denegaciones son explícitas además de no estar concedidas: una denegación
 
 El presupuesto tenía otro descuido: la variable se llamaba `monthly_budget_eur` y la unidad era `USD`. Ahora son `monthly_budget_amount` y `budget_currency`.
 
+**Corrección del 19 de septiembre (2):** la tabla **no tiene recuperación a un instante** (PITR). Cuesta 0,20 $ por GB y mes, y la restricción del proyecto es que nada cueste dinero por existir. La consecuencia hay que tenerla escrita, porque es lo que hay que contestar cuando un ayuntamiento pregunte qué pasa si se pierden sus datos: la replicación en tres zonas de disponibilidad es automática y no protege de un error propio, así que **un script de migración que sobreescriba la programación de un municipio no tiene vuelta atrás**. No hay versión gratuita: las copias bajo demanda también se facturan por gigabyte.
+
+A tamaño piloto la tabla son megas, así que serían céntimos al mes. Está apuntado en el módulo, con la línea que hay que descomentar, y **revisarlo entra en la Fase E**, antes de que haya dentro datos de un ayuntamiento de verdad en vez de datos semilla. Lo que sí se queda, porque es gratis, es `deletion_protection_enabled` en producción: impide que la tabla se borre, lo pida quien lo pida.
+
 **Corrección del 19 de septiembre:** las alarmas se crean **solo en producción**. CloudWatch regala diez alarmas por cuenta y un entorno gasta nueve (una por función, una de 5xx de la API, una de throttling de la tabla), así que tenerlas en los dos entornos costaba unos 0,80 $ al mes por avisar de un entorno en el que nadie está de guardia. En dev lo que avisa de que algo se ha roto es el test que acaba de fallar. El aviso de presupuesto y el tema de SNS siguen en los dos: un gasto que se desmadra en dev es precisamente el que nadie mira.
 
 ---
