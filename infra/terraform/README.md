@@ -163,18 +163,18 @@ origin access control no añade `.html` por su cuenta. Está en `modules/web/fun
       autorizador. En `apps/functions/src/handlers/`.
 - [x] **El panel.** Hecho y probado contra DynamoDB Local: eventos, bandeja de revisión con cambios
       pendientes, avisos, asociaciones, altas de personal, estadísticas y auditoría (D-040).
-- [ ] **Invitar a una persona** implica crear su usuario en Cognito (`AdminCreateUser`) y quedarse con
-      su `sub`. Hoy `POST /panel/.../staff` recibe el `sub` ya creado: falta la llamada a Cognito, el
-      permiso de IAM para hacerla y el identificador del grupo de usuarios en el entorno.
+- [x] **Invitar a una persona.** Hecho: `POST /panel/.../invitations` crea la cuenta en Cognito y la
+      membresía en la tabla en la misma petición, con permiso de IAM solo para crear y leer un
+      usuario (D-048). Lo que falta es la pantalla en el panel; el endpoint y el cliente existen.
 - [x] **La página pública de evento y los carteles.** Hechos (D-041). La página se sirve desde la
       Lambda con sus etiquetas Open Graph, y los carteles comparten implementación con el panel.
 - [ ] **`site_url` en el segundo apply.** La página de evento necesita su dirección absoluta para las
       etiquetas Open Graph, y no se puede leer de la distribución porque la propia página es uno de
       sus orígenes. Tras el primer `apply`, copia la salida `site_url` a `terraform.tfvars` y vuelve a
       aplicar. Sin ella la página funciona, pero comparte peor.
-- [ ] **Reducir la foto antes de subirla.** El cartel viaja en base64 y el cuerpo de una petición no
-      puede pasar de 10 MB, así que el límite está en 6 MB. Una foto de móvil suele pasarse: el panel
-      debería reescalarla a unos 1500 píxeles antes de enviarla.
+- [x] **Reducir la foto antes de subirla.** Hecho: el cartel viaja en base64 y el cuerpo de una
+      petición no puede pasar de 10 MB, así que el límite está en 6 MB. El panel escala la foto a
+      1.500 píxeles y la manda en JPEG, que son unos 400 kB.
 - [x] **El directo.** Hecho (D-043): sesiones, código de un solo uso, emisión del voluntario con el
       evento dentro del testigo, lectura cacheada para el vecino y borrado del rastro al terminar.
 - [x] **Portar los tests de aislamiento** a DynamoDB Local y engancharlos a la CI. Hechos:

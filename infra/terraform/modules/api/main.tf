@@ -151,6 +151,19 @@ data "aws_iam_policy_document" "panel_api" {
     actions   = ["s3:PutObject", "s3:DeleteObject"]
     resources = ["${var.media_bucket_arn}/*"]
   }
+
+  # Inviting municipal staff and associations: the account in Cognito, and
+  # reading back the subject of one that already exists, because a technician who
+  # works for two neighbouring town halls signs in once. Creating the account is
+  # all it may do — no listing users, no changing passwords, no deleting anybody.
+  statement {
+    effect = "Allow"
+    actions = [
+      "cognito-idp:AdminCreateUser",
+      "cognito-idp:AdminGetUser",
+    ]
+    resources = [var.user_pool_arn]
+  }
 }
 
 module "panel_api" {
@@ -163,6 +176,7 @@ module "panel_api" {
 
   environment_variables = merge(local.common_env, {
     MEDIA_BUCKET = var.media_bucket_name
+    USER_POOL_ID = var.user_pool_id
   })
 }
 

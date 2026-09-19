@@ -32,25 +32,51 @@ import { usePanel } from '../../../lib/panel-store';
 
 const MONTHS = ['Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep'] as const;
 
+/** A title that fits on an axis. */
+function shorten(title: string): string {
+  return title.length > 34 ? `${title.slice(0, 33)}…` : title;
+}
+
 export default function DataPage() {
-  const { categories, events, loading, municipality } = usePanel();
+  const { categories, events, loading, municipality, stats } = usePanel();
   const [asTable, setAsTable] = useState(false);
 
   const published = useMemo(() => residentVisibleEvents(events), [events]);
 
-  const byEvent = useMemo(
-    () =>
-      published
-        .map((event) => ({
-          name: event.title.length > 34 ? `${event.title.slice(0, 33)}…` : event.title,
-          interesados: demoInterestCount(event.id, event.isFeatured),
-        }))
+  const byEvent = useMemo(() => {
+    if (stats !== null) {
+      // A count the API held back for being small enough to be a person comes as
+      // null, and is left out rather than drawn as a zero: the chart would be
+      // saying "nobody", which is not what null means (D-032).
+      return stats.interests.topEvents
+        .filter((entry) => entry.interested !== null)
+        .map((entry) => ({ name: shorten(entry.title), interesados: entry.interested ?? 0 }))
         .sort((a, b) => b.interesados - a.interesados)
-        .slice(0, 8),
-    [published],
-  );
+        .slice(0, 8);
+    }
+
+    return published
+      .map((event) => ({
+        name: shorten(event.title),
+        interesados: demoInterestCount(event.id, event.isFeatured),
+      }))
+      .sort((a, b) => b.interesados - a.interesados)
+      .slice(0, 8);
+  }, [published, stats]);
 
   const byCategory = useMemo(() => {
+    if (stats !== null) {
+      return stats.interests.byCategory
+        .filter((entry) => entry.interested !== null)
+        .map((entry) => ({
+          name:
+            categories.find((category) => category.id === entry.categoryId)?.name ??
+            entry.categoryId,
+          interesados: entry.interested ?? 0,
+        }))
+        .sort((a, b) => b.interesados - a.interesados);
+    }
+
     const totals = new Map<string, number>();
 
     for (const event of published) {
@@ -66,7 +92,7 @@ export default function DataPage() {
         interesados,
       }))
       .sort((a, b) => b.interesados - a.interesados);
-  }, [categories, published]);
+  }, [categories, published, stats]);
 
   const monthly = useMemo(
     () =>
@@ -84,8 +110,10 @@ export default function DataPage() {
     return <p className="text-sm text-neutral-500">Cargando…</p>;
   }
 
-  const totalInterest = byEvent.reduce((sum, entry) => sum + entry.interesados, 0);
-  const averagePerEvent = published.length === 0 ? 0 : Math.round(totalInterest / published.length);
+  const totalInterest =
+    stats?.interests.total ?? byEvent.reduce((sum, entry) => sum + entry.interesados, 0);
+  const publishedCount = stats?.events.published ?? published.length;
+  const averagePerEvent = publishedCount === 0 ? 0 : Math.round(totalInterest / publishedCount);
 
   function exportCsv() {
     const rows = [
@@ -133,15 +161,27 @@ export default function DataPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Eventos publicados" value={published.length} />
+        <StatTile label="Eventos publicados" value={publishedCount} />
         <StatTile label="Marcas de «Me interesa»" value={totalInterest.toLocaleString('es-ES')} />
         <StatTile label="Media por evento" value={averagePerEvent} />
-        <StatTile
-          label="Dispositivos activos"
-          value={DEMO_ACTIVE_DEVICES.toLocaleString('es-ES')}
-          hint="Vecinos con la app instalada"
-        />
+        {stats === null ? (
+          <StatTile
+            label="Dispositivos activos"
+            value={DEMO_ACTIVE_DEVICES.toLocaleString('es-ES')}
+            hint="Vecinos con la app instalada"
+          />
+        ) : (
+          <StatTile label="En revisión" value={stats.events.awaitingReview} />
+        )}
       </div>
+
+      {stats !== null && stats.suppressed > 0 ? (
+        <p className="mt-4 text-sm text-neutral-600 dark:text-neutral-400">
+          {stats.suppressed === 1
+            ? 'Un dato no se muestra porque hay tan poca gente que podría identificarse.'
+            : `${stats.suppressed} datos no se muestran porque hay tan poca gente que podría identificarse.`}
+        </p>
+      ) : null}
 
       {published.length === 0 ? (
         <div className="mt-6">
@@ -210,7 +250,10 @@ export default function DataPage() {
               </ResponsiveContainer>
             </ChartCard>
 
-            <ChartCard title="Evolución mensual">
+            {/* Invented from the seed, so it is shown only in the demo: the API has
+                no monthly series yet, and a made-up line on a councillor's report
+                is the one thing this screen must never do. */}
+            <ChartCard title="Evolución mensual" hidden={stats !== null}>
               <ResponsiveContainer width="100%" height={260}>
                 <LineChart data={monthly} margin={{ left: 0, right: 8 }}>
                   <CartesianGrid vertical={false} stroke="var(--viz-grid)" />
@@ -248,7 +291,17 @@ export default function DataPage() {
   );
 }
 
-function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
+function ChartCard({
+  title,
+  children,
+  hidden = false,
+}: {
+  title: string;
+  children: React.ReactNode;
+  hidden?: boolean;
+}) {
+  if (hidden) return null;
+
   return (
     <Card className="mt-6">
       <h2 className="mb-4 text-lg font-semibold">{title}</h2>

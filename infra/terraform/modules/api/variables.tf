@@ -80,3 +80,13 @@ variable "allowed_origins" {
   description = "Where the panel is served from. Not '*': these endpoints write."
   type        = list(string)
 }
+
+variable "user_pool_id" {
+  description = "The Cognito user pool the panel invites people into."
+  type        = string
+}
+
+variable "user_pool_arn" {
+  description = "Scope of the panel's permission to create an account."
+  type        = string
+}

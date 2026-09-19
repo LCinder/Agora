@@ -18,6 +18,7 @@ export * from './http/client';
 export * from './http/device-client';
 export * from './http/http-data-source';
 export * from './http/live-client';
+export * from './http/panel-client';
 export * from './http/volunteer-client';
 export * from './seed/seed-data-source';
 export * from './seed/seed-schema';

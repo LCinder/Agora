@@ -62,7 +62,7 @@ export default function ReviewPage() {
                   <div className="flex flex-wrap gap-2">
                     <Button
                       brand={municipality.branding.primaryColor}
-                      onClick={() => approveEvent(event.id)}
+                      onClick={() => void approveEvent(event.id)}
                     >
                       Aprobar y publicar
                     </Button>
@@ -96,7 +96,7 @@ export default function ReviewPage() {
                         variant="danger"
                         disabled={reason.trim() === ''}
                         onClick={() => {
-                          rejectEvent(event.id, reason.trim());
+                          void rejectEvent(event.id, reason.trim());
                           setRejecting(null);
                         }}
                       >

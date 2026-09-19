@@ -800,3 +800,27 @@ La otra mitad de D-046: la tarea sabe enviar, pero necesita una dirección a la 
 **Y «borrar mis datos» ahora borra de verdad.** Antes limpiaba el almacenamiento del móvil y dejaba en el servidor las marcas, los contadores y el testigo de push, así que los avisos habrían seguido llegando a un teléfono que pidió que lo olvidaran. Hay una ruta `DELETE /me` que borra el dispositivo, sus marcas —por el mismo camino que desmarcarlas una a una, para que los contadores que ve el ayuntamiento sigan siendo ciertos— y los contadores del tope diario. Después, la app es un teléfono distinto e igual de anónimo.
 
 Una cosa que **no** está hecha y no bloquea nada: el identificador del proyecto de Expo. Sin él, `getExpoPushTokenAsync` no puede pedir un testigo, así que el registro contesta `unsupported` y la pantalla de Ajustes lo dice. Se rellena con `EXPO_PUBLIC_EAS_PROJECT_ID` el día que se haga la primera build interna, sin tocar código.
+
+---
+
+## D-048 — El panel con identidad de verdad, y la demo intacta
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+El panel llevaba desde la Fase 0 funcionando sobre la semilla en el navegador. Ahora habla con la API como quien haya iniciado sesión — y la demo sigue exactamente igual.
+
+**La misma regla que en la app (D-042):** con `NEXT_PUBLIC_API_BASE_URL` y los identificadores de Cognito puestos, el panel es el de un piloto; sin ellos, es la demostración. Eso no es un apaño: un concejal tiene que poder crear un evento en un portátil en una sala de juntas con mal wifi, y nada de lo que teclee ahí debe salir del navegador. Una build y la otra se diferencian en tres variables de entorno.
+
+**Cognito contesta solo «quién eres».** Lo que esa persona puede hacer sale de la tabla, por municipio, y la API lo lee en cada petición (D-029). Por eso en el cliente del panel no hay ni un rol ni un municipio: hay un correo y un testigo. Y por eso dar de baja a un técnico que se va es borrar una fila, sin esperar a que caduque nada.
+
+**El testigo se lee en cada llamada, no se captura,** porque caduca a la hora y la biblioteca de Cognito lo renueva por detrás con el testigo de refresco. Un panel abierto toda la tarde en una oficina municipal sigue funcionando.
+
+**Nadie se registra solo.** El pool es `allow_admin_create_user_only`, así que la única puerta de entrada es una invitación, y la manda un responsable municipal. `POST /panel/.../invitations` hace las dos cosas que hay que hacer y en ese orden: la cuenta en Cognito —que devuelve el `sub`— y la membresía en la tabla, que lo necesita. El rol de quien invita **se comprueba antes de crear la cuenta**, y no solo después al conceder la membresía: un rechazo a esas alturas deja a una persona invitada con un acceso y ningún sitio al que entrar. La Lambda del panel solo puede crear y leer un usuario; ni listar, ni cambiar contraseñas, ni borrar a nadie.
+
+**La primera vez que alguien entra, Cognito pide contraseña nueva.** La invitación lleva una temporal, así que el formulario tiene dos pasos, y el segundo tiene que reutilizar el mismo objeto de Cognito que recibió la temporal: el intercambio SRP tiene estado.
+
+**Todas las mutaciones del panel son asíncronas ahora**, también en la demo. Tenían que serlo para la de verdad, y hacer que la demo finja lo contrario habría significado dos juegos de pantallas distintos. El formulario ya no navega antes de que la escritura aterrice, que es lo que antes ocultaba cualquier negativa de la API.
+
+**Y el panel de datos deja de inventar cuando hay backend.** Las cifras salen de `GET /panel/.../stats`, que ya aplicaba el mínimo de 5: un dato retenido llega como `null` y se **omite** del gráfico en lugar de dibujarse como un cero — un cero diría «nadie», que no es lo que significa — y debajo se dice cuántos se han omitido y por qué. La gráfica de evolución mensual solo se enseña en la demo: la API no tiene todavía esa serie, y una línea inventada en la memoria anual de un ayuntamiento es la única cosa que esta pantalla no debe hacer nunca.
+
+Lo que queda para más adelante, y no bloquea un piloto: una pantalla de usuarios y asociaciones en el panel (el endpoint de invitación existe y el cliente también, pero no hay formulario todavía), y la serie mensual de interés.

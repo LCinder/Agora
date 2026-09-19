@@ -133,6 +133,8 @@ module "api" {
 
   cognito_issuer    = module.auth.issuer
   cognito_client_id = module.auth.user_pool_client_id
+  user_pool_id      = module.auth.user_pool_id
+  user_pool_arn     = module.auth.user_pool_arn
 
   media_bucket_name = module.storage.media_bucket_name
   media_bucket_arn  = module.storage.media_bucket_arn

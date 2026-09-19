@@ -3,6 +3,7 @@ import {
   NOTICE_TYPES,
   type StoreClient,
   createMembershipStore,
+  createPublicStore,
   createStoreClient,
 } from '@agora/store';
 import { z } from 'zod';
@@ -19,6 +20,8 @@ import {
   refusal,
   tableName,
 } from '../lib/http';
+import type { Identities } from '../lib/identities';
+import { createCognitoIdentities } from '../lib/identities';
 import { definedOnly } from '../lib/json';
 import { type PanelContext, buildContext, callerSubject } from '../lib/panel-context';
 import { type Route, matchRoute, pathExists, routedPath } from '../lib/router';
@@ -106,6 +109,12 @@ const newMembershipSchema = z.object({
   fullName: z.string().optional(),
 });
 
+/**
+ * An invitation, which is the same thing without the Cognito subject: nobody in
+ * the panel knows it, because the account does not exist yet.
+ */
+const invitationSchema = newMembershipSchema.omit({ authUserId: true });
+
 /** Thrown when a body is not what it says it is; `handle` turns it into a 400. */
 class BadBody extends Error {}
 
@@ -134,9 +143,28 @@ function body<Schema extends z.ZodType>(event: ApiEvent, schema: Schema): z.outp
 interface RequestContext {
   event: ApiEvent;
   panel: PanelContext;
+  client: StoreClient;
+  table: string;
+  /** Null when no user pool is configured, which is the case in the tests. */
+  identities: Identities | null;
 }
 
 const ROUTES: readonly Route<RequestContext>[] = [
+  // --- the municipality itself ---------------------------------------------
+  {
+    method: 'GET',
+    pattern: 'municipalities/:municipalityId',
+    run: async ({ municipalityId }, { client, table }) => {
+      // Read through the public store, because it is the same municipality a
+      // resident sees: the branding the panel paints itself with, the time zone
+      // its dates are in, and the settings the reminders run on. Getting here at
+      // all means the membership check has already passed.
+      const municipality = await createPublicStore(client, table).getMunicipality(municipalityId!);
+
+      return municipality === null ? notFound('Ese municipio no existe.') : ok(municipality);
+    },
+  },
+
   // --- events --------------------------------------------------------------
   {
     method: 'GET',
@@ -360,6 +388,41 @@ const ROUTES: readonly Route<RequestContext>[] = [
     },
   },
   {
+    method: 'POST',
+    pattern: 'municipalities/:municipalityId/invitations',
+    run: async (_parameters, { event, panel, identities }) => {
+      const input = body(event, invitationSchema);
+
+      if (identities === null) {
+        return error(503, 'no_user_pool', 'No hay un pool de usuarios configurado.');
+      }
+
+      // Checked before the account is created, and not only by `grant` afterwards:
+      // a refusal at that point would leave an invited person with a login and
+      // nowhere to log in to.
+      if (panel.actor.role !== 'municipal_admin') {
+        return error(403, 'forbidden', 'Solo un responsable municipal invita a alguien.');
+      }
+
+      const authUserId = await identities.invite(
+        definedOnly({ email: input.email, fullName: input.fullName }),
+      );
+
+      const granted = await panel.memberships.grant(
+        panel.actor,
+        definedOnly({ ...input, authUserId }),
+      );
+
+      await panel.audit.record({
+        action: `membership.invite.${granted.role}`,
+        entity: 'membership',
+        entityId: granted.authUserId,
+      });
+
+      return ok(granted);
+    },
+  },
+  {
     method: 'DELETE',
     pattern: 'municipalities/:municipalityId/staff/:authUserId',
     run: async ({ authUserId }, { panel }) => {
@@ -448,6 +511,7 @@ export async function route(
   event: ApiEvent,
   client: StoreClient,
   table: string,
+  identities: Identities | null = null,
 ): Promise<ApiResult> {
   const subject = callerSubject(event);
 
@@ -483,7 +547,7 @@ export async function route(
   try {
     const panel = await buildContext(client, table, subject, municipalityId);
 
-    return await match.route.run(match.parameters, { event, panel });
+    return await match.route.run(match.parameters, { event, panel, identities, client, table });
   } catch (thrown) {
     if (thrown instanceof BadBody) return badRequest(thrown.message);
 
@@ -503,5 +567,12 @@ export const handler = async (event: ApiEvent): Promise<ApiResult> =>
   handle(event, async () => {
     client ??= createStoreClient();
 
-    return route(event, client, tableName());
+    const userPoolId = process.env['USER_POOL_ID'];
+
+    return route(
+      event,
+      client,
+      tableName(),
+      userPoolId === undefined || userPoolId === '' ? null : createCognitoIdentities(userPoolId),
+    );
   });

@@ -4,12 +4,14 @@ import {
   createDeviceClient,
   createHttpDataSource,
   createLiveClient,
+  createPanelClient,
   createVolunteerClient,
 } from '@agora/data';
 import {
   type StoreClient,
   createLiveReader,
   createLiveStore,
+  createMembershipStore,
   createNotificationStore,
   createPublicStore,
   createStoreClient,
@@ -30,6 +32,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { mintDeviceToken, verifyDeviceToken } from '../lib/device-token';
 import type { ApiEvent, ApiResult } from '../lib/http';
 import { route as deviceRoute } from './device-api';
+import { route as panelRoute } from './panel-api';
 import { route as publicRoute } from './public-api';
 import { route as volunteerRoute } from './volunteer';
 
@@ -118,6 +121,14 @@ const ROUTES: { method: string; pattern: RegExp; routeKey: string; names: string
     routeKey: 'GET /live/{eventId}',
     names: ['eventId'],
   },
+  // The panel is one route with a greedy proxy, exactly as API Gateway declares
+  // it, so the paths the client builds are matched the way they will be.
+  ...(['GET', 'POST', 'PATCH', 'DELETE'] as const).map((method) => ({
+    method,
+    pattern: /^\/panel\/(.+)$/,
+    routeKey: `ANY /panel/{proxy+}`,
+    names: ['proxy'],
+  })),
   {
     method: 'POST',
     pattern: /^\/volunteer\/redeem$/,
@@ -211,6 +222,29 @@ describe.skipIf(local === null)('the app against the API', () => {
       event.routeKey.includes('/live/')
     ) {
       return toResponse(await publicRoute(event, publicReadable(client, TABLE)));
+    }
+
+    if (event.routeKey === 'ANY /panel/{proxy+}') {
+      // API Gateway's JWT authorizer has already validated the token by the time a
+      // handler runs, so the harness does what it does: puts the subject in the
+      // request context. What the panel token says is checked in the API, not here.
+      const staff = (init?.headers as Record<string, string> | undefined)?.['authorization'];
+
+      return toResponse(
+        await panelRoute(
+          {
+            ...event,
+            requestContext: {
+              ...event.requestContext,
+              ...(staff === undefined
+                ? {}
+                : { authorizer: { jwt: { claims: { sub: staff.replace(/^Bearer\s+/i, '') } } } }),
+            },
+          } as typeof event,
+          client,
+          TABLE,
+        ),
+      );
     }
 
     if (event.routeKey.includes('/volunteer/')) {
@@ -455,6 +489,83 @@ describe.skipIf(local === null)('the app against the API', () => {
     const after = await devices.register();
 
     expect(after.deviceId).not.toBe(before.deviceId);
+  });
+
+  it('runs the panel as the person who signed in, over the paths API Gateway declares', async () => {
+    const memberships = createMembershipStore(client, TABLE);
+    const bootstrap = {
+      authUserId: 'auth-admin',
+      municipalityId: ZUBIA,
+      role: 'municipal_admin' as const,
+      organizationId: null,
+    };
+
+    await memberships.grant(bootstrap, {
+      authUserId: 'auth-admin',
+      role: 'municipal_admin',
+      email: 'admin@lazubia.es',
+    });
+
+    const panel = createPanelClient({
+      baseUrl: BASE,
+      fetch: apiAsFetch,
+      municipalityId: ZUBIA,
+      // Where a Cognito token goes. The harness reads the subject straight out of
+      // it, which is what the JWT authorizer does before the handler ever runs.
+      token: () => 'auth-admin',
+    });
+
+    const municipality = await panel.getMunicipality();
+
+    expect(municipality?.slug).toBe('la-zubia');
+
+    const created = await panel.createEvent({
+      title: 'Pregón de la feria',
+      categoryId: 'cat-fiestas',
+      startAt: new Date('2027-09-10T21:00:00.000Z'),
+      location: { name: 'Plaza', latitude: null, longitude: null },
+      status: 'published',
+    });
+
+    expect(created.status).toBe('published');
+    expect((await panel.listEvents()).map((found) => found.id)).toContain(created.id);
+
+    const edited = await panel.updateEvent(created.id, { title: 'Pregón de la feria 2027' });
+
+    expect(edited.kind).toBe('applied');
+
+    // The town hall's own review queue, and a notice that lands in the outbox for
+    // the notification job to deliver.
+    const queue = await panel.reviewQueue();
+
+    expect(queue.some((item) => item.kind === 'event')).toBe(true);
+
+    const notice = await panel.sendNotice(created.id, 'time_change', 'Empieza media hora antes.');
+
+    expect(notice.pushSentAt).toBeNull();
+    expect((await panel.listNotices(created.id)).map((sent) => sent.id)).toEqual([notice.id]);
+
+    const summary = await panel.stats();
+
+    expect(summary.events.published).toBeGreaterThan(0);
+    expect(summary.generatedAt).toBeInstanceOf(Date);
+
+    const cancelled = await panel.cancelEvent(created.id);
+
+    expect(cancelled.status).toBe('cancelled');
+  });
+
+  it('refuses the panel to somebody with no membership', async () => {
+    const stranger = createPanelClient({
+      baseUrl: BASE,
+      fetch: apiAsFetch,
+      municipalityId: ZUBIA,
+      token: () => 'auth-nobody',
+    });
+
+    await expect(stranger.listEvents()).rejects.toMatchObject({
+      failure: { kind: 'status', status: 403 },
+    });
   });
 
   it('says it is offline rather than throwing something unreadable', async () => {

@@ -84,6 +84,10 @@ municipio** y los grupos de Cognito no saben de eso.
 
 Ninguna pieza está dentro de una VPC. Todo vive en tu cuenta de AWS, en `eu-central-1`.
 
+El panel es un export estático en CloudFront que inicia sesión contra Cognito y llama a la API con
+ese testigo (D-048); sin las variables de entorno de la nube arranca en modo demostración, sobre la
+semilla y sin cuentas.
+
 Los manejadores están en `apps/functions`, en TypeScript, y se empaquetan con esbuild antes de
 aplicar (D-035). Están **todos escritos y probados contra DynamoDB Local**: la API pública, la de
 dispositivos, el panel, la página de evento, los carteles, el voluntario del directo y las

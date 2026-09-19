@@ -38,8 +38,13 @@ export interface ApiClientOptions {
   baseUrl: string;
   /** Milliseconds before a request is abandoned. */
   timeoutMs?: number;
-  /** The device token, when there is one. Read on every call, never captured. */
-  token?: () => string | null;
+  /**
+   * The bearer token, when there is one. Read on every call, never captured.
+   *
+   * May answer a promise: the panel's token is a Cognito one that expires every
+   * hour, and getting a fresh one means a round trip.
+   */
+  token?: () => string | null | Promise<string | null>;
   /** For tests, and for anything that needs to intercept. */
   fetch?: typeof fetch;
 }
@@ -48,7 +53,7 @@ export interface ApiClient {
   get<T>(path: string, parse: (value: unknown) => T): Promise<T>;
   /** Returns null when the server answered 404, which is an answer and not a failure. */
   getOrNull<T>(path: string, parse: (value: unknown) => T): Promise<T | null>;
-  send(method: 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<unknown>;
+  send(method: 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<unknown>;
 }
 
 const DEFAULT_TIMEOUT_MS = 8000;
@@ -59,7 +64,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
   const call = options.fetch ?? globalThis.fetch;
 
   async function request(method: string, path: string, body?: unknown): Promise<Response> {
-    const token = options.token?.() ?? null;
+    const token = (await options.token?.()) ?? null;
 
     const headers: Record<string, string> = {};
 

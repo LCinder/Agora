@@ -65,11 +65,21 @@ function bodyOf(result: Awaited<ReturnType<typeof route>>): unknown {
 describe.skipIf(local === null)('the panel API', () => {
   let client: StoreClient;
 
+  /** A Cognito that hands out a subject without there being a Cognito. */
+  const invitations: { email: string; fullName?: string }[] = [];
+  const identities = {
+    invite: async (input: { email: string; fullName?: string }) => {
+      invitations.push(input);
+
+      return `auth-${input.email.split('@')[0]!}`;
+    },
+  };
+
   const call = (
     method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
     path: string,
     options?: { subject?: string; body?: unknown },
-  ) => route(request(method, path, options), client, TABLE);
+  ) => route(request(method, path, options), client, TABLE, identities);
 
   beforeAll(async () => {
     client = createStoreClient({
@@ -114,7 +124,68 @@ describe.skipIf(local === null)('the panel API', () => {
     await local?.stop();
   });
 
+  describe('inviting somebody', () => {
+    it('creates the account and the membership in one request', async () => {
+      const result = await call('POST', `municipalities/${ZUBIA}/invitations`, {
+        subject: ADMIN,
+        body: {
+          email: 'festejos@lazubia.es',
+          role: 'municipal_editor',
+          fullName: 'Técnica de festejos',
+        },
+      });
+
+      const granted = bodyOf(result) as { authUserId: string; role: string; email: string };
+
+      expect(statusOf(result)).toBe(200);
+      expect(granted.authUserId).toBe('auth-festejos');
+      expect(granted.role).toBe('municipal_editor');
+      expect(invitations.at(-1)).toEqual({
+        email: 'festejos@lazubia.es',
+        fullName: 'Técnica de festejos',
+      });
+
+      // And the invited person can now read the panel of that municipality.
+      const theirs = await call('GET', `municipalities/${ZUBIA}/events`, {
+        subject: 'auth-festejos',
+      });
+
+      expect(statusOf(theirs)).toBe(200);
+    });
+
+    it('refuses an editor, before any account is created', async () => {
+      const before = invitations.length;
+
+      const result = await call('POST', `municipalities/${ZUBIA}/invitations`, {
+        subject: EDITOR,
+        body: { email: 'alguien@lazubia.es', role: 'municipal_editor' },
+      });
+
+      expect(statusOf(result)).toBe(403);
+      // The important half: nobody was left with a login and nowhere to log in to.
+      expect(invitations).toHaveLength(before);
+    });
+
+    it('refuses a body without a real email', async () => {
+      const result = await call('POST', `municipalities/${ZUBIA}/invitations`, {
+        subject: ADMIN,
+        body: { email: 'no-es-un-correo', role: 'municipal_editor' },
+      });
+
+      expect(statusOf(result)).toBe(400);
+    });
+  });
+
   describe('getting in', () => {
+    it('reads the municipality the panel paints itself with', async () => {
+      const result = await call('GET', `municipalities/${ZUBIA}`, { subject: EDITOR });
+      const municipality = bodyOf(result) as { id: string; branding: { primaryColor: string } };
+
+      expect(statusOf(result)).toBe(200);
+      expect(municipality.id).toBe(ZUBIA);
+      expect(municipality.branding.primaryColor).toMatch(/^#/);
+    });
+
     it('refuses a request with no identity', async () => {
       expect(statusOf(await call('GET', 'me'))).toBe(401);
     });

@@ -69,15 +69,15 @@ export function EventForm({ event }: { event?: Event }) {
     };
   }
 
-  function submit() {
+  async function submit() {
     const draft = buildDraft();
     if (!draft) return;
 
-    if (event) {
-      updateEvent(event.id, draft);
-    } else {
-      createEvent(draft);
-    }
+    // The list is only left once the write has landed: with a real backend behind
+    // this, navigating first would show the previous calendar for a second and
+    // hide any refusal the API sent back.
+    if (event) await updateEvent(event.id, draft);
+    else await createEvent(draft);
 
     router.push('/eventos');
   }
@@ -89,7 +89,7 @@ export function EventForm({ event }: { event?: Event }) {
           className="grid gap-4"
           onSubmit={(submitEvent) => {
             submitEvent.preventDefault();
-            submit();
+            void submit();
           }}
         >
           <Field label="Título" required>

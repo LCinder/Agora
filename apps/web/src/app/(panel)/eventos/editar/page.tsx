@@ -3,7 +3,7 @@
 import { publicEventPath } from '@agora/core';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
 import { EventForm } from '../../../../components/event-form';
 import {
@@ -47,7 +47,14 @@ export default function EditEventPage() {
 
 function EditEventView() {
   const id = useSearchParams().get('id') ?? '';
-  const { addNotice, cancelEvent, events, loading, municipality, notices } = usePanel();
+  const { addNotice, cancelEvent, events, loading, municipality, notices, refreshNotices } =
+    usePanel();
+
+  // With a real backend the notices live under the event, so they are asked for
+  // when one is opened. A no-op in the demo, which holds them all in the browser.
+  useEffect(() => {
+    if (id !== '') void refreshNotices(id);
+  }, [id, refreshNotices]);
 
   const event = events.find((entry) => entry.id === id);
 
@@ -90,7 +97,7 @@ function EditEventView() {
       <section className="mt-8 grid gap-6 lg:grid-cols-[2fr_1fr]">
         <NoticeComposer
           interested={demoInterestCount(event.id, event.isFeatured)}
-          onSend={(type, message) => addNotice({ eventId: event.id, type, message })}
+          onSend={(type, message) => void addNotice({ eventId: event.id, type, message })}
         />
 
         <Card className="h-fit">
