@@ -33,6 +33,20 @@ variable "budget_currency" {
   }
 }
 
+variable "metric_alarms" {
+  description = <<-EOT
+    Whether to create the CloudWatch alarms.
+
+    A CloudWatch account gets ten alarms for free and then charges per alarm per
+    month. This environment's set is nine — one per function plus the API and the
+    table — so exactly one environment can have them without paying. That is
+    production, which is the one where nobody is watching the logs anyway; in dev
+    the thing that tells you something broke is the test that just failed.
+  EOT
+  type        = bool
+  default     = true
+}
+
 variable "function_names" {
   description = <<-EOT
     Every Lambda of this environment, by name.

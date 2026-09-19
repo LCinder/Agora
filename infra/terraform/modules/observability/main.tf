@@ -10,6 +10,12 @@
  * erroring, the API answering 5xx, and the table throttling. Each one names
  * what it watches, because an alarm that adds up every Lambda in the account
  * fires for code that is not ours and then nobody reads it.
+ *
+ * They are created in production and not in dev, and the reason is the bill: ten
+ * alarms are free per account and this set is nine, so two environments with
+ * alarms would cost about 0,80 $ a month for warnings about an environment
+ * nobody is on call for. The budget and the topic stay in both, because a
+ * runaway cost in dev is exactly the kind that goes unnoticed.
  */
 
 terraform {
@@ -65,7 +71,7 @@ resource "aws_sns_topic_subscription" "email" {
 # noise-tolerant enough for a retry storm and low enough to catch a function
 # that is simply broken.
 resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
-  for_each = toset(var.function_names)
+  for_each = var.metric_alarms ? toset(var.function_names) : toset([])
 
   alarm_name          = "${each.value}-errors"
   comparison_operator = "GreaterThanThreshold"
@@ -87,6 +93,8 @@ resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
 # A 5xx is the API failing, as opposed to a client sending nonsense, which is a
 # 4xx and not something to wake anybody about.
 resource "aws_cloudwatch_metric_alarm" "api_5xx" {
+  count = var.metric_alarms ? 1 : 0
+
   alarm_name          = "${local.prefix}-api-5xx"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
@@ -109,6 +117,8 @@ resource "aws_cloudwatch_metric_alarm" "api_5xx" {
 # what a procession is. It is the signal that the caching in front is not doing
 # its job.
 resource "aws_cloudwatch_metric_alarm" "table_throttles" {
+  count = var.metric_alarms ? 1 : 0
+
   alarm_name          = "${local.prefix}-table-throttled"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1

@@ -13,5 +13,10 @@ allowed_origins = ["http://localhost:3000"]
 # show a different one.
 # app_name = "Agora (pruebas)"
 
+# Las alarmas de CloudWatch están apagadas en dev: diez son gratuitas por cuenta
+# y un entorno gasta nueve, así que las tiene producción. El aviso de presupuesto
+# sí se crea aquí, porque un gasto que se desmadra en dev es el que nadie mira.
+# metric_alarms = true
+
 # infra_name is deliberately absent: the physical names must not follow the
 # brand. Renaming it recreates the DynamoDB table and loses its data.

@@ -57,6 +57,12 @@ variable "monthly_budget_amount" {
   default     = "5"
 }
 
+variable "metric_alarms" {
+  description = "On here: this is the environment where a failure is a municipality's problem and nobody is reading the logs. Nine alarms, inside the ten that are free per account."
+  type        = bool
+  default     = true
+}
+
 variable "budget_currency" {
   description = "Currency of the budget above: USD, or EUR if your account is billed in euros."
   type        = string

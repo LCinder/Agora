@@ -32,6 +32,12 @@ variable "monthly_budget_amount" {
   default     = "5"
 }
 
+variable "metric_alarms" {
+  description = "Whether this environment gets CloudWatch alarms. Ten are free per account and a set is nine, so one environment has them: production."
+  type        = bool
+  default     = true
+}
+
 variable "budget_currency" {
   description = "Currency of the budget, as AWS Budgets expects it: USD, or EUR if the account is billed in euros."
   type        = string

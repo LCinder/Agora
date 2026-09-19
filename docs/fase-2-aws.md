@@ -240,6 +240,10 @@ segundos** contra el origen.
 Lo primero que crea el Terraform es una **alarma de presupuesto**. Un proyecto autofinanciado no
 puede enterarse del gasto a fin de mes.
 
+Y una cuenta de CloudWatch tiene **diez alarmas gratuitas**, que es justo lo que cabe: el conjunto de
+un entorno son nueve, así que las tiene producción y dev no (D-032). Con eso la factura de AWS de
+`dev` y `prod` juntos se queda en céntimos.
+
 ---
 
 ## 7. Lo que falta por decidir

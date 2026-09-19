@@ -56,4 +56,5 @@ module "stack" {
   alert_email           = var.alert_email
   monthly_budget_amount = var.monthly_budget_amount
   budget_currency       = var.budget_currency
+  metric_alarms         = var.metric_alarms
 }

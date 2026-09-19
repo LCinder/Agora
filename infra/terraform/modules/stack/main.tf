@@ -198,6 +198,7 @@ module "observability" {
 
   monthly_budget_amount = var.monthly_budget_amount
   budget_currency       = var.budget_currency
+  metric_alarms         = var.metric_alarms
 
   # Every function of the environment, so each alarm names its own instead of
   # adding up whatever else lives in the account.

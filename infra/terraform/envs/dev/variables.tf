@@ -57,6 +57,22 @@ variable "monthly_budget_amount" {
   default     = "5"
 }
 
+variable "metric_alarms" {
+  description = <<-EOT
+    Off here on purpose.
+
+    Ten CloudWatch alarms are free per account and one environment's set is nine,
+    so alarms in both environments would cost about 0,80 $ a month to be told
+    about a dev environment nobody is on call for. In dev what tells you
+    something broke is the test that just failed.
+
+    The budget alarm and the alert topic are still created: a cost that runs away
+    in dev is precisely the kind nobody notices.
+  EOT
+  type        = bool
+  default     = false
+}
+
 variable "budget_currency" {
   description = "Currency of the budget above: USD, or EUR if your account is billed in euros."
   type        = string

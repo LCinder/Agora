@@ -497,6 +497,8 @@ Las denegaciones son explícitas además de no estar concedidas: una denegación
 
 El presupuesto tenía otro descuido: la variable se llamaba `monthly_budget_eur` y la unidad era `USD`. Ahora son `monthly_budget_amount` y `budget_currency`.
 
+**Corrección del 19 de septiembre:** las alarmas se crean **solo en producción**. CloudWatch regala diez alarmas por cuenta y un entorno gasta nueve (una por función, una de 5xx de la API, una de throttling de la tabla), así que tenerlas en los dos entornos costaba unos 0,80 $ al mes por avisar de un entorno en el que nadie está de guardia. En dev lo que avisa de que algo se ha roto es el test que acaba de fallar. El aviso de presupuesto y el tema de SNS siguen en los dos: un gasto que se desmadra en dev es precisamente el que nadie mira.
+
 ---
 
 ## D-033 — Los secretos del lector de carteles siguen al proveedor de verdad
