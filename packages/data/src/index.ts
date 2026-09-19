@@ -17,6 +17,7 @@ export * from './data-source';
 export * from './http/client';
 export * from './http/device-client';
 export * from './http/http-data-source';
+export * from './http/volunteer-client';
 export * from './seed/seed-data-source';
 export * from './seed/seed-schema';
 export * from './seed/resolve';

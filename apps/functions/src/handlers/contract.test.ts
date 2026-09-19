@@ -1,9 +1,17 @@
-import { type DeviceRegistration, createDeviceClient, createHttpDataSource } from '@agora/data';
+import {
+  type DeviceRegistration,
+  type VolunteerSession,
+  createDeviceClient,
+  createHttpDataSource,
+  createVolunteerClient,
+} from '@agora/data';
 import {
   type StoreClient,
   createLiveReader,
+  createLiveStore,
   createPublicStore,
   createStoreClient,
+  createVolunteerStore,
 } from '@agora/store';
 import {
   EVENTS,
@@ -21,6 +29,7 @@ import { mintDeviceToken, verifyDeviceToken } from '../lib/device-token';
 import type { ApiEvent, ApiResult } from '../lib/http';
 import { route as deviceRoute } from './device-api';
 import { route as publicRoute } from './public-api';
+import { route as volunteerRoute } from './volunteer';
 
 /**
  * The app's client against the real handlers, with no network in between.
@@ -37,6 +46,14 @@ const local: LocalDynamo | null = await startDynamoLocal();
 const TABLE = `agora-contract-${process.pid}`;
 const SECRET = 'contract-signing-secret';
 const BASE = 'https://api.test';
+
+/** The technician who schedules the live session and reads out the code. */
+const EDITOR = {
+  authUserId: 'auth-editor',
+  municipalityId: ZUBIA,
+  role: 'municipal_editor' as const,
+  organizationId: null,
+};
 
 /** The routes the HTTP API declares, matched the way API Gateway matches them. */
 const ROUTES: { method: string; pattern: RegExp; routeKey: string; names: string[] }[] = [
@@ -84,6 +101,18 @@ const ROUTES: { method: string; pattern: RegExp; routeKey: string; names: string
     pattern: /^\/me\/interests\/([^/]+)$/,
     routeKey: 'DELETE /me/interests/{eventId}',
     names: ['eventId'],
+  },
+  {
+    method: 'POST',
+    pattern: /^\/volunteer\/redeem$/,
+    routeKey: 'POST /volunteer/redeem',
+    names: [],
+  },
+  {
+    method: 'POST',
+    pattern: /^\/volunteer\/positions$/,
+    routeKey: 'POST /volunteer/positions',
+    names: [],
   },
 ];
 
@@ -164,6 +193,15 @@ describe.skipIf(local === null)('the app against the API', () => {
       return toResponse(await publicRoute(event, publicReadable(client, TABLE)));
     }
 
+    if (event.routeKey.includes('/volunteer/')) {
+      return toResponse(
+        await volunteerRoute(event, {
+          store: createVolunteerStore(client, TABLE),
+          signingSecret: SECRET,
+        }),
+      );
+    }
+
     const header = event.headers?.['authorization'];
     const token = header?.replace(/^Bearer\s+/i, '') ?? null;
 
@@ -184,7 +222,22 @@ describe.skipIf(local === null)('the app against the API', () => {
     },
   };
 
+  let volunteerSession: VolunteerSession | null = null;
+
   const data = createHttpDataSource({ baseUrl: BASE, fetch: apiAsFetch });
+  const volunteers = createVolunteerClient({
+    baseUrl: BASE,
+    fetch: apiAsFetch,
+    storage: {
+      read: async () => volunteerSession,
+      write: async (session) => {
+        volunteerSession = session;
+      },
+      clear: async () => {
+        volunteerSession = null;
+      },
+    },
+  });
   const devices = createDeviceClient({
     baseUrl: BASE,
     fetch: apiAsFetch,
@@ -291,6 +344,46 @@ describe.skipIf(local === null)('the app against the API', () => {
     });
 
     await expect(forged.mark(ZUBIA, EVENTS.zubiaPublished)).rejects.toThrow();
+  });
+
+  it('walks a procession: the code becomes a token, and a position reaches the map', async () => {
+    const sessions = createLiveStore(client, TABLE, EDITOR);
+    const scheduled = await sessions.schedule(EVENTS.zubiaPublished);
+
+    await sessions.start(EVENTS.zubiaPublished);
+
+    // The volunteer types the code off the screen the technician is holding.
+    const opened = await volunteers.redeem(` ${scheduled.volunteerCode ?? ''} `);
+
+    expect(opened.eventId).toBe(EVENTS.zubiaPublished);
+    expect(volunteerSession?.token).toBe(opened.token);
+
+    const at = await volunteers.send({
+      latitude: 37.113,
+      longitude: -3.593,
+      accuracyMeters: 7,
+    });
+
+    expect(at).toBeInstanceOf(Date);
+
+    const view = await createLiveReader(client, TABLE).live(EVENTS.zubiaPublished);
+
+    expect(view?.status).toBe('active');
+    expect(view?.position?.latitude).toBeCloseTo(37.113);
+  });
+
+  it('stops recording when the town hall pauses the live session', async () => {
+    const sessions = createLiveStore(client, TABLE, EDITOR);
+
+    await sessions.pause(EVENTS.zubiaPublished);
+
+    await expect(
+      volunteers.send({ latitude: 37.114, longitude: -3.594, accuracyMeters: 7 }),
+    ).rejects.toMatchObject({ failure: { kind: 'status', status: 403 } });
+
+    // And the token survives it, because the same volunteer carries on when they
+    // resume it.
+    expect(volunteerSession).not.toBeNull();
   });
 
   it('says it is offline rather than throwing something unreadable', async () => {

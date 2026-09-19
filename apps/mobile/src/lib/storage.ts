@@ -14,6 +14,7 @@ const KEYS = {
   interests: 'agora.interests',
   requestedMunicipalities: 'agora.municipality.requested',
   appearance: 'agora.appearance',
+  volunteerSession: 'agora.volunteer.session',
 } as const;
 
 /** An interest is one event of one municipality. */
@@ -116,5 +117,32 @@ export async function clearAllData(): Promise<void> {
     await AsyncStorage.multiRemove(Object.values(KEYS));
   } catch {
     // Nothing useful to do; the next read falls back to empty anyway.
+  }
+}
+
+/**
+ * The live tracking session of a volunteer, kept so a phone that dies halfway
+ * down the route comes back to the same broadcast instead of needing another
+ * code. It holds a token bound to one event and nothing about the person.
+ */
+export interface StoredVolunteerSession {
+  eventId: string;
+  municipalityId: string;
+  token: string;
+}
+
+export async function loadVolunteerSession(): Promise<StoredVolunteerSession | null> {
+  return readJson<StoredVolunteerSession | null>(KEYS.volunteerSession, null);
+}
+
+export async function saveVolunteerSession(session: StoredVolunteerSession): Promise<void> {
+  await writeJson(KEYS.volunteerSession, session);
+}
+
+export async function clearVolunteerSession(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(KEYS.volunteerSession);
+  } catch {
+    // Same as above: the next read falls back to "no session".
   }
 }

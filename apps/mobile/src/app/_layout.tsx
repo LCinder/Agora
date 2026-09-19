@@ -52,6 +52,9 @@ export default function RootLayout() {
             name="live/[id]"
             options={{ presentation: 'card', animation: 'slide_from_bottom' }}
           />
+          {/* Volunteer mode is not part of the resident's journey: it is reached
+              from Settings, by somebody who was handed a code. */}
+          <Stack.Screen name="volunteer" options={{ presentation: 'card' }} />
         </Stack>
         <StatusBar style="auto" />
       </AppProvider>

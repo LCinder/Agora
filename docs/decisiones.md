@@ -712,4 +712,26 @@ La funcionalidad que hace que media comarca abra la app una tarde, y la única d
 
 **Y el vecino recibe solo la última posición**, nunca el rastro, con la hora a la que se registró. La app decide si fiarse: un mapa que muestra un punto de hace cuatro minutos como si fuera en directo es peor que uno que lo dice, y el dominio ya tenía escrito el umbral desde la Fase 0.
 
-Lo que sí falta es la pantalla del voluntario en la app, que es trabajo de la Fase D en el lado del móvil: botón grande, primer plano y pantalla encendida.
+La pantalla del voluntario, que es el otro extremo de esto, está en D-044.
+
+---
+
+## D-044 — La pantalla del voluntario: un botón, primer plano y nada guardado de la persona
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+El otro extremo de D-043. Quien lleva el móvil en la procesión es alguien de la hermandad al que le han dado un código, y va a tener esta pantalla abierta tres horas andando. Todo el diseño sale de ahí.
+
+**Un botón grande y un estado que se lee de un vistazo.** Doscientos píxeles de alto, icono y etiqueta, y el color del directo cuando está emitiendo. Nada más en la pantalla que se pueda tocar por error, y la ubicación no se pide hasta que se pulsa empezar.
+
+**Primer plano, como decidió el documento de producto.** La ubicación en segundo plano abre una conversación con las tiendas que no hace falta tener antes del primer piloto, así que se mantiene la pantalla encendida mientras se emite —y solo mientras se emite— y se dice en la propia pantalla. El voluntario emite cada cinco segundos o cada cinco metros, lo que ocurra antes, que para una procesión a paso de palio es lo mismo.
+
+**Pausar no avisa a la API.** Deja de enviar, y el mapa del vecino dice cuánto hace que llegó la última posición, que es la respuesta honesta. Añadir un estado «en pausa» que el voluntario pudiera cambiar sería darle un botón que afecta a lo que ven miles de personas.
+
+**Tres respuestas del servidor, tres comportamientos distintos:** sin cobertura se sigue intentando sin decir nada dramático; un 403 es que el ayuntamiento no ha activado el directo, y el testigo **se conserva** porque el mismo voluntario sigue cuando lo activen; un 401 es un testigo muerto, y el cliente lo tira él solo para que la pantalla vuelva a pedir código en lugar de reintentar para siempre.
+
+**La sesión se guarda en el móvil.** Un teléfono que se queda sin batería a mitad de la carrera vuelve al mismo directo en vez de mandar a alguien a buscar al técnico del ayuntamiento a las once de la noche. Lo que se guarda es un testigo atado a un evento; de la persona, nada. «Borrar mis datos» de Ajustes también lo borra.
+
+**En la demo funciona sin API**, porque el modo voluntario es una de las cosas que se enseñan en una reunión: acepta cualquier código, no envía nada y la pantalla lo dice.
+
+Y hay dos tests de contrato nuevos que recorren el camino entero contra los manejadores de verdad: el código que el ayuntamiento genera se convierte en testigo, la posición llega al mapa del vecino, y cuando el ayuntamiento pausa el directo la posición se rechaza sin que el voluntario pierda el código.

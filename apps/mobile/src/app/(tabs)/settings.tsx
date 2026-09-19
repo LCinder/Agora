@@ -85,6 +85,19 @@ export default function SettingsScreen() {
         </Card>
 
         <Card>
+          <Caption>{t('volunteer.title')}</Caption>
+          <Body tone="muted" style={{ marginTop: theme.spacing(2) }}>
+            {t('volunteer.settingsBody')}
+          </Body>
+          <Button
+            label={t('volunteer.title')}
+            variant="secondary"
+            onPress={() => router.push('/volunteer')}
+            style={{ marginTop: theme.spacing(3) }}
+          />
+        </Card>
+
+        <Card>
           <Caption>{t('settings.privacy')}</Caption>
           <Body tone="muted" style={{ marginTop: theme.spacing(2) }}>
             {t('settings.deleteDataBody')}

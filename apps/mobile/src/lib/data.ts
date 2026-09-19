@@ -19,6 +19,9 @@ const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
 
 export const usingRealBackend = baseUrl !== '';
 
+/** Empty in the demo. Anything that writes has to check `usingRealBackend` first. */
+export const apiBaseUrl = baseUrl;
+
 export const dataSource: DataSource = usingRealBackend
   ? createHttpDataSource({ baseUrl })
   : createSeedDataSource();
