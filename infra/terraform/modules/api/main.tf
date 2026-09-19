@@ -206,6 +206,58 @@ module "poster" {
 }
 
 # ---------------------------------------------------------------------------
+# The volunteer who carries the phone in the procession.
+#
+# Writes positions and reads the session they belong to, and that is the whole of
+# it: no index, no other municipality, nothing about who marked an event. The
+# event a volunteer may write to is inside their token, so there is no request
+# that reaches another one.
+#
+# No authorizer in front of it, on purpose: an authorizer earns its keep by
+# caching an answer across requests, and a position arrives every few seconds and
+# is a write that has to happen anyway. Verifying inside the function costs the
+# same and saves a moving part.
+# ---------------------------------------------------------------------------
+
+data "aws_iam_policy_document" "volunteer" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:Query",
+      "dynamodb:PutItem",
+      "dynamodb:UpdateItem",
+      "dynamodb:DeleteItem",
+    ]
+    resources = [var.table_arn]
+  }
+
+  statement {
+    effect    = "Deny"
+    actions   = ["dynamodb:*"]
+    resources = [var.calendar_index_arn, var.review_index_arn, var.reminders_index_arn]
+  }
+
+  statement {
+    effect    = "Allow"
+    actions   = ["ssm:GetParameter"]
+    resources = [var.device_token_secret_arn]
+  }
+}
+
+module "volunteer" {
+  source = "../lambda"
+
+  name        = "${local.prefix}-volunteer"
+  source_dir  = "${var.lambda_source_root}/volunteer"
+  policy_json = data.aws_iam_policy_document.volunteer.json
+
+  environment_variables = merge(local.common_env, {
+    DEVICE_TOKEN_PARAMETER = var.device_token_parameter_name
+  })
+}
+
+# ---------------------------------------------------------------------------
 # The API itself
 # ---------------------------------------------------------------------------
 
@@ -325,6 +377,13 @@ resource "aws_apigatewayv2_integration" "panel_api" {
   payload_format_version = "2.0"
 }
 
+resource "aws_apigatewayv2_integration" "volunteer" {
+  api_id                 = aws_apigatewayv2_api.main.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.volunteer.invoke_arn
+  payload_format_version = "2.0"
+}
+
 resource "aws_apigatewayv2_integration" "poster" {
   api_id                 = aws_apigatewayv2_api.main.id
   integration_type       = "AWS_PROXY"
@@ -338,6 +397,17 @@ resource "aws_apigatewayv2_route" "public" {
   api_id    = aws_apigatewayv2_api.main.id
   route_key = each.value
   target    = "integrations/${aws_apigatewayv2_integration.public_api.id}"
+}
+
+# Redeeming a code is public because the code is the credential, and emitting is
+# authorised by the token the redemption returned, which the function checks
+# itself.
+resource "aws_apigatewayv2_route" "volunteer" {
+  for_each = toset(["POST /volunteer/redeem", "POST /volunteer/positions"])
+
+  api_id    = aws_apigatewayv2_api.main.id
+  route_key = each.value
+  target    = "integrations/${aws_apigatewayv2_integration.volunteer.id}"
 }
 
 # Registering a device is public: it is how a resident gets the token every
@@ -389,6 +459,7 @@ locals {
     device_api        = module.device_api.function_name
     panel_api         = module.panel_api.function_name
     poster            = module.poster.function_name
+    volunteer         = module.volunteer.function_name
     device_authorizer = module.device_authorizer.function_name
   }
 }

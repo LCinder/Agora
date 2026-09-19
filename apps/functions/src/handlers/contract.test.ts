@@ -1,5 +1,10 @@
 import { type DeviceRegistration, createDeviceClient, createHttpDataSource } from '@agora/data';
-import { type StoreClient, createPublicStore, createStoreClient } from '@agora/store';
+import {
+  type StoreClient,
+  createLiveReader,
+  createPublicStore,
+  createStoreClient,
+} from '@agora/store';
 import {
   EVENTS,
   LOCAL_CREDENTIALS,
@@ -133,6 +138,11 @@ function toResponse(result: ApiResult): Response {
   return new Response(body, { status: value.statusCode, headers: value.headers ?? {} });
 }
 
+/** What the public handler is given: the calendar store and the live reader. */
+function publicReadable(client: StoreClient, table: string) {
+  return { ...createPublicStore(client, table), ...createLiveReader(client, table) };
+}
+
 describe.skipIf(local === null)('the app against the API', () => {
   let client: StoreClient;
   let stored: DeviceRegistration | null = null;
@@ -151,7 +161,7 @@ describe.skipIf(local === null)('the app against the API', () => {
     if (event === null) return new Response('no such route', { status: 404 });
 
     if (event.routeKey.includes('/municipalities') || event.routeKey.includes('/events')) {
-      return toResponse(await publicRoute(event, createPublicStore(client, TABLE)));
+      return toResponse(await publicRoute(event, publicReadable(client, TABLE)));
     }
 
     const header = event.headers?.['authorization'];

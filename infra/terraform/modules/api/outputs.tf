@@ -19,5 +19,6 @@ output "function_names" {
     module.device_authorizer.function_name,
     module.panel_api.function_name,
     module.poster.function_name,
+    module.volunteer.function_name,
   ]
 }

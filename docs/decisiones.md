@@ -693,3 +693,23 @@ Existe la segunda implementación de `DataSource`, la que D-001 anticipaba: `cre
 **Y hay un test de contrato,** que es el que de verdad importa: sustituye `fetch` por una función que reparte a los manejadores de verdad sobre un DynamoDB de verdad. Ninguno de los dos lados lo habría pillado por su cuenta — que el cliente construya una ruta que la API no declara, que un campo cambie de nombre, que una parte envíe una forma que la otra no lee. Esa clase de fallo ya me mordió una vez hoy, con los carteles y el `multipart`.
 
 Escribiéndolo salieron dos cosas pequeñas y reales: el cliente se comía la causa del error al envolverlo —así que «no hay conexión» era también lo que parecía un fallo mío— y el arnés del test convertía un 204 con cuerpo vacío en un `Response`, que la especificación prohíbe. Las dos arregladas.
+
+---
+
+## D-043 — El directo: el evento va dentro del testigo, y el rastro se borra
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+La funcionalidad que hace que media comarca abra la app una tarde, y la única del producto donde se registra la ubicación de alguien. Así que las reglas son estrechas y están en el almacén, no en un manejador.
+
+**El voluntario emite a una sesión y a ninguna otra.** El ayuntamiento programa el directo y obtiene un código de ocho caracteres de un alfabeto sin O ni 0 ni I ni 1 — se dicta por teléfono y se lee en una pantalla al sol. El voluntario lo canjea **una vez** por un testigo, y el identificador del evento **va dentro del testigo**. No es que esté prohibido escribir en otro directo: es que el evento no viaja en la petición, así que no hay forma de pedirlo. Hay un test que manda otro `eventId` en el cuerpo y comprueba que se ignora.
+
+**Dos clases de testigo que no se pueden confundir.** El del dispositivo y el del voluntario llevan prefijo de versión distinto y cada verificador solo acepta el suyo, aunque los firme la misma clave. Confundirlos sería confundir «quién marcó un evento» con «quién lleva el móvil en la procesión».
+
+**No hay autorizador delante.** Un autorizador de API Gateway se gana el sueldo cacheando una respuesta entre peticiones, y aquí no lo haría: una posición llega cada pocos segundos y es una escritura que hay que hacer igual. Comprobar dentro de la función cuesta lo mismo y ahorra una pieza y una Lambda.
+
+**Al terminar, el rastro se borra.** Un borrado explícito, no una espera a que el TTL pase: «estará borrado dentro de dos días» no es lo que dice la promesa. Lo que se queda es un recorrido simplificado — puntos a más de 25 metros, sin horas — que sirve para decir por dónde fue la procesión y no dice nada de quién llevaba el teléfono. El TTL sigue puesto como segunda línea: aunque nadie cierre una sesión, ninguna posición sobrevive a la tarde.
+
+**Y el vecino recibe solo la última posición**, nunca el rastro, con la hora a la que se registró. La app decide si fiarse: un mapa que muestra un punto de hace cuatro minutos como si fuera en directo es peor que uno que lo dice, y el dominio ya tenía escrito el umbral desde la Fase 0.
+
+Lo que sí falta es la pantalla del voluntario en la app, que es trabajo de la Fase D en el lado del móvil: botón grande, primer plano y pantalla encendida.

@@ -113,6 +113,20 @@ export function livePositionKey(eventId: string, recordedAt: Date): { pk: string
   return { pk: `EVT#${eventId}`, sk: `POS#${recordedAt.toISOString()}` };
 }
 
+export const POSITION_PREFIX = 'POS#';
+
+/**
+ * The code a volunteer types, pointing at the session it belongs to.
+ *
+ * Its own row because it is looked up by the one thing the volunteer has — the
+ * code on the screen or the QR — and not by a municipality: they are standing in
+ * the street holding a phone, not choosing a town from a list. It carries a TTL,
+ * so a code nobody used stops existing on its own.
+ */
+export function liveCodeKey(code: string): { pk: string; sk: string } {
+  return { pk: `CODE#${code.toUpperCase()}`, sk: 'LIVE' };
+}
+
 export function dailyStatsKey(eventId: string, day: string): { pk: string; sk: string } {
   return { pk: `EVT#${eventId}`, sk: `STAT#${day}` };
 }

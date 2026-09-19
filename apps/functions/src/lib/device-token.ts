@@ -72,6 +72,65 @@ export function verifyDeviceToken(
   return deviceId;
 }
 
+// ---------------------------------------------------------------------------
+// The volunteer
+// ---------------------------------------------------------------------------
+
+/**
+ * A different kind of token, for somebody who is not a device.
+ *
+ * A volunteer from a hermandad exchanges a code for this and then emits their
+ * position for one afternoon. The scope is the point: the event is **inside the
+ * token**, so the only thing this token can do is write positions to that one
+ * session. There is no request shape that reaches another event, and no need to
+ * trust the body of the call.
+ *
+ * Its own version prefix, so a device token and a volunteer token can never be
+ * mistaken for one another — a device token is long-lived and a volunteer's is
+ * not, and confusing them would be confusing "who marked an event" with "who is
+ * carrying the phone in the procession".
+ */
+const VOLUNTEER_VERSION = 'v1l';
+
+/** An afternoon and then some: a procession, a cabalgata, a romería. */
+export const VOLUNTEER_TOKEN_LIFETIME_SECONDS = 8 * 60 * 60;
+
+export function mintVolunteerToken(
+  eventId: string,
+  secret: string,
+  now: Date = new Date(),
+): string {
+  const expiry = Math.floor(now.getTime() / 1000) + VOLUNTEER_TOKEN_LIFETIME_SECONDS;
+  const payload = `${VOLUNTEER_VERSION}.${eventId}.${expiry}`;
+
+  return `${payload}.${sign(payload, secret)}`;
+}
+
+/** The event this token may emit to, or null. */
+export function verifyVolunteerToken(
+  token: string,
+  secret: string,
+  now: Date = new Date(),
+): string | null {
+  const parts = token.trim().split('.');
+
+  if (parts.length !== 4) return null;
+
+  const [version, eventId, expiry, signature] = parts as [string, string, string, string];
+
+  if (version !== VOLUNTEER_VERSION || eventId === '' || !/^\d+$/.test(expiry)) return null;
+
+  const expected = sign(`${version}.${eventId}.${expiry}`, secret);
+  const given = Buffer.from(signature);
+  const mine = Buffer.from(expected);
+
+  if (given.length !== mine.length || !timingSafeEqual(given, mine)) return null;
+
+  if (Number(expiry) * 1000 <= now.getTime()) return null;
+
+  return eventId;
+}
+
 /** The token out of an Authorization header, whether or not it says Bearer. */
 export function tokenFromHeader(header: string | undefined): string | null {
   if (header === undefined || header.trim() === '') return null;

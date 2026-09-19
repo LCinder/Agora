@@ -175,7 +175,8 @@ origin access control no añade `.html` por su cuenta. Está en `modules/web/fun
 - [ ] **Reducir la foto antes de subirla.** El cartel viaja en base64 y el cuerpo de una petición no
       puede pasar de 10 MB, así que el límite está en 6 MB. Una foto de móvil suele pasarse: el panel
       debería reescalarla a unos 1500 píxeles antes de enviarla.
-- [ ] **El directo:** `GET /live/{eventId}` responde 501 y falta la emisión del voluntario.
+- [x] **El directo.** Hecho (D-043): sesiones, código de un solo uso, emisión del voluntario con el
+      evento dentro del testigo, lectura cacheada para el vecino y borrado del rastro al terminar.
 - [x] **Portar los tests de aislamiento** a DynamoDB Local y engancharlos a la CI. Hechos:
       `packages/store`, 29 tests, y la CI levanta un DynamoDB Local en cada cambio.
 - [x] **Empaquetado de las Lambdas.** Hecho: `apps/functions` con esbuild, un directorio por función
@@ -184,7 +185,8 @@ origin access control no añade `.html` por su cuenta. Está en `modules/web/fun
 - [ ] **Emisión del directo:** solo existe `GET /live/{eventId}`. Falta la ruta por la que el
       voluntario publica su posición y el canje del código por un testigo de sesión.
 - [ ] **Notificaciones push.** Ni Expo Push ni SNS: el recordatorio se ejecuta pero no tiene por
-      dónde salir.
+      dónde salir. Es el único manejador que sigue en esqueleto, y está bloqueado por una decisión y
+      no por código.
 - [ ] **Dominio propio**, cuando haya nombre comercial (decisión pendiente nº 1). Hasta entonces la
       página pública de evento se comparte con una URL de CloudFront, que en un WhatsApp queda mal.
       Con dominio conviene además una distribución por nombre de host, y entonces el panel puede

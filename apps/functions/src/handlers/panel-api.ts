@@ -1,4 +1,4 @@
-import { AUDIENCE_TAGS, ORGANIZATION_STATUSES, ORGANIZATION_TYPES } from '@agora/core';
+import { AUDIENCE_TAGS, ORGANIZATION_STATUSES, ORGANIZATION_TYPES, routeSchema } from '@agora/core';
 import {
   NOTICE_TYPES,
   type StoreClient,
@@ -71,6 +71,11 @@ const eventPatchSchema = z.object({
 });
 
 const reasonSchema = z.object({ reason: z.string().min(1) });
+
+const liveScheduleSchema = z.object({
+  /** The route the town hall drew, or nothing. */
+  plannedRoute: routeSchema.nullable().optional(),
+});
 
 const noticeSchema = z.object({
   type: z.enum(NOTICE_TYPES),
@@ -367,6 +372,62 @@ const ROUTES: readonly Route<RequestContext>[] = [
       });
 
       return noContent();
+    },
+  },
+
+  // --- live tracking -------------------------------------------------------
+  {
+    method: 'GET',
+    pattern: 'municipalities/:municipalityId/events/:eventId/live',
+    run: async ({ eventId }, { panel }) => {
+      const session = await panel.live.get(eventId!);
+
+      return session === null ? notFound('Ese evento no tiene directo.') : ok(session);
+    },
+  },
+  {
+    method: 'POST',
+    pattern: 'municipalities/:municipalityId/events/:eventId/live',
+    run: async ({ eventId }, { event, panel }) => {
+      const { plannedRoute } = body(event, liveScheduleSchema);
+      const session = await panel.live.schedule(
+        eventId!,
+        plannedRoute === undefined ? {} : { plannedRoute },
+      );
+
+      await panel.audit.record({
+        action: 'live.schedule',
+        entity: 'live_session',
+        entityId: eventId!,
+      });
+
+      // The volunteer code is in the answer because this is the request that
+      // creates it, and the town hall has to be able to read it out loud or put it
+      // in a QR code.
+      return ok(session);
+    },
+  },
+  {
+    method: 'POST',
+    pattern: 'municipalities/:municipalityId/events/:eventId/live/:action',
+    run: async ({ eventId, action }, { panel }) => {
+      const run = {
+        start: () => panel.live.start(eventId!),
+        pause: () => panel.live.pause(eventId!),
+        end: () => panel.live.end(eventId!),
+      }[action ?? ''];
+
+      if (run === undefined) return notFound('Esa acción no existe.');
+
+      const session = await run();
+
+      await panel.audit.record({
+        action: `live.${action!}`,
+        entity: 'live_session',
+        entityId: eventId!,
+      });
+
+      return ok(session);
     },
   },
 

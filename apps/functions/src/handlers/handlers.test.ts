@@ -1,4 +1,9 @@
-import { type StoreClient, createPublicStore, createStoreClient } from '@agora/store';
+import {
+  type StoreClient,
+  createLiveReader,
+  createPublicStore,
+  createStoreClient,
+} from '@agora/store';
 import {
   EVENTS,
   LOCAL_CREDENTIALS,
@@ -64,6 +69,11 @@ function statusOf(result: Awaited<ReturnType<typeof publicRoute>>): number {
   return (result as { statusCode: number }).statusCode;
 }
 
+/** What the public handler is given: the calendar store and the live reader. */
+function publicReadable(client: StoreClient, table: string) {
+  return { ...createPublicStore(client, table), ...createLiveReader(client, table) };
+}
+
 describe.skipIf(local === null)('the handlers', () => {
   let client: StoreClient;
 
@@ -85,7 +95,7 @@ describe.skipIf(local === null)('the handlers', () => {
   });
 
   describe('the public API', () => {
-    const store = () => createPublicStore(client, TABLE);
+    const store = () => publicReadable(client, TABLE);
 
     it('lists the municipalities', async () => {
       const result = await publicRoute(apiEvent('GET /municipalities'), store());
@@ -156,13 +166,34 @@ describe.skipIf(local === null)('the handlers', () => {
       expect(bodyOf(draft)).toEqual(bodyOf(missing));
     });
 
-    it('does not pretend the live tracking works yet', async () => {
-      const result = await publicRoute(
+    it('answers the live map, and a 404 for an event with no session', async () => {
+      const { createLiveStore } = await import('@agora/store');
+      const staff = createLiveStore(client, TABLE, {
+        authUserId: 'auth-editor',
+        municipalityId: ZUBIA,
+        role: 'municipal_editor',
+        organizationId: null,
+      });
+
+      await staff.schedule(EVENTS.zubiaPublished);
+
+      const scheduled = await publicRoute(
         apiEvent('GET /live/{eventId}', { path: { eventId: EVENTS.zubiaPublished } }),
         store(),
       );
+      const missing = await publicRoute(
+        apiEvent('GET /live/{eventId}', { path: { eventId: EVENTS.zubiaDraft } }),
+        store(),
+      );
 
-      expect(statusOf(result)).toBe(501);
+      expect(statusOf(scheduled)).toBe(200);
+      expect(statusOf(missing)).toBe(404);
+
+      const view = bodyOf(scheduled) as Record<string, unknown>;
+
+      // What a resident gets: where it is, where it was going, and nothing else.
+      expect(Object.keys(view)).toEqual(['status', 'position', 'plannedRoute', 'simplifiedRoute']);
+      expect(JSON.stringify(view)).not.toContain('volunteerCode');
     });
   });
 

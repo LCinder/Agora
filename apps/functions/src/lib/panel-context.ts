@@ -1,5 +1,6 @@
 import {
   type AuditLog,
+  type LiveStore,
   type MembershipStore,
   type NoticeStore,
   type OrganizationStore,
@@ -9,6 +10,7 @@ import {
   type StoreClient,
   actorFrom,
   createAuditLog,
+  createLiveStore,
   createMembershipStore,
   createNoticeStore,
   createOrganizationStore,
@@ -39,6 +41,7 @@ export interface PanelContext {
   stats: StatsStore;
   audit: AuditLog;
   memberships: MembershipStore;
+  live: LiveStore;
 }
 
 /** The Cognito subject the JWT authorizer already validated. */
@@ -79,5 +82,6 @@ export async function buildContext(
     stats: createStatsStore(client, tableName, actor),
     audit: createAuditLog(client, tableName, actor),
     memberships,
+    live: createLiveStore(client, tableName, actor),
   };
 }

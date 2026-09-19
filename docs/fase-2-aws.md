@@ -73,7 +73,6 @@ municipio** y los grupos de Cognito no saben de eso.
     │         │          │             │
   Lambda    Lambda     Lambda        Lambda
   pública   panel      carteles      voluntario
-  (hecha)   (501)      (501)         (sin escribir)
     │         │          │             │
     └─────────┴────┬─────┴─────────────┘
                    │
@@ -86,8 +85,9 @@ municipio** y los grupos de Cognito no saben de eso.
 Ninguna pieza está dentro de una VPC. Todo vive en tu cuenta de AWS, en `eu-central-1`.
 
 Los manejadores están en `apps/functions`, en TypeScript, y se empaquetan con esbuild antes de
-aplicar (D-035). La API pública y la de dispositivos están escritas y probadas contra DynamoDB Local;
-el panel, la página de evento y los carteles responden 501 todavía, y lo dicen.
+aplicar (D-035). Están **todos escritos y probados contra DynamoDB Local**: la API pública, la de
+dispositivos, el panel, la página de evento, los carteles y el voluntario del directo. El único que
+sigue en esqueleto es el de recordatorios, y no por código: falta elegir proveedor de push.
 
 ---
 
@@ -104,6 +104,7 @@ Una sola tabla, `agora-<entorno>`, con clave de partición `pk` y de ordenación
 | Aviso de evento | `EVT#<eventId>` | `UPD#<createdAt>#<id>` |
 | Sesión de directo | `EVT#<eventId>` | `LIVE` |
 | Posición del directo | `EVT#<eventId>` | `POS#<recordedAt>` |
+| Código de voluntario | `CODE#<código>` | `LIVE` |
 | Cambio pendiente | `EVT#<eventId>` | `CHG#<changeId>` |
 | Estadística diaria | `EVT#<eventId>` | `STAT#<fecha>` |
 | Interés de un vecino | `DEV#<deviceId>` | `INT#<municipalityId>#<eventId>` |
@@ -158,6 +159,18 @@ permiso sobre ese índice.
 Esa es la promesa de la política de privacidad — el ayuntamiento ve cuántos, nunca quiénes — puesta
 donde el código no puede saltársela. Los números que ve el panel salen de un contador atómico en el
 propio evento, que se incrementa al marcar y se decrementa al desmarcar.
+
+### El directo
+
+El voluntario canjea un código de un solo uso por un testigo, y **el evento va dentro del testigo**:
+no hay forma de pedir escribir en otra sesión, porque el evento no viaja en la petición. Cada posición
+lleva TTL, y al terminar el directo **se borra el rastro detallado** — un borrado, no una espera a que
+el TTL pase — y se conserva un recorrido simplificado, que es lo que promete la sección 7.4 del
+documento de proyecto.
+
+La lectura que hace el vecino devuelve solo la última posición, nunca el rastro, y con la hora a la que
+se registró: un mapa que muestra un punto de hace cuatro minutos como si fuera en directo es peor que
+uno que lo dice.
 
 ### El TTL
 

@@ -25,6 +25,7 @@ export * from './device-store';
 export * from './errors';
 export * from './items';
 export * from './keys';
+export * from './live-sessions';
 export * from './memberships';
 export * from './notices';
 export * from './organizations';

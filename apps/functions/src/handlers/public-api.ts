@@ -1,4 +1,10 @@
-import { type PublicStore, createPublicStore, createStoreClient } from '@agora/store';
+import {
+  type LiveReader,
+  type PublicStore,
+  createLiveReader,
+  createPublicStore,
+  createStoreClient,
+} from '@agora/store';
 
 import {
   type ApiEvent,
@@ -6,7 +12,6 @@ import {
   badRequest,
   handle,
   notFound,
-  notImplemented,
   ok,
   pathParameter,
   refusal,
@@ -27,6 +32,16 @@ import {
  * The store this uses cannot return a draft or an event waiting for approval —
  * not by filtering afterwards, but because those are not in the index it reads.
  */
+/**
+ * Everything a resident's request can read: the calendar, and the live map.
+ *
+ * Two stores rather than one because the IAM policy is the same but the reasons
+ * are not — one reads events, the other reads a session and its last position —
+ * and keeping them apart means the live one can move to its own function the day
+ * a procession makes that worth doing.
+ */
+export type PublicReadable = PublicStore & LiveReader;
+
 function parseDate(value: string | undefined, name: string): Date | undefined {
   if (value === undefined || value === '') return undefined;
 
@@ -39,7 +54,7 @@ function parseDate(value: string | undefined, name: string): Date | undefined {
   return date;
 }
 
-export async function route(event: ApiEvent, store: PublicStore): Promise<ApiResult> {
+export async function route(event: ApiEvent, store: PublicReadable): Promise<ApiResult> {
   try {
     return await dispatch(event, store);
   } catch (thrown) {
@@ -52,7 +67,7 @@ export async function route(event: ApiEvent, store: PublicStore): Promise<ApiRes
   }
 }
 
-async function dispatch(event: ApiEvent, store: PublicStore): Promise<ApiResult> {
+async function dispatch(event: ApiEvent, store: PublicReadable): Promise<ApiResult> {
   switch (event.routeKey) {
     case 'GET /municipalities':
       return ok(await store.listMunicipalities());
@@ -104,24 +119,38 @@ async function dispatch(event: ApiEvent, store: PublicStore): Promise<ApiResult>
       return found === null ? notFound('Ese evento no existe o no está publicado.') : ok(found);
     }
 
-    // Live tracking needs a session and positions, which are the next piece of
-    // the backend. The route exists and is cached at the edge already, so this
-    // answers honestly rather than pretending.
-    case 'GET /live/{eventId}':
-      return notImplemented('El seguimiento en directo');
+    /**
+     * The one endpoint that is polled rather than read once.
+     *
+     * CloudFront caches it for five seconds, so five thousand neighbours watching
+     * a procession reach this function about once every five seconds (D-028). It
+     * answers the newest position and never the trail, and the app decides whether
+     * to trust it: the position carries when it was recorded, and a map that shows
+     * a four-minute-old dot as if it were live is worse than one that says so.
+     */
+    case 'GET /live/{eventId}': {
+      const live = await store.live(pathParameter(event, 'eventId'));
+
+      return live === null ? notFound('Ese evento no tiene directo.') : ok(live);
+    }
 
     default:
       return notFound('Esa ruta no existe.');
   }
 }
 
-let store: PublicStore | null = null;
+let store: PublicReadable | null = null;
 
 export const handler = async (event: ApiEvent): Promise<ApiResult> =>
   handle(event, async () => {
     // Built once per container: the client keeps its connections warm between
     // requests, which is most of the latency of a small read.
-    store ??= createPublicStore(createStoreClient(), tableName());
+    if (store === null) {
+      const client = createStoreClient();
+      const table = tableName();
+
+      store = { ...createPublicStore(client, table), ...createLiveReader(client, table) };
+    }
 
     return route(event, store);
   });
