@@ -1,7 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true
+    "noEmit": true,
+    // The HTTP data source uses fetch, Response and AbortSignal, which this
+    // package sees as runtime globals: it runs in a browser and in React Native,
+    // never in Node. DOM is where their types live.
+    "lib": ["ES2022", "DOM"]
   },
   "include": ["src/**/*.ts"]
 }

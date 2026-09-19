@@ -17,6 +17,7 @@
     "zod": "^4.6.1"
   },
   "devDependencies": {
+    "@agora/data": "workspace:*",
     "@types/aws-lambda": "^8.10.145",
     "@types/node": "^22",
     "esbuild": "^0.25.0"

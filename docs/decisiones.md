@@ -673,3 +673,23 @@ La taxonomía de fallos también se comparte, y esa es la parte que se nota: una
 **Una incoherencia que encontré al juntarlos:** el panel enviaba el cartel como `multipart` y la Lambda esperaba JSON, así que en la nube habría fallado. Ahora los dos usan JSON con la imagen en base64 — una forma para los dos, y una Lambda que no tiene que interpretar multipart a mano. El límite baja a **6 MB** por el transporte y no por el modelo: base64 infla un tercio y el cuerpo de una petición no puede pasar de 10 MB. Una foto de móvil suele pasarse de ahí, así que el panel debería reescalarla antes de subirla; queda apuntado.
 
 **Y una dependencia circular evitada:** la página necesita su dirección absoluta para las etiquetas Open Graph, y no se puede leer de la distribución de CloudFront porque la propia página es uno de sus orígenes — Terraform se perseguiría la cola. Es una variable, `site_url`, vacía en el primer `apply` y rellenada en el segundo con la salida. Con la variable vacía la página funciona igual: omite las dos etiquetas en vez de escribirlas mal.
+
+---
+
+## D-042 — La app habla con la API, y sigue funcionando sin ella
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+Existe la segunda implementación de `DataSource`, la que D-001 anticipaba: `createHttpDataSource`. Ninguna pantalla cambia — era para esto para lo que se escribió el interfaz.
+
+**Cuál se usa depende de una variable.** Con `EXPO_PUBLIC_API_BASE_URL` puesta, la app habla con el backend; sin ella, lee los ficheros de `content/`. Eso no es un apaño transitorio: la demo **tiene** que funcionar sin red, porque se enseña con el móvil encima de la mesa en una sala de juntas con mal wifi. Una build de demostración y una de piloto se diferencian en una variable de entorno y en nada más.
+
+**Una diferencia entre las dos implementaciones, que no es un fallo:** `listEvents` por HTTP devuelve solo lo que un vecino puede ver, porque es todo lo que da la API pública; la de semilla devuelve todo y deja filtrar a quien llama. Las dos son correctas para su llamante, y está escrito donde se pueda tropezar con ello.
+
+**Lo que el cliente se toma en serio es fallar bien.** Un vecino abre esto en una calle llena de gente durante la feria, con una barra de cobertura: una petición que se queda colgada es peor que una que se rinde, así que todo lleva tiempo límite. Y un fallo distingue tres cosas que para el usuario son distintas: **no hay cobertura**, **el servidor ha dicho que no** (con su código) y **la respuesta no se entiende**, que es lo que pasa cuando la app es más vieja que la API. Esa última no revienta la pantalla: se cuenta como un fallo normal.
+
+**El testigo del dispositivo se lee en cada llamada, no se captura**, porque la primera petición de un arranque es el propio registro y todavía no hay testigo. Dónde se guarda es cosa de la app: el cliente recibe un almacén con dos métodos, así que el mismo código vale con AsyncStorage en el móvil y con localStorage en la web.
+
+**Y hay un test de contrato,** que es el que de verdad importa: sustituye `fetch` por una función que reparte a los manejadores de verdad sobre un DynamoDB de verdad. Ninguno de los dos lados lo habría pillado por su cuenta — que el cliente construya una ruta que la API no declara, que un campo cambie de nombre, que una parte envíe una forma que la otra no lee. Esa clase de fallo ya me mordió una vez hoy, con los carteles y el `multipart`.
+
+Escribiéndolo salieron dos cosas pequeñas y reales: el cliente se comía la causa del error al envolverlo —así que «no hay conexión» era también lo que parecía un fallo mío— y el arnés del test convertía un 204 con cuerpo vacío en un `Response`, que la especificación prohíbe. Las dos arregladas.

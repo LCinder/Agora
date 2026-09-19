@@ -78,6 +78,17 @@ pnpm --filter @agora/web build:static     # deja el resultado en apps/web/out
 pnpm --filter @agora/mobile dev
 ```
 
+Por defecto lee los ficheros de `content/`, que es la demo: funciona sin red, que es justo lo que hace
+falta con el móvil encima de la mesa en una sala de juntas con mal wifi. Para que hable con el backend
+de verdad, dale la URL de la API:
+
+```bash
+EXPO_PUBLIC_API_BASE_URL="$(terraform -chdir=infra/terraform/envs/dev output -raw api_endpoint)" \
+  pnpm --filter @agora/mobile dev
+```
+
+Ninguna pantalla cambia: las dos implementaciones son del mismo interfaz (D-042).
+
 MapLibre es un módulo nativo y **no funciona en Expo Go**, así que la app se prueba con una
 _development build_ instalada en el dispositivo (decisión D-004). Esa build la genera la CI sola:
 ver [Builds de Android](#builds-de-android). Mientras no haya mapa en pantalla, `expo start` sirve

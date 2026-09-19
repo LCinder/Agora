@@ -206,6 +206,9 @@ importers:
         specifier: ^4.6.1
         version: 4.6.1
     devDependencies:
+      '@agora/data':
+        specifier: workspace:*
+        version: link:../../packages/data
       '@types/aws-lambda':
         specifier: ^8.10.145
         version: 8.10.163
