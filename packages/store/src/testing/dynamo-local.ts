@@ -16,6 +16,11 @@ import { promisify } from 'node:util';
  *   2. Docker — what a developer's machine has.
  *   3. Neither: the suite skips with a message rather than failing, so a
  *      contributor without Docker can still run the rest of the tests.
+ *
+ * This is called from the vitest global setup, once per run, which then hands the
+ * endpoint to the workers through `DYNAMODB_ENDPOINT`. A test file calling it
+ * directly gets case 1 and a `stop` that does nothing, which is what it should
+ * be: the container belongs to the run, not to whichever file finished first.
  */
 const run = promisify(execFile);
 

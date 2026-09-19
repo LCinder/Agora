@@ -5,17 +5,25 @@ import {
   organizationSchema,
   publishesWithoutReview,
 } from '@agora/core';
-import { GetCommand, PutCommand, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  DeleteCommand,
+  GetCommand,
+  PutCommand,
+  QueryCommand,
+  UpdateCommand,
+} from '@aws-sdk/lib-dynamodb';
 
 import type { StoreClient } from './client';
 import { forbidden, notFound } from './errors';
 import { eventWriteExpression, fromEventItem, interestCountOf, toEventItem } from './items';
 import {
+  CHANGE_PREFIX,
   REVIEW_INDEX,
   SK_PREFIX,
   eventKey,
   municipalityPk,
   organizationKey,
+  pendingChangeKey,
   reviewIndexPk,
 } from './keys';
 
@@ -82,18 +90,126 @@ export interface EventPatch {
   isFeatured?: boolean;
 }
 
+/**
+ * A change an association asked for on an event that is already published.
+ *
+ * The acceptance criterion this exists for is exact: an untrusted association
+ * editing a published event sends the change back to review, and the published
+ * version stays visible (project document, section 7.2). A neighbour who already
+ * planned their evening around what the poster said must not see it change
+ * because somebody is still editing.
+ */
+export interface PendingChange {
+  id: string;
+  eventId: string;
+  municipalityId: string;
+  organizationId: string | null;
+  /** What was asked for, to be applied on approval. */
+  payload: EventPatch;
+  status: 'pending' | 'applied' | 'rejected';
+  rejectionReason: string | null;
+  createdBy: string;
+  createdAt: Date;
+}
+
+/** An edit either happened or is waiting for the town hall. */
+export type EditResult =
+  { kind: 'applied'; event: Event } | { kind: 'queued'; change: PendingChange };
+
+/** What the review inbox holds: new events, and changes to published ones. */
+export type ReviewItem =
+  { kind: 'event'; event: Event } | { kind: 'change'; change: PendingChange };
+
 export interface StaffStore {
   listEvents(): Promise<Event[]>;
   getEvent(eventId: string): Promise<Event | null>;
   createEvent(input: NewEvent): Promise<Event>;
-  updateEvent(eventId: string, patch: EventPatch): Promise<Event>;
-  /** Municipal staff only. */
-  reviewQueue(): Promise<Event[]>;
+  updateEvent(eventId: string, patch: EventPatch): Promise<EditResult>;
+  /** Municipal staff only. Events waiting for approval and changes to published ones. */
+  reviewQueue(): Promise<ReviewItem[]>;
   approveEvent(eventId: string): Promise<Event>;
   rejectEvent(eventId: string, reason: string): Promise<Event>;
   cancelEvent(eventId: string): Promise<Event>;
+  /** The changes asked for on one event, whatever their state. */
+  listChanges(eventId: string): Promise<PendingChange[]>;
+  approveChange(eventId: string, changeId: string): Promise<Event>;
+  rejectChange(eventId: string, changeId: string, reason: string): Promise<PendingChange>;
   /** How many residents marked it. Never who. */
   interestCount(eventId: string): Promise<number>;
+}
+
+/**
+ * A patch on its way into the table.
+ *
+ * DynamoDB has no date type, so the two dates a patch can carry become strings —
+ * the same ISO strings the event itself is stored with, so a change that sat in
+ * the queue for a week applies exactly as it would have on the day it was asked
+ * for.
+ */
+function serialisePatch(patch: EventPatch): Record<string, unknown> {
+  const raw: Record<string, unknown> = { ...patch };
+
+  if (patch.startAt !== undefined) raw['startAt'] = patch.startAt.toISOString();
+
+  if (patch.endAt !== undefined) {
+    raw['endAt'] = patch.endAt === null ? null : patch.endAt.toISOString();
+  }
+
+  return raw;
+}
+
+function revivePatch(raw: unknown): EventPatch {
+  if (typeof raw !== 'object' || raw === null) return {};
+
+  const stored = raw as Record<string, unknown>;
+  const patch: EventPatch = {};
+
+  for (const field of ['title', 'description', 'categoryId', 'priceInfo'] as const) {
+    const value = stored[field];
+
+    if (typeof value === 'string') patch[field] = value;
+  }
+
+  for (const field of ['isFree', 'isFeatured'] as const) {
+    const value = stored[field];
+
+    if (typeof value === 'boolean') patch[field] = value;
+  }
+
+  if (typeof stored['startAt'] === 'string') patch.startAt = new Date(stored['startAt']);
+
+  if (stored['endAt'] === null) patch.endAt = null;
+  else if (typeof stored['endAt'] === 'string') patch.endAt = new Date(stored['endAt']);
+
+  const location = stored['location'];
+
+  if (typeof location === 'object' && location !== null) {
+    const shape = location as Record<string, unknown>;
+
+    patch.location = {
+      name: String(shape['name'] ?? ''),
+      latitude: typeof shape['latitude'] === 'number' ? shape['latitude'] : null,
+      longitude: typeof shape['longitude'] === 'number' ? shape['longitude'] : null,
+    };
+  }
+
+  return patch;
+}
+
+function toPendingChange(item: Record<string, unknown>): PendingChange {
+  const reason = item['rejectionReason'];
+
+  return {
+    id: String(item['id']),
+    eventId: String(item['eventId']),
+    municipalityId: String(item['municipalityId']),
+    organizationId: item['organizationId'] === null ? null : String(item['organizationId']),
+    payload: revivePatch(item['payload']),
+    status: String(item['status']) as PendingChange['status'],
+    rejectionReason: typeof reason === 'string' ? reason : null,
+    createdBy: String(item['createdBy']),
+    createdAt: new Date(String(item['createdAt'])),
+  };
 }
 
 const isMunicipal = (actor: StaffActor): boolean =>
@@ -175,6 +291,74 @@ export function createStaffStore(
     );
 
     return next;
+  }
+
+  /**
+   * Whether this edit has to be looked at before the neighbours see it.
+   *
+   * Only in one case: an association without trust, changing something that is
+   * already published. Everything else — a draft, an event still waiting for
+   * approval, a trusted association, the town hall itself — writes straight
+   * through, because there is nothing published to protect.
+   */
+  async function needsReview(event: Event): Promise<boolean> {
+    if (isMunicipal(actor)) return false;
+    if (event.status !== 'published') return false;
+
+    const org = await organization();
+
+    return org === null || !publishesWithoutReview(org);
+  }
+
+  async function queueChange(event: Event, patch: EventPatch): Promise<PendingChange> {
+    const change: PendingChange = {
+      id: crypto.randomUUID(),
+      eventId: event.id,
+      municipalityId,
+      organizationId: actor.organizationId,
+      payload: patch,
+      status: 'pending',
+      rejectionReason: null,
+      createdBy: actor.authUserId,
+      createdAt: new Date(),
+    };
+
+    await client.send(
+      new PutCommand({
+        TableName: tableName,
+        Item: {
+          ...pendingChangeKey(change.eventId, change.id),
+          entity: 'event_change',
+          ...change,
+          payload: serialisePatch(patch),
+          createdAt: change.createdAt.toISOString(),
+          // Into the same review index the pending events use, so the town hall
+          // has one inbox and not two.
+          gsi2pk: reviewIndexPk(municipalityId),
+          gsi2sk: change.createdAt.toISOString(),
+        },
+      }),
+    );
+
+    return change;
+  }
+
+  async function readChange(eventId: string, changeId: string): Promise<PendingChange | null> {
+    const result = await client.send(
+      new GetCommand({
+        TableName: tableName,
+        Key: pendingChangeKey(eventId, changeId),
+      }),
+    );
+
+    if (result.Item === undefined) return null;
+
+    const change = toPendingChange(result.Item);
+
+    // A change is reachable through the event it belongs to, and that event is
+    // read in the actor's municipality, so a change from another town is not
+    // addressable here.
+    return change.municipalityId === municipalityId ? change : null;
   }
 
   async function writeStatus(
@@ -295,7 +479,14 @@ export function createStaffStore(
       if (event === null) throw notFound('Ese evento no existe en este municipio.');
       if (!canEdit(event)) throw forbidden('Ese evento es de otra asociación.');
 
-      return writeEvent({ ...event, ...patch, updatedAt: new Date() });
+      if (await needsReview(event)) {
+        return { kind: 'queued', change: await queueChange(event, patch) };
+      }
+
+      return {
+        kind: 'applied',
+        event: await writeEvent({ ...event, ...patch, updatedAt: new Date() }),
+      };
     },
 
     async reviewQueue() {
@@ -312,7 +503,11 @@ export function createStaffStore(
         }),
       );
 
-      return (result.Items ?? []).map(fromEventItem);
+      return (result.Items ?? []).map((item): ReviewItem =>
+        item['entity'] === 'event_change'
+          ? { kind: 'change', change: toPendingChange(item) }
+          : { kind: 'event', event: fromEventItem(item) },
+      );
     },
 
     // `async` even though the guard throws before any await: a method that
@@ -344,6 +539,75 @@ export function createStaffStore(
       if (!canEdit(event)) throw forbidden('Ese evento es de otra asociación.');
 
       return writeStatus(eventId, 'cancelled');
+    },
+
+    async listChanges(eventId) {
+      const event = await readEvent(eventId);
+      if (event === null) throw notFound('Ese evento no existe en este municipio.');
+      if (!canEdit(event)) throw forbidden('Ese evento es de otra asociación.');
+
+      const result = await client.send(
+        new QueryCommand({
+          TableName: tableName,
+          KeyConditionExpression: 'pk = :pk and begins_with(sk, :prefix)',
+          ExpressionAttributeValues: { ':pk': `EVT#${eventId}`, ':prefix': CHANGE_PREFIX },
+        }),
+      );
+
+      return (result.Items ?? []).map(toPendingChange);
+    },
+
+    async approveChange(eventId, changeId) {
+      if (!isMunicipal(actor)) {
+        throw forbidden('Solo el ayuntamiento aprueba cambios.');
+      }
+
+      const change = await readChange(eventId, changeId);
+      if (change === null) throw notFound('Ese cambio no existe.');
+      if (change.status !== 'pending') throw forbidden('Ese cambio ya estaba decidido.');
+
+      const event = await readEvent(eventId);
+      if (event === null) throw notFound('Ese evento no existe en este municipio.');
+
+      const updated = await writeEvent({ ...event, ...change.payload, updatedAt: new Date() });
+
+      // The change has served its purpose and leaves the inbox. It is deleted
+      // rather than kept: what it asked for is now in the event, and the audit
+      // log is where "who changed this" lives.
+      await client.send(
+        new DeleteCommand({ TableName: tableName, Key: pendingChangeKey(eventId, changeId) }),
+      );
+
+      return updated;
+    },
+
+    async rejectChange(eventId, changeId, reason) {
+      if (!isMunicipal(actor)) {
+        throw forbidden('Solo el ayuntamiento rechaza cambios.');
+      }
+
+      if (reason.trim() === '') {
+        throw forbidden('Un cambio rechazado tiene que decir por qué.');
+      }
+
+      const change = await readChange(eventId, changeId);
+      if (change === null) throw notFound('Ese cambio no existe.');
+
+      // Kept, unlike an approved one, and out of the index: the association has
+      // to be able to read why it was turned down.
+      await client.send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: pendingChangeKey(eventId, changeId),
+          UpdateExpression:
+            'SET #status = :status, rejectionReason = :reason REMOVE gsi2pk, gsi2sk',
+          ExpressionAttributeNames: { '#status': 'status' },
+          ExpressionAttributeValues: { ':status': 'rejected', ':reason': reason.trim() },
+          ConditionExpression: 'attribute_exists(pk)',
+        }),
+      );
+
+      return { ...change, status: 'rejected', rejectionReason: reason.trim() };
     },
 
     async interestCount(eventId) {

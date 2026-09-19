@@ -5,7 +5,7 @@ import { createDeviceStore } from './device-store';
 import { StoreError } from './errors';
 import { createPublicStore } from './public-store';
 import { createReminderStore } from './reminder-store';
-import { type StaffActor, createStaffStore } from './staff-store';
+import { type ReviewItem, type StaffActor, createStaffStore } from './staff-store';
 import {
   CORAL,
   DEVICE_ONE,
@@ -73,6 +73,11 @@ const oturaEditor: StaffActor = {
  * state the tests before them read. Vitest runs the tests of a file in order,
  * which is what makes that safe.
  */
+/** The events waiting in a review inbox, which also holds changes. */
+function pendingEvents(queue: ReviewItem[]) {
+  return queue.flatMap((item) => (item.kind === 'event' ? [item.event] : []));
+}
+
 describe.skipIf(local === null)('tenant isolation', () => {
   let client: StoreClient;
 
@@ -149,10 +154,12 @@ describe.skipIf(local === null)('tenant isolation', () => {
       const store = createStaffStore(client, TABLE, municipalEditor);
       const queue = await store.reviewQueue();
 
-      expect(queue.map((event) => event.id).sort()).toEqual(
-        [EVENTS.hermandadPending, EVENTS.penaPending].sort(),
-      );
-      expect(queue.every((event) => event.municipalityId === ZUBIA)).toBe(true);
+      expect(
+        pendingEvents(queue)
+          .map((event) => event.id)
+          .sort(),
+      ).toEqual([EVENTS.hermandadPending, EVENTS.penaPending].sort());
+      expect(pendingEvents(queue).every((event) => event.municipalityId === ZUBIA)).toBe(true);
     });
 
     it('refuses to reject an event without a reason', async () => {
@@ -401,7 +408,7 @@ describe.skipIf(local === null)('tenant isolation', () => {
       const queue = await staff.reviewQueue();
 
       expect(calendar.map((event) => event.id)).toContain(EVENTS.hermandadPending);
-      expect(queue.map((event) => event.id)).not.toContain(EVENTS.hermandadPending);
+      expect(pendingEvents(queue).map((event) => event.id)).not.toContain(EVENTS.hermandadPending);
     });
 
     it('rejecting leaves the event in neither index, and says why', async () => {
@@ -416,7 +423,7 @@ describe.skipIf(local === null)('tenant isolation', () => {
       const queue = await staff.reviewQueue();
 
       expect(calendar.map((event) => event.id)).not.toContain(EVENTS.penaPending);
-      expect(queue.map((event) => event.id)).not.toContain(EVENTS.penaPending);
+      expect(pendingEvents(queue).map((event) => event.id)).not.toContain(EVENTS.penaPending);
 
       // The town hall can still find it; it simply is not reachable through an
       // index any more.

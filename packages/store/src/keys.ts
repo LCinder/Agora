@@ -67,6 +67,44 @@ export function eventUpdateKey(
   return { pk: `EVT#${eventId}`, sk: `UPD#${createdAt.toISOString()}#${id}` };
 }
 
+/**
+ * A change an association asked for on an event that is already published.
+ *
+ * The event itself is not touched — the version the neighbours see stays up
+ * while the town hall decides — so the asked-for change has to live somewhere,
+ * and it lives next to the event it is about.
+ *
+ * The sort key is the change's own id and not a timestamp, unlike the notices
+ * above: a decision on a change addresses it directly, and the ordering the
+ * review inbox needs comes from the index, not from the key.
+ */
+export function pendingChangeKey(eventId: string, changeId: string): { pk: string; sk: string } {
+  return { pk: `EVT#${eventId}`, sk: `CHG#${changeId}` };
+}
+
+export const CHANGE_PREFIX = 'CHG#';
+
+export const NOTICE_PREFIX = 'UPD#';
+
+/**
+ * A line in the audit log, under the municipality it belongs to.
+ *
+ * Newest last by key, which is what `ScanIndexForward: false` then reverses, and
+ * the reason the timestamp comes before the id: an audit log is read backwards
+ * from now.
+ */
+export function auditKey(
+  municipalityId: string,
+  createdAt: Date,
+  id: string,
+): { pk: string; sk: string } {
+  return { pk: municipalityPk(municipalityId), sk: `AUD#${createdAt.toISOString()}#${id}` };
+}
+
+export const AUDIT_PREFIX = 'AUD#';
+
+export const MEMBERSHIP_PREFIX = 'MEM#';
+
 export function liveSessionKey(eventId: string): { pk: string; sk: string } {
   return { pk: `EVT#${eventId}`, sk: 'LIVE' };
 }

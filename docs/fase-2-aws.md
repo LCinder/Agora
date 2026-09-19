@@ -104,9 +104,11 @@ Una sola tabla, `agora-<entorno>`, con clave de partición `pk` y de ordenación
 | Aviso de evento | `EVT#<eventId>` | `UPD#<createdAt>#<id>` |
 | Sesión de directo | `EVT#<eventId>` | `LIVE` |
 | Posición del directo | `EVT#<eventId>` | `POS#<recordedAt>` |
+| Cambio pendiente | `EVT#<eventId>` | `CHG#<changeId>` |
 | Estadística diaria | `EVT#<eventId>` | `STAT#<fecha>` |
 | Interés de un vecino | `DEV#<deviceId>` | `INT#<municipalityId>#<eventId>` |
 | Pertenencia de un usuario | `USER#<cognitoSub>` | `MEM#<municipalityId>` |
+| Registro de auditoría | `MUN#<id>` | `AUD#<createdAt>#<id>` |
 | Índice de municipios | `PLATFORM` | `MUN#<slug>` |
 
 **La clave de partición empieza siempre por el municipio.** No es que esté prohibido leer otro: es
@@ -121,6 +123,9 @@ que no existe la consulta que lo haría sin nombrarlo.
 | `gsi3` | `EVT#<eventId>` | `DEV#<deviceId>` | Recordatorios: a quién avisar de un evento |
 
 ### El truco que sustituye a la seguridad por fila
+
+En `gsi2` no solo hay eventos: un cambio que una asociación pide sobre un evento ya publicado entra
+en el mismo índice, así que el ayuntamiento tiene **una bandeja y no dos** (D-039).
 
 `gsi1` y `gsi2` son **índices dispersos**: un evento solo aparece en ellos si tiene el atributo
 correspondiente, y ese atributo solo se escribe cuando el evento pasa a `published` o a

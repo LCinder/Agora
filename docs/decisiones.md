@@ -613,3 +613,25 @@ La tabla la crea Terraform vacía, y hasta que el panel sepa escribir no había 
 - **No hay tabla por defecto en la herramienta.** Hay que nombrarla siempre, y eso es lo que evita que una carga de datos de demostración acabe en producción por inercia.
 
 **Lo que no hace:** no carga el recorrido de `route.json`, porque el almacén de sesiones de directo es de la Fase D. Y los eventos de la semilla se anclan al día en que se ejecuta, así que lo que queda en la tabla es una foto de ese día; para un piloto los eventos los mete el ayuntamiento por el panel.
+
+---
+
+## D-039 — Lo que el panel necesita además de los eventos
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+Seis piezas que faltaban en `@agora/store` para que el panel pueda existir. Cada una es un módulo aparte que recibe el mismo actor, porque son los mismos cortes que hacen las políticas de IAM.
+
+**Las pertenencias son la fuente de los permisos.** `USER#<sub>` / `MEM#<municipio>`. Cognito responde a «quién eres» y esta tabla a «qué puedes hacer», porque un rol es por municipio y un grupo de Cognito no sabe de municipios (D-029). Dar de alta a alguien es cosa de un `municipal_admin`, y **el municipio no se coge de la petición sino del actor**: no existe el campo por el que colar otro ayuntamiento. Tampoco puedes quitarte el acceso a ti mismo, que es la forma tonta de dejar un municipio sin administrador.
+
+**Un cambio sobre un evento publicado no toca el evento.** Es el criterio de aceptación de la sección 7.2 y ahora es literal: una asociación sin confianza edita un evento publicado y lo que se escribe es un `CHG#<id>` junto al evento, con los atributos de `gsi2`, así que **cae en la misma bandeja de revisión que los eventos pendientes**. La versión que ven los vecinos no se mueve. Al aprobar, el cambio se aplica y desaparece; al rechazar, se queda con su motivo y sale del índice, para que la asociación pueda leer por qué. Un evento en borrador, una asociación de confianza o el propio ayuntamiento escriben directo: no hay nada publicado que proteger.
+
+**Los avisos los envía el ayuntamiento.** Una asociación edita sus eventos y ve sus números, pero una notificación es lo único aquí que no se puede retirar, y el documento de proyecto la pone bajo el ayuntamiento. El aviso vive bajo `EVT#<id>`, una partición que no nombra municipio, así que antes de escribirlo se lee el evento **por el municipio del actor**: si no está ahí, no existe.
+
+**Las dos palancas sobre las asociaciones son del ayuntamiento.** Crear una y marcarla de confianza, las dos de `municipal_admin`. Una asociación nunca nace de confianza: eso se gana viendo lo que publica, y el valor por defecto contrario habría hecho la bandeja de revisión opcional por accidente. Y una asociación se ve a sí misma y a nadie más: quién más está en la plataforma es cosa del ayuntamiento, no de una peña.
+
+**Las estadísticas no bajan de cinco.** Un número menor que cinco en un pueblo no es una estadística anónima, son tres vecinos, así que se devuelve `null` y el panel dirá «menos de 5». Se aplica a los segmentos y a los eventos individuales, y el resumen cuenta cuántos números se han guardado. El total del municipio sí se da entero, porque no es un segmento. No hay tabla de agregados diarios: se calcula al leer, en una consulta, porque un municipio tiene decenas de eventos al mes y una tabla de totales precalculados es una segunda versión de la verdad que hay que mantener honesta.
+
+**El registro de auditoría solo añade.** `MUN#<id>` / `AUD#<fecha>#<id>`, se lee del revés y solo lo lee el responsable municipal. No hay método que edite ni borre una línea. Lo escribe la API después de que una operación salga bien, no cada almacén: los almacenes imponen permisos, esto registra peticiones, y las peticiones son lo que tiene la API.
+
+**Y un arreglo del arnés de tests:** cada fichero levantaba su propio DynamoDB y lo paraba al acabar, lo cual da igual en la CI —parar un endpoint ajeno no hace nada— y se rompe en la máquina de un desarrollador: con tres ficheros en paralelo, el primero que termina le quita el contenedor a los otros dos. Ahora lo levanta el `globalSetup` de vitest una vez por ejecución.

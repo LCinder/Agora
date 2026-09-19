@@ -19,13 +19,18 @@
  * town hall is set up, and the bridge between the demo data and the backend.
  */
 
+export * from './audit-log';
 export * from './client';
 export * from './device-store';
 export * from './errors';
 export * from './items';
 export * from './keys';
+export * from './memberships';
+export * from './notices';
+export * from './organizations';
 export * from './public-store';
 export * from './reminder-store';
 export * from './seed-migration';
 export * from './staff-store';
+export * from './stats';
 export * from './table-definition';
