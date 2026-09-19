@@ -199,6 +199,9 @@ importers:
       '@aws-sdk/client-ssm':
         specifier: ^3.700.0
         version: 3.1134.0
+      zod:
+        specifier: ^4.6.1
+        version: 4.6.1
     devDependencies:
       '@types/aws-lambda':
         specifier: ^8.10.145

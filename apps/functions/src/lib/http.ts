@@ -54,19 +54,37 @@ const STATUS_FOR: Record<StoreError['code'], number> = {
 };
 
 /**
+ * The response for a refusal the code expected, or null for anything else.
+ *
+ * "Expected" is the point. A store saying no — this is not your municipality,
+ * only the town hall approves, that event does not exist here — is an outcome of
+ * the request and belongs in its answer. Anything else is a bug.
+ *
+ * Every `route` function in this package maps refusals itself rather than leaving
+ * it to the wrapper below, so that its signature tells the truth: it returns a
+ * response, it does not throw at its caller. It is also what makes routing
+ * testable without going through the Lambda entry point.
+ */
+export function refusal(thrown: unknown): ApiResult | null {
+  return thrown instanceof StoreError
+    ? error(STATUS_FOR[thrown.code], thrown.code, thrown.message)
+    : null;
+}
+
+/**
  * Runs a handler and turns anything it throws into an answer.
  *
- * A store error carries the status; anything else is a bug, and a bug is a 500
- * with the detail in the log and not in the response — a resident does not need
- * a stack trace and an attacker does not get one.
+ * The last line of defence: a refusal that nothing mapped, and any real bug,
+ * which is a 500 with the detail in the log and not in the response — a resident
+ * does not need a stack trace and an attacker does not get one.
  */
 export async function handle(event: ApiEvent, run: () => Promise<ApiResult>): Promise<ApiResult> {
   try {
     return await run();
   } catch (thrown) {
-    if (thrown instanceof StoreError) {
-      return error(STATUS_FOR[thrown.code], thrown.code, thrown.message);
-    }
+    const refused = refusal(thrown);
+
+    if (refused !== null) return refused;
 
     console.error(
       JSON.stringify({
@@ -79,6 +97,11 @@ export async function handle(event: ApiEvent, run: () => Promise<ApiResult>): Pr
 
     return error(500, 'internal_error', 'Algo ha fallado por nuestra parte.');
   }
+}
+
+/** Refuses the request with a 403, through the same mapping as the store's own. */
+export function forbidden(message: string): StoreError {
+  return new StoreError('forbidden', message);
 }
 
 /** A path parameter that has to be there. */

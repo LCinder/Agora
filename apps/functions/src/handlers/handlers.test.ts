@@ -247,12 +247,12 @@ describe.skipIf(local === null)('the handlers', () => {
           query: { municipalityId: ZUBIA },
         }),
         dependencies('device-mine'),
-      ).catch((error: unknown) => error);
+      );
 
-      // The route lets the store error out; `handle` is what maps it, so this
-      // asserts the contract between them.
-      expect(result).toBeInstanceOf(Error);
-      expect((result as { code?: string }).code).toBe('not_found');
+      // The route answers the refusal itself rather than throwing at its caller,
+      // which is the contract every route in this package keeps.
+      expect(statusOf(result)).toBe(404);
+      expect((bodyOf(result) as { error: string }).error).toBe('not_found');
     });
   });
 

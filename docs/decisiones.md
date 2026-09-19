@@ -635,3 +635,23 @@ Seis piezas que faltaban en `@agora/store` para que el panel pueda existir. Cada
 **El registro de auditoría solo añade.** `MUN#<id>` / `AUD#<fecha>#<id>`, se lee del revés y solo lo lee el responsable municipal. No hay método que edite ni borre una línea. Lo escribe la API después de que una operación salga bien, no cada almacén: los almacenes imponen permisos, esto registra peticiones, y las peticiones son lo que tiene la API.
 
 **Y un arreglo del arnés de tests:** cada fichero levantaba su propio DynamoDB y lo paraba al acabar, lo cual da igual en la CI —parar un endpoint ajeno no hace nada— y se rompe en la máquina de un desarrollador: con tres ficheros en paralelo, el primero que termina le quita el contenedor a los otros dos. Ahora lo levanta el `globalSetup` de vitest una vez por ejecución.
+
+---
+
+## D-040 — El panel es una ruta y un enrutador de cincuenta líneas
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+`panel-api` está escrito. Veinte operaciones detrás de **una sola ruta** de API Gateway, `ANY /panel/{proxy+}`, repartidas por un enrutador propio de unas cincuenta líneas.
+
+**Por qué no veinte rutas declaradas.** Serían veinte bloques de Terraform que hay que mantener en paso con el código a mano, y el día que se olvide uno el síntoma es un 404 que nadie entiende. Con una ruta, el Terraform no cambia cuando la API crece. El precio es el enrutador, y es un precio pequeño: patrones literales con `:nombre` para lo que varía, sin expresiones regulares, sin comodines. Distingue además una ruta que no existe (404) de un método que no vale para una que sí (405), porque lo segundo es un error de quien escribe el cliente y merece que se le diga.
+
+**Los permisos salen de la tabla en cada petición.** El municipio va en la ruta; se busca la pertenencia de ese `sub` en ese municipio y con ella se construyen los almacenes. Si no hay fila, 403 — **la misma respuesta tanto si el municipio no existe como si es de otro**, porque cuál de las dos cosas es no es asunto de quien pregunta. Ningún almacén recibe el municipio como argumento, así que una petición no puede salirse del suyo ni por error.
+
+**Un cambio de contrato que encontraron los tests.** Las seis primeras pruebas fallaron todas por lo mismo: una negativa esperada —«no tienes acceso», «solo el ayuntamiento aprueba»— salía de `route()` como excepción en vez de como respuesta, y solo se convertía en código HTTP en el envoltorio del punto de entrada de Lambda. Ahora **cada `route` mapea sus propias negativas**, así que su firma dice la verdad: devuelve una respuesta, no lanza. El envoltorio se queda como última línea de defensa para los fallos de verdad, que son un 500 con el detalle en el registro y no en la respuesta.
+
+**La línea de auditoría la escribe el manejador**, después de que la operación salga bien, con el verbo en forma de `event.approve` u `organization.trust`. Los almacenes imponen permisos; esto registra peticiones, y una petición es lo que tiene la API.
+
+**Y el cuerpo de la petición se valida con Zod**, con una frontera explícita: un campo opcional que no viene llega como `undefined` y los almacenes distinguen «ausente» de «presente y vacío», así que hay una función que quita los `undefined` y **deja pasar los `null`**, porque en un evento `null` es un valor — «no tiene hora de fin» — y no un hueco.
+
+**Lo que falta para invitar a una persona de verdad:** hoy `POST /panel/.../staff` recibe el `sub` de Cognito ya creado. Falta la llamada `AdminCreateUser`, el permiso de IAM para hacerla y el identificador del grupo de usuarios en el entorno. No lo he escrito porque no puedo ejecutarlo contra un Cognito real, y escribir autenticación sin poder probarla es la forma más fácil de dar por hecho algo que no lo está.

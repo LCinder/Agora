@@ -9,6 +9,7 @@ import {
   noContent,
   ok,
   pathParameter,
+  refusal,
   tableName,
 } from '../lib/http';
 import { mintDeviceToken, newDeviceId } from '../lib/device-token';
@@ -44,6 +45,19 @@ export async function route(
   event: ApiEvent,
   dependencies: DeviceApiDependencies,
 ): Promise<ApiResult> {
+  try {
+    return await dispatch(event, dependencies);
+  } catch (thrown) {
+    // A refusal is an answer: that event does not exist, that mark is not yours.
+    const refused = refusal(thrown);
+
+    if (refused !== null) return refused;
+
+    throw thrown;
+  }
+}
+
+async function dispatch(event: ApiEvent, dependencies: DeviceApiDependencies): Promise<ApiResult> {
   const { client, table, signingSecret, deviceId } = dependencies;
 
   if (event.routeKey === 'POST /devices') {

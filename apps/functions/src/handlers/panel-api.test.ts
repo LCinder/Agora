@@ -1,0 +1,370 @@
+import { type StoreClient, createMembershipStore, createStoreClient } from '@agora/store';
+import {
+  EVENTS,
+  HERMANDAD,
+  LOCAL_CREDENTIALS,
+  type LocalDynamo,
+  OTURA,
+  ZUBIA,
+  createTable,
+  dropTable,
+  seed,
+  startDynamoLocal,
+} from '@agora/store/testing';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+
+import type { ApiEvent } from '../lib/http';
+import { route } from './panel-api';
+
+/**
+ * The panel over HTTP.
+ *
+ * The rules are tested in `@agora/store`, against the same database. What this
+ * checks is the layer above them: that the paths are the ones the panel will
+ * call, that permissions are read from the membership table and not from the
+ * token, that a body which lies about its shape is a 400 and not a 500, and that
+ * something that changed left a line in the audit log.
+ */
+const local: LocalDynamo | null = await startDynamoLocal();
+const TABLE = `agora-panel-api-${process.pid}`;
+
+const ADMIN = 'auth-admin';
+const EDITOR = 'auth-editor';
+const ASSOCIATION = 'auth-hermandad';
+const STRANGER = 'auth-stranger';
+
+function request(
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+  path: string,
+  options: { subject?: string; body?: unknown } = {},
+): ApiEvent {
+  return {
+    routeKey: 'ANY /panel/{proxy+}',
+    rawPath: `/panel/${path}`,
+    pathParameters: { proxy: path },
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    requestContext: {
+      http: { method },
+      ...(options.subject === undefined
+        ? {}
+        : { authorizer: { jwt: { claims: { sub: options.subject } } } }),
+    },
+  } as unknown as ApiEvent;
+}
+
+function statusOf(result: Awaited<ReturnType<typeof route>>): number {
+  return (result as { statusCode: number }).statusCode;
+}
+
+function bodyOf(result: Awaited<ReturnType<typeof route>>): unknown {
+  const value = result as { body?: string };
+
+  return value.body === undefined ? undefined : JSON.parse(value.body);
+}
+
+describe.skipIf(local === null)('the panel API', () => {
+  let client: StoreClient;
+
+  const call = (
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    path: string,
+    options?: { subject?: string; body?: unknown },
+  ) => route(request(method, path, options), client, TABLE);
+
+  beforeAll(async () => {
+    client = createStoreClient({
+      region: 'eu-central-1',
+      endpoint: local?.endpoint ?? '',
+      credentials: LOCAL_CREDENTIALS,
+    });
+
+    await dropTable(client, TABLE);
+    await createTable(client, TABLE);
+    await seed(client, TABLE);
+
+    // The memberships are the permissions, so the fixtures are memberships.
+    const memberships = createMembershipStore(client, TABLE);
+    const bootstrap = {
+      authUserId: ADMIN,
+      municipalityId: ZUBIA,
+      role: 'municipal_admin' as const,
+      organizationId: null,
+    };
+
+    await memberships.grant(bootstrap, {
+      authUserId: ADMIN,
+      role: 'municipal_admin',
+      email: 'admin@lazubia.es',
+    });
+    await memberships.grant(bootstrap, {
+      authUserId: EDITOR,
+      role: 'municipal_editor',
+      email: 'cultura@lazubia.es',
+    });
+    await memberships.grant(bootstrap, {
+      authUserId: ASSOCIATION,
+      role: 'org_editor',
+      organizationId: HERMANDAD,
+      email: 'hermandad@lazubia.es',
+    });
+  });
+
+  afterAll(async () => {
+    await dropTable(client, TABLE);
+    await local?.stop();
+  });
+
+  describe('getting in', () => {
+    it('refuses a request with no identity', async () => {
+      expect(statusOf(await call('GET', 'me'))).toBe(401);
+    });
+
+    it('answers which municipalities the caller may work in', async () => {
+      const result = await call('GET', 'me', { subject: EDITOR });
+      const body = bodyOf(result) as { memberships: { municipalityId: string; role: string }[] };
+
+      expect(statusOf(result)).toBe(200);
+      expect(body.memberships).toHaveLength(1);
+      expect(body.memberships[0]?.municipalityId).toBe(ZUBIA);
+      expect(body.memberships[0]?.role).toBe('municipal_editor');
+    });
+
+    it('refuses a municipality the caller has no membership in', async () => {
+      const mine = await call('GET', `municipalities/${ZUBIA}/events`, { subject: EDITOR });
+      const theirs = await call('GET', `municipalities/${OTURA}/events`, { subject: EDITOR });
+
+      expect(statusOf(mine)).toBe(200);
+      expect(statusOf(theirs)).toBe(403);
+    });
+
+    it('refuses somebody with a valid token and no membership at all', async () => {
+      const result = await call('GET', `municipalities/${ZUBIA}/events`, { subject: STRANGER });
+
+      expect(statusOf(result)).toBe(403);
+    });
+
+    it('tells a wrong route from a wrong method', async () => {
+      expect(statusOf(await call('GET', 'municipalities/x/nope', { subject: EDITOR }))).toBe(404);
+      expect(
+        statusOf(await call('DELETE', `municipalities/${ZUBIA}/events`, { subject: EDITOR })),
+      ).toBe(405);
+    });
+  });
+
+  describe('events', () => {
+    it('lists what the panel sees, drafts included', async () => {
+      const result = await call('GET', `municipalities/${ZUBIA}/events`, { subject: EDITOR });
+      const events = bodyOf(result) as { id: string; status: string }[];
+
+      expect(events.map((event) => event.id)).toContain(EVENTS.zubiaDraft);
+    });
+
+    it('creates one, and says so in the audit log', async () => {
+      const created = await call('POST', `municipalities/${ZUBIA}/events`, {
+        subject: EDITOR,
+        body: {
+          id: 'evt-from-api',
+          title: 'Pregón de la feria',
+          categoryId: 'cat-fiestas',
+          startAt: '2027-08-15T20:00:00.000Z',
+          location: { name: 'Plaza del Ayuntamiento' },
+          status: 'published',
+        },
+      });
+
+      expect(statusOf(created)).toBe(200);
+      expect((bodyOf(created) as { status: string }).status).toBe('published');
+
+      const log = bodyOf(await call('GET', `municipalities/${ZUBIA}/audit`, { subject: ADMIN }));
+
+      expect((log as { action: string; entityId: string }[])[0]).toMatchObject({
+        action: 'event.create',
+        entityId: 'evt-from-api',
+      });
+    });
+
+    it('refuses a body that is not what it claims', async () => {
+      const missingTitle = await call('POST', `municipalities/${ZUBIA}/events`, {
+        subject: EDITOR,
+        body: { categoryId: 'cat-fiestas', startAt: '2027-08-15T20:00:00.000Z' },
+      });
+      const notJson = await route(
+        {
+          ...request('POST', `municipalities/${ZUBIA}/events`, { subject: EDITOR }),
+          body: 'esto no es json',
+        } as ApiEvent,
+        client,
+        TABLE,
+      );
+
+      expect(statusOf(missingTitle)).toBe(400);
+      expect(statusOf(notJson)).toBe(400);
+    });
+
+    it('approves, cancels, and refuses to reject without a reason', async () => {
+      const approved = await call(
+        'POST',
+        `municipalities/${ZUBIA}/events/${EVENTS.hermandadPending}/approve`,
+        { subject: EDITOR },
+      );
+
+      expect(statusOf(approved)).toBe(200);
+      expect((bodyOf(approved) as { status: string }).status).toBe('published');
+
+      const noReason = await call(
+        'POST',
+        `municipalities/${ZUBIA}/events/${EVENTS.penaPending}/reject`,
+        { subject: EDITOR, body: {} },
+      );
+
+      expect(statusOf(noReason)).toBe(400);
+
+      const cancelled = await call('POST', `municipalities/${ZUBIA}/events/evt-from-api/cancel`, {
+        subject: EDITOR,
+      });
+
+      expect((bodyOf(cancelled) as { status: string }).status).toBe('cancelled');
+    });
+
+    it('queues an association edit of a published event instead of applying it', async () => {
+      const result = await call(
+        'PATCH',
+        `municipalities/${ZUBIA}/events/${EVENTS.hermandadPending}`,
+        { subject: ASSOCIATION, body: { title: 'Vía crucis con recorrido nuevo' } },
+      );
+
+      expect(statusOf(result)).toBe(200);
+      expect((bodyOf(result) as { kind: string }).kind).toBe('queued');
+
+      const inbox = bodyOf(
+        await call('GET', `municipalities/${ZUBIA}/review`, { subject: EDITOR }),
+      );
+      const changes = (inbox as { kind: string; change?: { id: string } }[]).filter(
+        (item) => item.kind === 'change',
+      );
+
+      expect(changes).toHaveLength(1);
+
+      const approved = await call(
+        'POST',
+        `municipalities/${ZUBIA}/events/${EVENTS.hermandadPending}/changes/${changes[0]?.change?.id}/approve`,
+        { subject: EDITOR },
+      );
+
+      expect((bodyOf(approved) as { title: string }).title).toBe('Vía crucis con recorrido nuevo');
+    });
+  });
+
+  describe('notices', () => {
+    it('are sent by the town hall and refused to an association', async () => {
+      const sent = await call(
+        'POST',
+        `municipalities/${ZUBIA}/events/${EVENTS.zubiaPublished}/notices`,
+        {
+          subject: EDITOR,
+          body: { type: 'time_change', message: 'Empieza media hora más tarde.' },
+        },
+      );
+
+      expect(statusOf(sent)).toBe(200);
+      expect((bodyOf(sent) as { pushSentAt: null }).pushSentAt).toBeNull();
+
+      const refused = await call(
+        'POST',
+        `municipalities/${ZUBIA}/events/${EVENTS.hermandadPending}/notices`,
+        { subject: ASSOCIATION, body: { type: 'notice', message: 'Hola' } },
+      );
+
+      expect(statusOf(refused)).toBe(403);
+    });
+
+    it('refuse a type that is not one of ours', async () => {
+      const result = await call(
+        'POST',
+        `municipalities/${ZUBIA}/events/${EVENTS.zubiaPublished}/notices`,
+        { subject: EDITOR, body: { type: 'lo_que_sea', message: 'Hola' } },
+      );
+
+      expect(statusOf(result)).toBe(400);
+    });
+  });
+
+  describe('associations and access', () => {
+    it('are created by an administrator and not by an editor', async () => {
+      const created = await call('POST', `municipalities/${ZUBIA}/organizations`, {
+        subject: ADMIN,
+        body: {
+          id: 'org-club',
+          name: 'Club de atletismo',
+          type: 'sports_club',
+          contactEmail: null,
+        },
+      });
+
+      expect(statusOf(created)).toBe(200);
+      expect((bodyOf(created) as { isTrusted: boolean }).isTrusted).toBe(false);
+
+      const refused = await call('POST', `municipalities/${ZUBIA}/organizations`, {
+        subject: EDITOR,
+        body: { name: 'Otra', type: 'cultural', contactEmail: null },
+      });
+
+      expect(statusOf(refused)).toBe(403);
+    });
+
+    it('are trusted with a patch, and the log says who did it', async () => {
+      const patched = await call('PATCH', `municipalities/${ZUBIA}/organizations/org-club`, {
+        subject: ADMIN,
+        body: { isTrusted: true },
+      });
+
+      expect((bodyOf(patched) as { isTrusted: boolean }).isTrusted).toBe(true);
+
+      const log = bodyOf(
+        await call('GET', `municipalities/${ZUBIA}/audit`, { subject: ADMIN }),
+      ) as { action: string; actorId: string }[];
+
+      expect(log[0]).toMatchObject({ action: 'organization.trust', actorId: ADMIN });
+    });
+
+    it('grant and revoke access, administrators only', async () => {
+      const granted = await call('POST', `municipalities/${ZUBIA}/staff`, {
+        subject: ADMIN,
+        body: { authUserId: 'auth-new', role: 'municipal_editor', email: 'nuevo@lazubia.es' },
+      });
+
+      expect(statusOf(granted)).toBe(200);
+
+      const byEditor = await call('POST', `municipalities/${ZUBIA}/staff`, {
+        subject: EDITOR,
+        body: { authUserId: 'auth-sneaky', role: 'municipal_admin', email: 'x@y.es' },
+      });
+
+      expect(statusOf(byEditor)).toBe(403);
+
+      const revoked = await call('DELETE', `municipalities/${ZUBIA}/staff/auth-new`, {
+        subject: ADMIN,
+      });
+
+      expect(statusOf(revoked)).toBe(204);
+      expect(statusOf(await call('GET', 'me', { subject: 'auth-new' }))).toBe(200);
+    });
+  });
+
+  describe('what a councillor reads', () => {
+    it('gives aggregates and no names', async () => {
+      const result = await call('GET', `municipalities/${ZUBIA}/stats`, { subject: EDITOR });
+      const stats = bodyOf(result) as Record<string, unknown>;
+
+      expect(statusOf(result)).toBe(200);
+      expect(Object.keys(stats)).toEqual(['events', 'interests', 'suppressed', 'generatedAt']);
+      expect(JSON.stringify(stats)).not.toContain('device');
+    });
+
+    it('keeps the audit log for the administrator', async () => {
+      expect(
+        statusOf(await call('GET', `municipalities/${ZUBIA}/audit`, { subject: EDITOR })),
+      ).toBe(403);
+    });
+  });
+});

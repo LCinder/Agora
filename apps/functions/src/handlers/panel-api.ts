@@ -1,21 +1,446 @@
-import { handle, notImplemented } from '../lib/http';
-import type { ApiEvent, ApiResult } from '../lib/http';
+import { AUDIENCE_TAGS, ORGANIZATION_STATUSES, ORGANIZATION_TYPES } from '@agora/core';
+import {
+  NOTICE_TYPES,
+  type StoreClient,
+  createMembershipStore,
+  createStoreClient,
+} from '@agora/store';
+import { z } from 'zod';
+
+import {
+  type ApiEvent,
+  type ApiResult,
+  badRequest,
+  error,
+  handle,
+  noContent,
+  notFound,
+  ok,
+  refusal,
+  tableName,
+} from '../lib/http';
+import { definedOnly } from '../lib/json';
+import { type PanelContext, buildContext, callerSubject } from '../lib/panel-context';
+import { type Route, matchRoute, pathExists, routedPath } from '../lib/router';
 
 /**
  * Everything the town hall and the associations do.
  *
- * Still a placeholder, and honest about it. The layer it will sit on already
- * exists and is tested: `createStaffStore` in `@agora/store` holds the rules —
- * an association cannot publish, cannot approve, cannot touch another
- * association — and this handler's job is routing, validation and turning a
- * Cognito `sub` into the membership row that says which municipality the caller
- * belongs to.
+ * One Lambda and one API Gateway route, split inside by path. The rules are not
+ * here — they are in `@agora/store`, tested against a real database — and this
+ * file does the three things a handler should do: read the caller's membership,
+ * check that the body is the shape it claims to be, and write a line in the audit
+ * log when something changed.
+ *
+ * The audit line is written here rather than in the stores on purpose. The stores
+ * enforce permissions; this records requests, and a request is what the API has.
  */
+const locationSchema = z.object({
+  name: z.string().min(1),
+  latitude: z.number().min(-90).max(90).nullable().default(null),
+  longitude: z.number().min(-180).max(180).nullable().default(null),
+});
+
+const newEventSchema = z.object({
+  id: z.string().min(1).optional(),
+  title: z.string().min(1),
+  description: z.string().optional(),
+  categoryId: z.string().min(1),
+  startAt: z.coerce.date(),
+  endAt: z.coerce.date().nullable().optional(),
+  allDay: z.boolean().optional(),
+  location: locationSchema,
+  imageUrl: z.string().nullable().optional(),
+  priceInfo: z.string().nullable().optional(),
+  isFree: z.boolean().optional(),
+  audienceTags: z.array(z.enum(AUDIENCE_TAGS)).optional(),
+  status: z.enum(['draft', 'pending_review', 'published']).optional(),
+  isFeatured: z.boolean().optional(),
+});
+
+const eventPatchSchema = z.object({
+  title: z.string().min(1).optional(),
+  description: z.string().optional(),
+  categoryId: z.string().min(1).optional(),
+  startAt: z.coerce.date().optional(),
+  endAt: z.coerce.date().nullable().optional(),
+  location: locationSchema.optional(),
+  priceInfo: z.string().nullable().optional(),
+  isFree: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
+});
+
+const reasonSchema = z.object({ reason: z.string().min(1) });
+
+const noticeSchema = z.object({
+  type: z.enum(NOTICE_TYPES),
+  message: z.string().min(1),
+});
+
+const newOrganizationSchema = z.object({
+  id: z.string().min(1).optional(),
+  name: z.string().min(1),
+  type: z.enum(ORGANIZATION_TYPES),
+  contactEmail: z.email().nullable().default(null),
+});
+
+const organizationPatchSchema = z
+  .object({
+    isTrusted: z.boolean().optional(),
+    status: z.enum(ORGANIZATION_STATUSES).optional(),
+  })
+  .refine((patch) => patch.isTrusted !== undefined || patch.status !== undefined, {
+    message: 'Nothing to change',
+  });
+
+const newMembershipSchema = z.object({
+  authUserId: z.string().min(1),
+  role: z.enum(['org_editor', 'municipal_editor', 'municipal_admin']),
+  organizationId: z.string().min(1).nullable().optional(),
+  email: z.email(),
+  fullName: z.string().optional(),
+});
+
+/** Thrown when a body is not what it says it is; `handle` turns it into a 400. */
+class BadBody extends Error {}
+
+function body<Schema extends z.ZodType>(event: ApiEvent, schema: Schema): z.output<Schema> {
+  let raw: unknown;
+
+  try {
+    raw = JSON.parse(event.body ?? '{}');
+  } catch {
+    throw new BadBody('El cuerpo tiene que ser JSON.');
+  }
+
+  const parsed = schema.safeParse(raw);
+
+  if (!parsed.success) {
+    throw new BadBody(
+      `Faltan datos o no son válidos: ${parsed.error.issues
+        .map((issue) => issue.path.join('.') || 'cuerpo')
+        .join(', ')}.`,
+    );
+  }
+
+  return parsed.data;
+}
+
+interface RequestContext {
+  event: ApiEvent;
+  panel: PanelContext;
+}
+
+const ROUTES: readonly Route<RequestContext>[] = [
+  // --- events --------------------------------------------------------------
+  {
+    method: 'GET',
+    pattern: 'municipalities/:municipalityId/events',
+    run: async (_parameters, { panel }) => ok(await panel.events.listEvents()),
+  },
+  {
+    method: 'GET',
+    pattern: 'municipalities/:municipalityId/events/:eventId',
+    run: async ({ eventId }, { panel }) => {
+      const event = await panel.events.getEvent(eventId!);
+
+      return event === null ? notFound('Ese evento no existe en este municipio.') : ok(event);
+    },
+  },
+  {
+    method: 'POST',
+    pattern: 'municipalities/:municipalityId/events',
+    run: async (_parameters, { event, panel }) => {
+      const input = body(event, newEventSchema);
+      const created = await panel.events.createEvent({
+        ...definedOnly(input),
+        id: input.id ?? crypto.randomUUID(),
+      });
+
+      await panel.audit.record({ action: 'event.create', entity: 'event', entityId: created.id });
+
+      return ok(created);
+    },
+  },
+  {
+    method: 'PATCH',
+    pattern: 'municipalities/:municipalityId/events/:eventId',
+    run: async ({ eventId }, { event, panel }) => {
+      const result = await panel.events.updateEvent(
+        eventId!,
+        definedOnly(body(event, eventPatchSchema)),
+      );
+
+      await panel.audit.record({
+        action: result.kind === 'queued' ? 'event.change_requested' : 'event.update',
+        entity: 'event',
+        entityId: eventId!,
+      });
+
+      return ok(result);
+    },
+  },
+  {
+    method: 'POST',
+    pattern: 'municipalities/:municipalityId/events/:eventId/approve',
+    run: async ({ eventId }, { panel }) => {
+      const approved = await panel.events.approveEvent(eventId!);
+
+      await panel.audit.record({ action: 'event.approve', entity: 'event', entityId: eventId! });
+
+      return ok(approved);
+    },
+  },
+  {
+    method: 'POST',
+    pattern: 'municipalities/:municipalityId/events/:eventId/reject',
+    run: async ({ eventId }, { event, panel }) => {
+      const { reason } = body(event, reasonSchema);
+      const rejected = await panel.events.rejectEvent(eventId!, reason);
+
+      await panel.audit.record({ action: 'event.reject', entity: 'event', entityId: eventId! });
+
+      return ok(rejected);
+    },
+  },
+  {
+    method: 'POST',
+    pattern: 'municipalities/:municipalityId/events/:eventId/cancel',
+    run: async ({ eventId }, { panel }) => {
+      const cancelled = await panel.events.cancelEvent(eventId!);
+
+      await panel.audit.record({ action: 'event.cancel', entity: 'event', entityId: eventId! });
+
+      return ok(cancelled);
+    },
+  },
+
+  // --- the review inbox ----------------------------------------------------
+  {
+    method: 'GET',
+    pattern: 'municipalities/:municipalityId/review',
+    run: async (_parameters, { panel }) => ok(await panel.events.reviewQueue()),
+  },
+  {
+    method: 'GET',
+    pattern: 'municipalities/:municipalityId/events/:eventId/changes',
+    run: async ({ eventId }, { panel }) => ok(await panel.events.listChanges(eventId!)),
+  },
+  {
+    method: 'POST',
+    pattern: 'municipalities/:municipalityId/events/:eventId/changes/:changeId/approve',
+    run: async ({ eventId, changeId }, { panel }) => {
+      const updated = await panel.events.approveChange(eventId!, changeId!);
+
+      await panel.audit.record({
+        action: 'event_change.approve',
+        entity: 'event_change',
+        entityId: changeId!,
+      });
+
+      return ok(updated);
+    },
+  },
+  {
+    method: 'POST',
+    pattern: 'municipalities/:municipalityId/events/:eventId/changes/:changeId/reject',
+    run: async ({ eventId, changeId }, { event, panel }) => {
+      const { reason } = body(event, reasonSchema);
+      const rejected = await panel.events.rejectChange(eventId!, changeId!, reason);
+
+      await panel.audit.record({
+        action: 'event_change.reject',
+        entity: 'event_change',
+        entityId: changeId!,
+      });
+
+      return ok(rejected);
+    },
+  },
+
+  // --- notices -------------------------------------------------------------
+  {
+    method: 'GET',
+    pattern: 'municipalities/:municipalityId/events/:eventId/notices',
+    run: async ({ eventId }, { panel }) => ok(await panel.notices.list(eventId!)),
+  },
+  {
+    method: 'POST',
+    pattern: 'municipalities/:municipalityId/events/:eventId/notices',
+    run: async ({ eventId }, { event, panel }) => {
+      const input = body(event, noticeSchema);
+      const sent = await panel.notices.send({ eventId: eventId!, ...input });
+
+      await panel.audit.record({
+        action: `notice.${input.type}`,
+        entity: 'event_notice',
+        entityId: sent.id,
+      });
+
+      // The push itself is not sent here: there is no provider yet, and the
+      // notice carries `pushSentAt: null` until whatever delivers it says so.
+      return ok(sent);
+    },
+  },
+
+  // --- associations --------------------------------------------------------
+  {
+    method: 'GET',
+    pattern: 'municipalities/:municipalityId/organizations',
+    run: async (_parameters, { panel }) => ok(await panel.organizations.list()),
+  },
+  {
+    method: 'POST',
+    pattern: 'municipalities/:municipalityId/organizations',
+    run: async (_parameters, { event, panel }) => {
+      const created = await panel.organizations.create(
+        definedOnly(body(event, newOrganizationSchema)),
+      );
+
+      await panel.audit.record({
+        action: 'organization.create',
+        entity: 'organization',
+        entityId: created.id,
+      });
+
+      return ok(created);
+    },
+  },
+  {
+    method: 'PATCH',
+    pattern: 'municipalities/:municipalityId/organizations/:organizationId',
+    run: async ({ organizationId }, { event, panel }) => {
+      const patch = body(event, organizationPatchSchema);
+      let updated = await panel.organizations.get(organizationId!);
+
+      if (patch.isTrusted !== undefined) {
+        updated = await panel.organizations.setTrusted(organizationId!, patch.isTrusted);
+
+        await panel.audit.record({
+          action: patch.isTrusted ? 'organization.trust' : 'organization.untrust',
+          entity: 'organization',
+          entityId: organizationId!,
+        });
+      }
+
+      if (patch.status !== undefined) {
+        updated = await panel.organizations.setStatus(organizationId!, patch.status);
+
+        await panel.audit.record({
+          action: `organization.${patch.status}`,
+          entity: 'organization',
+          entityId: organizationId!,
+        });
+      }
+
+      return updated === null ? notFound('Esa asociación no existe.') : ok(updated);
+    },
+  },
+
+  // --- the people with access ---------------------------------------------
+  {
+    method: 'POST',
+    pattern: 'municipalities/:municipalityId/staff',
+    run: async (_parameters, { event, panel }) => {
+      const input = body(event, newMembershipSchema);
+      const granted = await panel.memberships.grant(panel.actor, definedOnly(input));
+
+      await panel.audit.record({
+        action: `membership.grant.${granted.role}`,
+        entity: 'membership',
+        entityId: granted.authUserId,
+      });
+
+      return ok(granted);
+    },
+  },
+  {
+    method: 'DELETE',
+    pattern: 'municipalities/:municipalityId/staff/:authUserId',
+    run: async ({ authUserId }, { panel }) => {
+      await panel.memberships.revoke(panel.actor, authUserId!);
+
+      await panel.audit.record({
+        action: 'membership.revoke',
+        entity: 'membership',
+        entityId: authUserId!,
+      });
+
+      return noContent();
+    },
+  },
+
+  // --- what a councillor reads ---------------------------------------------
+  {
+    method: 'GET',
+    pattern: 'municipalities/:municipalityId/stats',
+    run: async (_parameters, { panel }) => ok(await panel.stats.summary()),
+  },
+  {
+    method: 'GET',
+    pattern: 'municipalities/:municipalityId/audit',
+    run: async (_parameters, { panel }) => ok(await panel.audit.list()),
+  },
+];
+
+export async function route(
+  event: ApiEvent,
+  client: StoreClient,
+  table: string,
+): Promise<ApiResult> {
+  const subject = callerSubject(event);
+
+  if (subject === null) {
+    return error(401, 'unauthenticated', 'Falta la identidad de quien llama.');
+  }
+
+  const path = routedPath(event, 'panel');
+  const method = event.requestContext?.http?.method ?? 'GET';
+
+  // The one route that is not about a municipality: which municipalities this
+  // person may work in at all. The panel calls it first.
+  if (method === 'GET' && path === 'me') {
+    const memberships = await createMembershipStore(client, table).listForUser(subject);
+
+    return ok({ authUserId: subject, memberships });
+  }
+
+  const match = matchRoute(ROUTES, method, path);
+
+  if (match === null) {
+    return pathExists(ROUTES, path)
+      ? error(405, 'method_not_allowed', 'Ese método no vale para esta ruta.')
+      : notFound('Esa ruta no existe.');
+  }
+
+  const municipalityId = match.parameters['municipalityId'];
+
+  if (municipalityId === undefined) {
+    return badRequest('Falta el municipio en la ruta.');
+  }
+
+  try {
+    const panel = await buildContext(client, table, subject, municipalityId);
+
+    return await match.route.run(match.parameters, { event, panel });
+  } catch (thrown) {
+    if (thrown instanceof BadBody) return badRequest(thrown.message);
+
+    // A refusal is an answer and not a crash: no access to this municipality,
+    // only the town hall approves, that event is not here.
+    const refused = refusal(thrown);
+
+    if (refused !== null) return refused;
+
+    throw thrown;
+  }
+}
+
+let client: StoreClient | null = null;
+
 export const handler = async (event: ApiEvent): Promise<ApiResult> =>
   handle(event, async () => {
-    console.log(
-      JSON.stringify({ route: event.routeKey, method: event.requestContext?.http?.method }),
-    );
+    client ??= createStoreClient();
 
-    return notImplemented('El panel');
+    return route(event, client, tableName());
   });

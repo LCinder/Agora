@@ -161,9 +161,14 @@ origin access control no añade `.html` por su cuenta. Está en `modules/web/fun
 - [x] **La API pública y la de dispositivos.** Hechas y probadas contra DynamoDB Local: calendario,
       municipios, evento visible, alta de dispositivo con testigo firmado, «Me interesa» y el
       autorizador. En `apps/functions/src/handlers/`.
-- [ ] **El resto de los manejadores.** El panel, la página pública de evento y los carteles todavía
-      responden 501. El de carteles es el que tiene el camino más corto: la lógica ya existe en el
-      panel (`apps/web/src/lib/gemini.ts` y los dos `route.dynamic.ts`).
+- [x] **El panel.** Hecho y probado contra DynamoDB Local: eventos, bandeja de revisión con cambios
+      pendientes, avisos, asociaciones, altas de personal, estadísticas y auditoría (D-040).
+- [ ] **Invitar a una persona** implica crear su usuario en Cognito (`AdminCreateUser`) y quedarse con
+      su `sub`. Hoy `POST /panel/.../staff` recibe el `sub` ya creado: falta la llamada a Cognito, el
+      permiso de IAM para hacerla y el identificador del grupo de usuarios en el entorno.
+- [ ] **La página pública de evento y los carteles** todavía responden 501. El de carteles es el que
+      tiene el camino más corto: la lógica ya existe en el panel (`apps/web/src/lib/gemini.ts` y los
+      dos `route.dynamic.ts`).
 - [ ] **El directo:** `GET /live/{eventId}` responde 501 y falta la emisión del voluntario.
 - [x] **Portar los tests de aislamiento** a DynamoDB Local y engancharlos a la CI. Hechos:
       `packages/store`, 29 tests, y la CI levanta un DynamoDB Local en cada cambio.

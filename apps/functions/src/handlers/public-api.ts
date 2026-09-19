@@ -9,6 +9,7 @@ import {
   notImplemented,
   ok,
   pathParameter,
+  refusal,
   tableName,
 } from '../lib/http';
 
@@ -39,6 +40,19 @@ function parseDate(value: string | undefined, name: string): Date | undefined {
 }
 
 export async function route(event: ApiEvent, store: PublicStore): Promise<ApiResult> {
+  try {
+    return await dispatch(event, store);
+  } catch (thrown) {
+    // A missing path parameter is a refusal, not a crash.
+    const refused = refusal(thrown);
+
+    if (refused !== null) return refused;
+
+    throw thrown;
+  }
+}
+
+async function dispatch(event: ApiEvent, store: PublicStore): Promise<ApiResult> {
   switch (event.routeKey) {
     case 'GET /municipalities':
       return ok(await store.listMunicipalities());

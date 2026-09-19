@@ -167,6 +167,33 @@ y pasa a ser una línea de configuración.
 
 ---
 
+## 3.b La API del panel
+
+Una sola ruta en API Gateway, `ANY /panel/{proxy+}`, y el reparto por dentro (D-040). Así son
+cuarenta rutas menos que mantener en el Terraform a mano.
+
+| Método | Ruta (bajo `/panel/`) | Quién |
+| --- | --- | --- |
+| GET | `me` | Cualquiera con testigo: en qué municipios trabaja y con qué rol |
+| GET/POST | `municipalities/{m}/events` | Técnico y asociación (la asociación, lo suyo) |
+| GET/PATCH | `municipalities/{m}/events/{e}` | Igual. Una asociación sin confianza sobre un evento publicado deja el cambio en revisión |
+| POST | `.../events/{e}/approve` · `/reject` · `/cancel` | Ayuntamiento (cancelar, también la asociación dueña) |
+| GET | `municipalities/{m}/review` | Ayuntamiento: eventos pendientes **y** cambios pendientes |
+| GET | `.../events/{e}/changes` | El dueño del evento |
+| POST | `.../changes/{c}/approve` · `/reject` | Ayuntamiento |
+| GET/POST | `.../events/{e}/notices` | Leer, el dueño; enviar, solo el ayuntamiento |
+| GET/POST | `municipalities/{m}/organizations` | Listar, todos (la asociación se ve a sí misma); crear, `municipal_admin` |
+| PATCH | `.../organizations/{o}` | `municipal_admin`: confianza y estado |
+| POST/DELETE | `municipalities/{m}/staff[/{sub}]` | `municipal_admin` |
+| GET | `municipalities/{m}/stats` | Técnico y asociación (lo suyo) |
+| GET | `municipalities/{m}/audit` | `municipal_admin` |
+
+El municipio va siempre en la ruta, y de ahí sale el actor: se busca la pertenencia de ese `sub` en
+ese municipio y, si no hay fila, la respuesta es 403 — la misma tanto si el municipio no existe como
+si es de otro, porque cuál de las dos cosas es no es asunto de quien pregunta.
+
+---
+
 ## 4. Autenticación
 
 ### Personal municipal y asociaciones
