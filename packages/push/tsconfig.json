@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // It runs inside a Lambda and talks to Expo over fetch.
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"]
+}

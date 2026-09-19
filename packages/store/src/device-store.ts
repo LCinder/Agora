@@ -1,9 +1,14 @@
 import { TransactionCanceledException } from '@aws-sdk/client-dynamodb';
-import { PutCommand, QueryCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  PutCommand,
+  QueryCommand,
+  TransactWriteCommand,
+  UpdateCommand,
+} from '@aws-sdk/lib-dynamodb';
 
 import type { StoreClient } from './client';
 import { notFound } from './errors';
-import { devicePk, eventKey, interestKey } from './keys';
+import { deviceKey, devicePk, eventKey, interestKey } from './keys';
 
 /**
  * What a resident's device can reach: itself.
@@ -27,6 +32,14 @@ export interface Interest {
 
 export interface DeviceStore {
   register(input: { platform: 'ios' | 'android' | 'web'; locale: string }): Promise<void>;
+  /**
+   * The address the notification job sends to, or null to stop being reachable.
+   *
+   * Kept on the device's own row, so it is deleted with everything else when a
+   * neighbour taps "borrar mis datos". It is an address for a phone, not for a
+   * person: nothing about it says who is holding it.
+   */
+  setPushToken(token: string | null): Promise<void>;
   listInterests(): Promise<Interest[]>;
   markInterest(municipalityId: string, eventId: string): Promise<void>;
   unmarkInterest(municipalityId: string, eventId: string): Promise<void>;
@@ -131,6 +144,26 @@ export function createDeviceStore(
             createdAt: now,
             lastSeenAt: now,
           },
+        }),
+      );
+    },
+
+    async setPushToken(token) {
+      const now = new Date().toISOString();
+
+      await client.send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: deviceKey(deviceId),
+          UpdateExpression:
+            token === null
+              ? 'SET lastSeenAt = :now REMOVE pushToken'
+              : 'SET pushToken = :token, lastSeenAt = :now',
+          ExpressionAttributeValues:
+            token === null ? { ':now': now } : { ':token': token, ':now': now },
+          // The app registers before it ever asks for permission, so a device
+          // without a row here is a bug and not a case to paper over.
+          ConditionExpression: 'attribute_exists(pk)',
         }),
       );
     },

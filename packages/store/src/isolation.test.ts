@@ -4,7 +4,7 @@ import { type StoreClient, createStoreClient } from './client';
 import { createDeviceStore } from './device-store';
 import { StoreError } from './errors';
 import { createPublicStore } from './public-store';
-import { createReminderStore } from './reminder-store';
+import { createNotificationStore } from './notification-store';
 import { type ReviewItem, type StaffActor, createStaffStore } from './staff-store';
 import {
   CORAL,
@@ -388,7 +388,7 @@ describe.skipIf(local === null)('tenant isolation', () => {
     const device = createDeviceStore(client, TABLE, DEVICE_ONE);
     await device.markInterest(ZUBIA, EVENTS.zubiaPublished);
 
-    const reminders = createReminderStore(client, TABLE);
+    const reminders = createNotificationStore(client, TABLE);
 
     expect(await reminders.devicesInterestedIn(EVENTS.zubiaPublished)).toEqual([DEVICE_ONE]);
   });

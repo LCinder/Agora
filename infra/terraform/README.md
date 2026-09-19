@@ -36,7 +36,7 @@ infra/terraform/
 │  ├─ api/         HTTP API, Lambdas y autorizadores
 │  ├─ web/         CloudFront, panel estático y página pública de evento
 │  ├─ storage/     bucket de carteles
-│  ├─ jobs/        recordatorios programados
+│  ├─ jobs/        notificaciones programadas (recordatorios y buzón de avisos)
 │  ├─ observability/  presupuesto y alarmas
 │  └─ lambda/      una función con su rol, su política y su grupo de logs
 ├─ envs/
@@ -182,11 +182,10 @@ origin access control no añade `.html` por su cuenta. Está en `modules/web/fun
 - [x] **Empaquetado de las Lambdas.** Hecho: `apps/functions` con esbuild, un directorio por función
       (D-035). Hay que compilar antes de aplicar, y el Terraform falla diciéndolo si no se ha hecho.
 - [x] **Migrar los datos semilla** de `content/` a la tabla. Hecho: `apps/tools` (D-038).
-- [ ] **Emisión del directo:** solo existe `GET /live/{eventId}`. Falta la ruta por la que el
-      voluntario publica su posición y el canje del código por un testigo de sesión.
-- [ ] **Notificaciones push.** Ni Expo Push ni SNS: el recordatorio se ejecuta pero no tiene por
-      dónde salir. Es el único manejador que sigue en esqueleto, y está bloqueado por una decisión y
-      no por código.
+- [x] **Emisión del directo.** Hecho: `POST /volunteer/redeem` y `POST /volunteer/positions`, con el
+      evento dentro del testigo (D-043), y `GET /live/{eventId}` para el mapa del vecino.
+- [x] **Notificaciones push.** Expo Push, en la Lambda de notificaciones: recordatorio cada hora
+      según los ajustes del municipio y buzón de avisos cada minuto (D-046).
 - [ ] **Dominio propio**, cuando haya nombre comercial (decisión pendiente nº 1). Hasta entonces la
       página pública de evento se comparte con una URL de CloudFront, que en un WhatsApp queda mal.
       Con dominio conviene además una distribución por nombre de host, y entonces el panel puede
@@ -194,7 +193,9 @@ origin access control no añade `.html` por su cuenta. Está en `modules/web/fun
 - [ ] **Políticas de sesión con `dynamodb:LeadingKeys`**, para que sea AWS y no el código quien
       rechace el acceso a otro municipio. Media tarde, y la pediría el primer piloto que haga
       revisión de seguridad.
-- [ ] **Cola de mensajes fallidos** en la Lambda de recordatorios, para no perder un envío si falla.
+- [ ] **Cola de mensajes fallidos** en la Lambda de notificaciones. Hoy un aviso que no consigue
+      salir se queda en el buzón y se reintenta al minuto siguiente, y caduca solo a las 24 horas; lo
+      que falta es enterarse de que ha pasado sin mirar los registros.
 
 ## Lo que comprueba la CI
 

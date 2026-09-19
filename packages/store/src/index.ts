@@ -13,7 +13,8 @@
  *   * `createPublicStore` — what a resident reads. Published events only.
  *   * `createStaffStore` — the panel, scoped to one actor in one municipality.
  *   * `createDeviceStore` — a resident's own marks, and nobody else's.
- *   * `createReminderStore` — event to interested devices. The reminder job only.
+ *   * `createNotificationStore` — event to interested devices, the outbox and the
+ *     daily caps. The notification job only.
  *
  * Plus `migrateSeed`, which loads a municipality's folder into the table: how a
  * town hall is set up, and the bridge between the demo data and the backend.
@@ -28,9 +29,9 @@ export * from './keys';
 export * from './live-sessions';
 export * from './memberships';
 export * from './notices';
+export * from './notification-store';
 export * from './organizations';
 export * from './public-store';
-export * from './reminder-store';
 export * from './seed-migration';
 export * from './staff-store';
 export * from './stats';

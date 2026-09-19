@@ -100,6 +100,14 @@ export interface Messages {
   'volunteer.privacy': string;
   'volunteer.demoNotice': string;
 
+  'push.reminderBody': string;
+  'push.reminderBodyAllDay': string;
+  'push.titleTimeChange': string;
+  'push.titleLocationChange': string;
+  'push.titleCancelled': string;
+  'push.liveTitle': string;
+  'push.liveBody': string;
+
   'settings.title': string;
   'settings.municipality': string;
   'settings.language': string;
@@ -214,6 +222,14 @@ const es: Messages = {
     'Tu ubicación solo se comparte mientras emites y se borra al terminar el evento.',
   'volunteer.demoNotice': 'Demostración: no se envía nada fuera de este móvil.',
 
+  'push.reminderBody': 'Mañana a las {time}',
+  'push.reminderBodyAllDay': 'Mañana en tu pueblo',
+  'push.titleTimeChange': 'Cambio de hora: {title}',
+  'push.titleLocationChange': 'Cambio de lugar: {title}',
+  'push.titleCancelled': 'Se cancela: {title}',
+  'push.liveTitle': 'Ya está en directo: {title}',
+  'push.liveBody': 'Mira por dónde va en el mapa.',
+
   'settings.title': 'Ajustes',
   'settings.municipality': 'Municipio',
   'settings.language': 'Idioma',
@@ -327,6 +343,14 @@ const en: Messages = {
   'volunteer.privacy':
     'Your location is only shared while you broadcast and is deleted when the event ends.',
   'volunteer.demoNotice': 'Demo: nothing leaves this phone.',
+
+  'push.reminderBody': 'Tomorrow at {time}',
+  'push.reminderBodyAllDay': 'Tomorrow in your town',
+  'push.titleTimeChange': 'New time: {title}',
+  'push.titleLocationChange': 'New place: {title}',
+  'push.titleCancelled': 'Called off: {title}',
+  'push.liveTitle': 'Live now: {title}',
+  'push.liveBody': 'See where it is on the map.',
 
   'settings.title': 'Settings',
   'settings.municipality': 'Town',

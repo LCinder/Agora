@@ -753,3 +753,30 @@ La pantalla del directo ya existía desde la Fase 0 replicando un recorrido grab
 **El recorrido que se dibuja es el previsto mientras dura y el simplificado cuando acaba**, así que un mapa abierto a la mañana siguiente sigue enseñando por dónde fue la procesión, sin decir nada de quién llevaba el teléfono.
 
 Y el test de contrato recorre ahora el camino entero: el código que genera el ayuntamiento se convierte en testigo, el móvil del voluntario manda una posición y el cliente del vecino la lee por la ruta pública.
+
+---
+
+## D-046 — Notificaciones: Expo Push, un buzón de salida y un tope diario que se salta la cancelación
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+La decisión pendiente nº 6 y nº 7 del documento de producto, resueltas, y la última función que quedaba en esqueleto.
+
+**El proveedor es Expo Push.** Se pone delante de Firebase Cloud Messaging y de APNs y acepta una llamada HTTP con cien mensajes dentro. Eso es toda la razón: la alternativa —SNS o FCM directo— son una cuenta de servicio de Google y una clave de Apple en Parameter Store, dos SDK en el paquete de la Lambda y un segundo camino de entrega que depurar, para un producto cuyo volumen entero es unos miles de mensajes un jueves por la tarde. Y no lleva credenciales: Expo Push funciona sin testigo de acceso salvo que el proyecto active la seguridad reforzada, así que no hay secreto que rotar.
+
+**Una sola Lambda y dos horarios,** distinguidos por el mensaje que manda el planificador:
+
+- **Cada hora en punto**, para el recordatorio. Cada hora y no una vez a las 19:00 porque la hora es un ajuste **del municipio**: la función mira el reloj en la zona de cada pueblo y envía para los que les toca, y para el resto vuelve en milisegundos. Un ayuntamiento que quiera el suyo a las ocho de la mañana lo tiene sin un segundo horario.
+- **Cada minuto**, para el buzón de salida. Los criterios de aceptación piden que un cambio llegue en menos de un minuto, y esto lo cumple sin cola, sin flujo de la tabla y sin conexión abierta: 1.440 invocaciones al día de una función que casi siempre no encuentra nada caben de sobra en la cuota gratis.
+
+**El panel no envía el aviso: escribe la orden.** No puede enviarlo — ningún rol municipal tiene permiso de IAM sobre el índice que dice quién marcó un evento (D-032) — así que el aviso y la orden de reparto se escriben **en una transacción** en una partición única, `pk = OUTBOX`, y la tarea de notificaciones la vacía. Una partición para toda la plataforma es justo lo que la hace barata de consultar: se pregunta por `OUTBOX` y casi siempre no hay nada. La orden lleva TTL de 24 horas, porque un aviso entregado un día tarde diciendo que la hora ha cambiado es peor que uno no entregado.
+
+**El recordatorio se reclama antes de enviarlo, no se marca después.** La tarea corre cada hora, un evento puede caer dentro de la ventana de dos ejecuciones y un reintento tras un tiempo de espera también es una ejecución. Reclamar primero, con una escritura condicional sobre el propio evento, hace que el peor caso sea un recordatorio que nadie recibe en vez de uno que todos reciben dos veces.
+
+**El tope diario es 3 por dispositivo y municipio**, configurable por ayuntamiento, y se lleva en un contador con TTL bajo el propio dispositivo. La comprobación y el incremento son la misma escritura condicional, que es lo que hace que el tope aguante cuando el recordatorio de la tarde y una cancelación caen a la vez. Dos pueblos que sigue un mismo vecino no se gastan la cuota el uno al otro, porque la promesa está escrita «del mismo municipio».
+
+**Y una cancelación se salta el tope, a propósito.** Quien marcó un evento y está a punto de bajar andando tiene que enterarse de que se ha cancelado, y «ya has recibido tres mensajes hoy» no es una razón para dejarle encontrarse la puerta cerrada.
+
+**Cada mensaje va en el idioma de su teléfono**, porque el testigo de push se guarda junto al idioma del dispositivo y los textos están en `@agora/i18n` desde la Fase 0. Y la hora se formatea en la zona del municipio: «Mañana a las 20:00» es la hora del cartel, no la del servidor.
+
+Lo que Expo contesta se usa para una cosa concreta: si un testigo vuelve como `DeviceNotRegistered`, la app se desinstaló de ese móvil y el testigo se borra. Un fallo de red no revienta la tarea —se cuenta, la orden se queda en el buzón y se reintenta al minuto siguiente—, porque quedan otros municipios por recorrer.

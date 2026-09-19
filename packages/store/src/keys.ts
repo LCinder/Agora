@@ -144,6 +144,47 @@ export function interestKey(
   return { pk: `DEV#${deviceId}`, sk: `INT#${municipalityId}#${eventId}` };
 }
 
+/**
+ * How many notifications a device has already had from one municipality today.
+ *
+ * Under the device, because that is who the cap protects, and keyed by
+ * municipality because the promise is "not more than X a day **from the same
+ * town**" (CLAUDE.md, 7.3): two towns a resident follows do not spend each
+ * other's quota. It carries a TTL, so yesterday's counters delete themselves.
+ */
+export function notificationCounterKey(
+  deviceId: string,
+  municipalityId: string,
+  day: string,
+): { pk: string; sk: string } {
+  return { pk: devicePk(deviceId), sk: `NOTIF#${municipalityId}#${day}` };
+}
+
+/**
+ * The outbox: pushes that have to go out and have not gone out yet.
+ *
+ * One partition for the whole platform, which is exactly what makes it cheap to
+ * poll: the notification job asks for `OUTBOX` every minute and almost always
+ * gets nothing back. The alternative — an index of unsent notices, or a stream on
+ * the table — is a permanent piece of infrastructure for something that happens
+ * twice on a rainy Thursday.
+ *
+ * Writing here is what the panel does instead of sending: no municipal role has
+ * permission on the index that says who is interested (D-032), so the panel
+ * cannot send a push even by accident.
+ */
+export const OUTBOX_PK = 'OUTBOX';
+
+/**
+ * A push that has waited this long has missed the thing it was about. Better
+ * deleted by itself than delivered a day late, saying an event starts in an hour.
+ */
+export const OUTBOX_LIFETIME_HOURS = 24;
+
+export function outboxKey(createdAt: Date, id: string): { pk: string; sk: string } {
+  return { pk: OUTBOX_PK, sk: `${createdAt.toISOString()}#${id}` };
+}
+
 export function devicePk(deviceId: string): string {
   return `DEV#${deviceId}`;
 }

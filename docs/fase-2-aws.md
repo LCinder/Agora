@@ -79,15 +79,15 @@ municipio** y los grupos de Cognito no saben de eso.
               DynamoDB (tabla única, TTL)
 
    Cognito ──► personal municipal y asociaciones
-   EventBridge Scheduler ──► recordatorios y avisos
+   EventBridge Scheduler ──► notificaciones (recordatorios y avisos) ──► Expo Push
 ```
 
 Ninguna pieza está dentro de una VPC. Todo vive en tu cuenta de AWS, en `eu-central-1`.
 
 Los manejadores están en `apps/functions`, en TypeScript, y se empaquetan con esbuild antes de
 aplicar (D-035). Están **todos escritos y probados contra DynamoDB Local**: la API pública, la de
-dispositivos, el panel, la página de evento, los carteles y el voluntario del directo. El único que
-sigue en esqueleto es el de recordatorios, y no por código: falta elegir proveedor de push.
+dispositivos, el panel, la página de evento, los carteles, el voluntario del directo y las
+notificaciones (recordatorio de la tarde anterior y avisos, por Expo Push, D-046).
 
 ---
 
@@ -148,13 +148,14 @@ Cada índice se pasa a cada módulo por su nombre, no dentro de una lista llamad
 | dispositivos | no | denegado | denegado |
 | panel | sí | sí | **denegado** |
 | página pública de evento | no | denegado | denegado |
-| recordatorios | sí | no | sí |
+| notificaciones | sí | no | sí |
 
 ### El índice que el panel no puede leer
 
 `gsi3` permite ir de un evento a los dispositivos interesados. Lo necesita la tarea de
-recordatorios, y **no puede leerlo nadie más**: el rol de IAM de la Lambda del panel no tiene
-permiso sobre ese índice.
+notificaciones, y **no puede leerlo nadie más**: el rol de IAM de la Lambda del panel no tiene
+permiso sobre ese índice. Por eso el panel no envía el aviso él mismo: escribe la orden en el buzón
+de salida (`pk = OUTBOX`) y la tarea, que se ejecuta cada minuto, la reparte (D-046).
 
 Esa es la promesa de la política de privacidad — el ayuntamiento ve cuántos, nunca quiénes — puesta
 donde el código no puede saltársela. Los números que ve el panel salen de un contador atómico en el
@@ -301,8 +302,9 @@ un entorno son nueve, así que las tiene producción y dev no (D-032). Con eso l
 - **Nombre comercial y dominio** (decisión pendiente nº 1). Sin dominio propio, la página pública de
   evento se comparte con una URL de CloudFront, que en un WhatsApp queda mal. No bloquea nada
   técnico; se añade el día que haya nombre.
-- **Notificaciones push.** Expo Push es gratis y ya usáis Expo; SNS sería más «AWS puro» y bastante
-  más trabajo. Propuesta: Expo. No hay nada montado todavía: el planificador existe y la Lambda de
-  recordatorios se ejecuta, pero no tiene por dónde enviar.
+- ~~Notificaciones push~~. Decidido y montado: **Expo Push** (D-046). El planificador dispara la
+  misma Lambda dos veces — cada hora para el recordatorio de la tarde anterior, cada minuto para el
+  buzón de avisos — y el tope diario por dispositivo y municipio sale de los ajustes del municipio
+  (3 por defecto). Una cancelación se salta el tope, a propósito.
 - ~~Migración de los datos semilla~~. Hecha: `pnpm --filter @agora/tools migrate-seed` carga la
   carpeta de un municipio en la tabla, y volver a ejecutarlo conserva los contadores (D-038).

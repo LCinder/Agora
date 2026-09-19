@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "@agora/core": "workspace:*",
+    "@agora/i18n": "workspace:*",
     "@agora/poster": "workspace:*",
+    "@agora/push": "workspace:*",
     "@agora/store": "workspace:*",
     "@aws-sdk/client-ssm": "^3.700.0",
     "zod": "^4.6.1"

@@ -193,9 +193,15 @@ importers:
       '@agora/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@agora/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@agora/poster':
         specifier: workspace:*
         version: link:../../packages/poster
+      '@agora/push':
+        specifier: workspace:*
+        version: link:../../packages/push
       '@agora/store':
         specifier: workspace:*
         version: link:../../packages/store
@@ -435,6 +441,16 @@ importers:
   packages/i18n: {}
 
   packages/poster:
+    dependencies:
+      zod:
+        specifier: ^4.6.1
+        version: 4.6.1
+    devDependencies:
+      '@types/node':
+        specifier: ^22
+        version: 22.20.3
+
+  packages/push:
     dependencies:
       zod:
         specifier: ^4.6.1

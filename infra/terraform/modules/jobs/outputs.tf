@@ -1,8 +1,8 @@
-output "reminders_function_name" {
-  value = module.reminders.function_name
+output "notifications_function_name" {
+  value = module.notifications.function_name
 }
 
 output "function_names" {
-  description = "The reminder job, for the error alarms."
-  value       = [module.reminders.function_name]
+  description = "The notification job, for the error alarms."
+  value       = [module.notifications.function_name]
 }

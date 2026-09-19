@@ -41,6 +41,33 @@ export function dayRange(instant: Date, timeZone: string): TimeRange {
 }
 
 /**
+ * The calendar day after the one containing `instant`, as seen from `timeZone`.
+ *
+ * What the evening reminder is about: run at seven, tell people what happens
+ * tomorrow. Through `addDays` on a zoned date and not by adding 24 hours, which
+ * lands on the same day twice a year when the clocks change.
+ */
+export function nextDayRange(instant: Date, timeZone: string): TimeRange {
+  const tomorrow = addDays(inZone(instant, timeZone), 1);
+
+  return { start: plain(startOfDay(tomorrow)), end: plain(endOfDay(tomorrow)) };
+}
+
+/** The hour of the day, 0 to 23, as read from a clock in `timeZone`. */
+export function hourInZone(instant: Date, timeZone: string): number {
+  return inZone(instant, timeZone).getHours();
+}
+
+/** The calendar day in `timeZone`, as `2026-04-03`. Used to key daily counters. */
+export function dayKeyInZone(instant: Date, timeZone: string): string {
+  const zoned = inZone(instant, timeZone);
+  const month = String(zoned.getMonth() + 1).padStart(2, '0');
+  const day = String(zoned.getDate()).padStart(2, '0');
+
+  return `${zoned.getFullYear()}-${month}-${day}`;
+}
+
+/**
  * The weekend residents care about right now.
  *
  * From Monday to Thursday it is the coming Friday to Sunday. Once the weekend

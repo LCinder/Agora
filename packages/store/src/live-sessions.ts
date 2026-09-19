@@ -17,7 +17,15 @@ import {
 
 import type { StoreClient } from './client';
 import { forbidden, notFound } from './errors';
-import { POSITION_PREFIX, eventKey, liveCodeKey, livePositionKey, liveSessionKey } from './keys';
+import {
+  OUTBOX_LIFETIME_HOURS,
+  POSITION_PREFIX,
+  eventKey,
+  liveCodeKey,
+  livePositionKey,
+  liveSessionKey,
+  outboxKey,
+} from './keys';
 import type { StaffActor } from './staff-store';
 
 /**
@@ -304,8 +312,42 @@ export function createLiveStore(
       return session;
     },
 
-    start(eventId) {
-      return setStatus(eventId, 'active', { ':startedAt': new Date().toISOString() });
+    async start(eventId) {
+      assertMunicipal();
+
+      const before = await read(eventId);
+      const session = await setStatus(eventId, 'active', {
+        ':startedAt': new Date().toISOString(),
+      });
+
+      // Only the first start of a session notifies. Pausing because the procession
+      // stopped at a balcony and starting again is not news, and a phone buzzing
+      // three times in an evening is a phone with notifications turned off.
+      if (before !== null && before.startedAt === null) {
+        const createdAt = new Date();
+        const id = `live-${eventId}`;
+
+        await client.send(
+          new PutCommand({
+            TableName: tableName,
+            Item: {
+              ...outboxKey(createdAt, id),
+              entity: 'outbox',
+              id,
+              createdAt: createdAt.toISOString(),
+              kind: 'live_started',
+              municipalityId,
+              eventId,
+              noticeId: null,
+              noticeType: null,
+              message: null,
+              expiresAt: hoursFromNow(OUTBOX_LIFETIME_HOURS),
+            },
+          }),
+        );
+      }
+
+      return session;
     },
 
     pause(eventId) {

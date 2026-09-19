@@ -1,8 +1,13 @@
-import { GetCommand, PutCommand, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  GetCommand,
+  QueryCommand,
+  TransactWriteCommand,
+  UpdateCommand,
+} from '@aws-sdk/lib-dynamodb';
 
 import type { StoreClient } from './client';
 import { forbidden, notFound } from './errors';
-import { NOTICE_PREFIX, eventKey, eventUpdateKey } from './keys';
+import { NOTICE_PREFIX, OUTBOX_LIFETIME_HOURS, eventKey, eventUpdateKey, outboxKey } from './keys';
 import type { StaffActor } from './staff-store';
 
 /**
@@ -124,16 +129,48 @@ export function createNoticeStore(
         pushSentAt: null,
       };
 
+      // The notice and the order to deliver it, in one transaction.
+      //
+      // The panel cannot send the push itself: no municipal role has permission on
+      // the index that says who marked the event, and that is deliberate (D-032).
+      // So it writes what it wants sent into the outbox, and the notification job
+      // — the only function that may read that index — drains it within the
+      // minute. Two separate writes here would mean a notice the town hall
+      // believes went out and nobody received.
       await client.send(
-        new PutCommand({
-          TableName: tableName,
-          Item: {
-            ...eventUpdateKey(created.eventId, created.createdAt, created.id),
-            entity: 'event_notice',
-            ...created,
-            createdAt: created.createdAt.toISOString(),
-            pushSentAt: null,
-          },
+        new TransactWriteCommand({
+          TransactItems: [
+            {
+              Put: {
+                TableName: tableName,
+                Item: {
+                  ...eventUpdateKey(created.eventId, created.createdAt, created.id),
+                  entity: 'event_notice',
+                  ...created,
+                  createdAt: created.createdAt.toISOString(),
+                  pushSentAt: null,
+                },
+              },
+            },
+            {
+              Put: {
+                TableName: tableName,
+                Item: {
+                  ...outboxKey(created.createdAt, created.id),
+                  entity: 'outbox',
+                  id: created.id,
+                  createdAt: created.createdAt.toISOString(),
+                  kind: 'notice',
+                  municipalityId: actor.municipalityId,
+                  eventId: created.eventId,
+                  noticeId: created.id,
+                  noticeType: created.type,
+                  message: created.message,
+                  expiresAt: Math.floor(Date.now() / 1000) + OUTBOX_LIFETIME_HOURS * 3600,
+                },
+              },
+            },
+          ],
         }),
       );
 
