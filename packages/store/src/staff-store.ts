@@ -9,12 +9,11 @@ import { GetCommand, PutCommand, QueryCommand, UpdateCommand } from '@aws-sdk/li
 
 import type { StoreClient } from './client';
 import { forbidden, notFound } from './errors';
-import { fromEventItem, interestCountOf, toEventItem } from './items';
+import { eventWriteExpression, fromEventItem, interestCountOf, toEventItem } from './items';
 import {
   REVIEW_INDEX,
   SK_PREFIX,
   eventKey,
-  indexAttributesFor,
   municipalityPk,
   organizationKey,
   reviewIndexPk,
@@ -97,33 +96,6 @@ export interface StaffStore {
   interestCount(eventId: string): Promise<number>;
 }
 
-/**
- * The attributes an edit may write. Deliberately a list and not "everything in
- * the item": `pk`, `sk`, `entity` and `interestCount` are not an editor's to
- * touch, and leaving them out of the expression is how that is guaranteed.
- */
-const MUTABLE_FIELDS = [
-  'title',
-  'description',
-  'categoryId',
-  'startAt',
-  'endAt',
-  'allDay',
-  'location',
-  'imageUrl',
-  'priceInfo',
-  'isFree',
-  'audienceTags',
-  'status',
-  'rejectionReason',
-  'isFeatured',
-  'liveTrackingEnabled',
-  'updatedAt',
-  'publishedAt',
-] as const;
-
-const INDEX_ATTRIBUTES = ['gsi1pk', 'gsi1sk', 'gsi2pk', 'gsi2sk'] as const;
-
 const isMunicipal = (actor: StaffActor): boolean =>
   actor.role === 'municipal_editor' || actor.role === 'municipal_admin';
 
@@ -191,41 +163,13 @@ export function createStaffStore(
    * between the public calendar, the review queue and neither.
    */
   async function writeEvent(next: Event): Promise<Event> {
-    const item = toEventItem(next);
-    const names: Record<string, string> = {};
-    const values: Record<string, unknown> = {};
-    const sets: string[] = [];
-    const removes: string[] = [];
-
-    for (const field of MUTABLE_FIELDS) {
-      names[`#${field}`] = field;
-      values[`:${field}`] = item[field];
-      sets.push(`#${field} = :${field}`);
-    }
-
-    const attributes = indexAttributesFor(next);
-
-    for (const key of INDEX_ATTRIBUTES) {
-      names[`#${key}`] = key;
-
-      const value = attributes[key];
-
-      if (value === undefined) {
-        removes.push(`#${key}`);
-      } else {
-        values[`:${key}`] = value;
-        sets.push(`#${key} = :${key}`);
-      }
-    }
-
     await client.send(
       new UpdateCommand({
         TableName: tableName,
         Key: eventKey(municipalityId, next.id),
-        UpdateExpression:
-          `SET ${sets.join(', ')}` + (removes.length === 0 ? '' : ` REMOVE ${removes.join(', ')}`),
-        ExpressionAttributeNames: names,
-        ExpressionAttributeValues: values,
+        ...eventWriteExpression(next),
+        // An edit, not a creation: an event that is not there is a bug in the
+        // caller, not a row to invent.
         ConditionExpression: 'attribute_exists(pk)',
       }),
     );

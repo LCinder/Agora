@@ -88,7 +88,22 @@ terraform plan        # míralo antes de aplicar
 terraform apply
 ```
 
-### 4. Los secretos
+### 4. Cargar los municipios
+
+La tabla se crea vacía. Los municipios de `content/` se cargan con:
+
+```bash
+pnpm --filter @agora/tools migrate-seed -- --table "$(terraform output -raw table_name)"
+```
+
+Con `--dry-run` cuenta sin escribir, y con `--municipality <slug>` carga uno solo. Volver a
+ejecutarlo es seguro: es una actualización que **conserva los contadores de «Me interesa»**.
+
+Ojo con una cosa: los eventos de la semilla están anclados al día en que se ejecuta, porque la demo
+mantiene su calendario alrededor de hoy. Para un piloto de verdad, los eventos los mete el
+ayuntamiento por el panel; esto es para tener algo que mirar mientras.
+
+### 5. Los secretos
 
 Terraform los crea vacíos y tiene orden de ignorar su valor, para que **el secreto real nunca entre
 en el fichero de estado**. Se escriben una vez con la CLI:
@@ -116,7 +131,7 @@ aws ssm put-parameter --profile <perfil> --region eu-central-1 \
 
 `terraform output secret_parameters` los lista con su nombre exacto.
 
-### 5. Confirmar el correo de alertas
+### 6. Confirmar el correo de alertas
 
 AWS manda un correo de confirmación para la suscripción de SNS. Hasta que se acepte, las alarmas
 no avisan a nadie.
@@ -154,7 +169,7 @@ origin access control no añade `.html` por su cuenta. Está en `modules/web/fun
       `packages/store`, 29 tests, y la CI levanta un DynamoDB Local en cada cambio.
 - [x] **Empaquetado de las Lambdas.** Hecho: `apps/functions` con esbuild, un directorio por función
       (D-035). Hay que compilar antes de aplicar, y el Terraform falla diciéndolo si no se ha hecho.
-- [ ] **Migrar los datos semilla** de `content/` a la tabla.
+- [x] **Migrar los datos semilla** de `content/` a la tabla. Hecho: `apps/tools` (D-038).
 - [ ] **Emisión del directo:** solo existe `GET /live/{eventId}`. Falta la ruta por la que el
       voluntario publica su posición y el canje del código por un testigo de sesión.
 - [ ] **Notificaciones push.** Ni Expo Push ni SNS: el recordatorio se ejecuta pero no tiene por

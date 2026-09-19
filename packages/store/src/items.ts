@@ -73,6 +73,115 @@ export function fromEventItem(item: Record<string, unknown>): Event {
   return eventSchema.parse(item);
 }
 
+/**
+ * The attributes an edit may write.
+ *
+ * Deliberately a list and not "everything in the item": `pk`, `sk` and `entity`
+ * are not an editor's to touch, and `interestCount` belongs to the residents.
+ * Leaving them out of the expression is how that is guaranteed.
+ */
+const WRITABLE_FIELDS = [
+  'title',
+  'description',
+  'categoryId',
+  'startAt',
+  'endAt',
+  'allDay',
+  'location',
+  'imageUrl',
+  'priceInfo',
+  'isFree',
+  'audienceTags',
+  'status',
+  'rejectionReason',
+  'isFeatured',
+  'liveTrackingEnabled',
+  'updatedAt',
+  'publishedAt',
+] as const;
+
+/**
+ * The attributes written once and never again: what the event *is*, as opposed
+ * to what it currently says. An edit leaves them alone; a creation has to write
+ * them or the row is unreadable.
+ */
+const CREATION_FIELDS = ['entity', 'id', 'municipalityId', 'organizationId', 'createdAt'] as const;
+
+const INDEX_ATTRIBUTES = ['gsi1pk', 'gsi1sk', 'gsi2pk', 'gsi2sk'] as const;
+
+export interface EventWriteOptions {
+  /**
+   * True when the row may not exist yet, which also writes the fields above.
+   * The panel edits and passes nothing; the seed migration upserts and passes
+   * this.
+   */
+  create?: boolean;
+}
+
+export interface EventWriteExpression {
+  UpdateExpression: string;
+  ExpressionAttributeNames: Record<string, string>;
+  ExpressionAttributeValues: Record<string, unknown>;
+}
+
+/**
+ * How an event is written once it already exists — or might.
+ *
+ * An update and not a `Put` of the whole item, for one reason that matters: the
+ * item also carries `interestCount`, which residents increment and no writer
+ * here may reset. Rewriting the item would take it back to zero on every edit,
+ * and that counter is the only thing the panel is ever allowed to see.
+ *
+ * The index attributes are recomputed from the new state and removed when the
+ * state does not belong in an index. That single line is what moves an event
+ * between the public calendar, the review queue and neither.
+ *
+ * Shared by the panel and by the seed migration, because two builders of the
+ * same expression drift, and what they would drift on is which attributes are
+ * safe to overwrite.
+ */
+export function eventWriteExpression(
+  event: Event,
+  options: EventWriteOptions = {},
+): EventWriteExpression {
+  const item = toEventItem(event);
+  const names: Record<string, string> = {};
+  const values: Record<string, unknown> = { ':zero': 0 };
+  const sets: string[] = ['interestCount = if_not_exists(interestCount, :zero)'];
+  const removes: string[] = [];
+
+  const fields =
+    options.create === true ? [...WRITABLE_FIELDS, ...CREATION_FIELDS] : WRITABLE_FIELDS;
+
+  for (const field of fields) {
+    names[`#${field}`] = field;
+    values[`:${field}`] = item[field];
+    sets.push(`#${field} = :${field}`);
+  }
+
+  const attributes = indexAttributesFor(event);
+
+  for (const key of INDEX_ATTRIBUTES) {
+    names[`#${key}`] = key;
+
+    const value = attributes[key];
+
+    if (value === undefined) {
+      removes.push(`#${key}`);
+    } else {
+      values[`:${key}`] = value;
+      sets.push(`#${key} = :${key}`);
+    }
+  }
+
+  return {
+    UpdateExpression:
+      `SET ${sets.join(', ')}` + (removes.length === 0 ? '' : ` REMOVE ${removes.join(', ')}`),
+    ExpressionAttributeNames: names,
+    ExpressionAttributeValues: values,
+  };
+}
+
 /** How many residents marked an event, straight off the counter. */
 export function interestCountOf(item: Record<string, unknown>): number {
   const value = item['interestCount'];

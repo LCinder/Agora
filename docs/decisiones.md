@@ -595,3 +595,21 @@ Cambia en un fichero, `packages/core/src/brand.json` (D-030): nombre, slug, esqu
 - **Los identificadores de tienda son `com.hoyq.app`**, es decir, llevan la marca. Son **inmutables una vez publicada la app**, así que si el nombre cambia después de publicar, el identificador se queda con el viejo. Lo recomendable es que salgan de algo estable (la empresa o un dominio propio) y no del producto; no se ha hecho porque todavía no hay ni empresa ni dominio. Es un cambio de un minuto **mientras no se publique**.
 - **Marca y dominio sin confirmar.** `hoyq.es` y `hoyq.com` no tienen DNS, lo que no significa que estén libres. Hay que comprobarlo en un registrador y buscar en OEPM y EUIPO antes de imprimir nada o mandar una oferta a un ayuntamiento.
 - El icono no depende del nombre: es la celosía geométrica que dibuja `apps/mobile/scripts/make-icons.py`, no una letra.
+
+---
+
+## D-038 — Un municipio se da de alta cargando su carpeta, y cargarla dos veces no rompe nada
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+La tabla la crea Terraform vacía, y hasta que el panel sepa escribir no había forma de meter nada en ella. Ahora la hay: `pnpm --filter @agora/tools migrate-seed -- --table agora-dev` convierte la carpeta de un municipio en `content/` en filas.
+
+**La propiedad que importa es que se pueda repetir.** Todo son actualizaciones, no inserciones, y los eventos pasan por la misma expresión de escritura que usa el panel, que nunca toca `interestCount`. Un `Put` habría puesto los contadores a cero en cada carga, y eso no se nota: el panel seguiría mostrando un número, solo que el equivocado. Hay un test que marca un interés, vuelve a migrar y comprueba que sigue ahí.
+
+**Dónde vive cada parte y por qué:**
+
+- La lógica está en `@agora/store` y **recibe datos, no un origen de datos**. Los ficheros semilla son de `@agora/data`, y el store no puede depender de ellos: las Lambdas importan el store, y una Lambda no tiene por qué llevar dentro los eventos de un pueblo de demostración.
+- La herramienta está en `apps/tools`, que es la casa de los scripts de operación, y es la que junta las dos cosas. Se empaqueta con esbuild porque la semilla son importaciones de JSON, que Node no acepta sin empaquetador, y el paquete resultante es **CommonJS**: el SDK de AWS lo es, y meterlo dentro de un fichero ESM rompe sus propios `require` al cargar.
+- **No hay tabla por defecto en la herramienta.** Hay que nombrarla siempre, y eso es lo que evita que una carga de datos de demostración acabe en producción por inercia.
+
+**Lo que no hace:** no carga el recorrido de `route.json`, porque el almacén de sesiones de directo es de la Fase D. Y los eventos de la semilla se anclan al día en que se ejecuta, así que lo que queda en la tabla es una foto de ese día; para un piloto los eventos los mete el ayuntamiento por el panel.

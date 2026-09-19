@@ -27,6 +27,7 @@ cambia la app, el panel, el APK y los correos del panel a la vez. Ver
 | `packages/i18n`          | Textos de interfaz (español por defecto, inglés preparado).                            |
 | `packages/store`         | Tabla única de DynamoDB: un almacén por rol. Lo usan las Lambdas, nunca la app.        |
 | `apps/functions`         | Manejadores de las Lambdas. `pnpm --filter @agora/functions build` los empaqueta.      |
+| `apps/tools`             | Herramientas de operación. Hoy, cargar un municipio en la tabla.                       |
 | `content/municipalities` | Configuración y datos de cada municipio. Ver [`content/README.md`](content/README.md). |
 
 ## Requisitos

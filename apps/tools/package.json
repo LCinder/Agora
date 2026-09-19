@@ -1,0 +1,20 @@
+{
+  "name": "@agora/tools",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "migrate-seed": "esbuild src/migrate-seed.ts --bundle --platform=node --target=node22 --format=cjs --outfile=dist/migrate-seed.cjs --log-level=warning && node dist/migrate-seed.cjs",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@agora/core": "workspace:*",
+    "@agora/data": "workspace:*",
+    "@agora/store": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "esbuild": "^0.25.0"
+  }
+}

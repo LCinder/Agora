@@ -14,6 +14,9 @@
  *   * `createStaffStore` — the panel, scoped to one actor in one municipality.
  *   * `createDeviceStore` — a resident's own marks, and nobody else's.
  *   * `createReminderStore` — event to interested devices. The reminder job only.
+ *
+ * Plus `migrateSeed`, which loads a municipality's folder into the table: how a
+ * town hall is set up, and the bridge between the demo data and the backend.
  */
 
 export * from './client';
@@ -23,5 +26,6 @@ export * from './items';
 export * from './keys';
 export * from './public-store';
 export * from './reminder-store';
+export * from './seed-migration';
 export * from './staff-store';
 export * from './table-definition';

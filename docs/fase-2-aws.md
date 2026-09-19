@@ -259,5 +259,5 @@ un entorno son nueve, así que las tiene producción y dev no (D-032). Con eso l
 - **Notificaciones push.** Expo Push es gratis y ya usáis Expo; SNS sería más «AWS puro» y bastante
   más trabajo. Propuesta: Expo. No hay nada montado todavía: el planificador existe y la Lambda de
   recordatorios se ejecuta, pero no tiene por dónde enviar.
-- **Migración de los datos semilla** de `content/` a DynamoDB, para que un municipio nuevo se dé de
-  alta cargando su carpeta.
+- ~~Migración de los datos semilla~~. Hecha: `pnpm --filter @agora/tools migrate-seed` carga la
+  carpeta de un municipio en la tabla, y volver a ejecutarlo conserva los contadores (D-038).
