@@ -410,6 +410,60 @@ describe.skipIf(local === null)('the panel API', () => {
 
       expect(statusOf(result)).toBe(400);
     });
+
+    it('feature a published event for the whole town, and log who did it', async () => {
+      const featured = await call(
+        'POST',
+        `municipalities/${ZUBIA}/events/${EVENTS.zubiaPublished}/featured`,
+        { subject: EDITOR, body: { message: 'Mañana empieza la feria.' } },
+      );
+
+      expect(statusOf(featured)).toBe(200);
+
+      // The widest action in the panel, so the question of who pressed it will be
+      // asked, and the log is where it gets answered.
+      const log = await call('GET', `municipalities/${ZUBIA}/audit`, { subject: ADMIN });
+
+      expect(bodyOf(log)).toEqual(
+        expect.arrayContaining([expect.objectContaining({ action: 'event.featured' })]),
+      );
+    });
+
+    it('refuse to feature a draft, and refuse an association outright', async () => {
+      const draft = await call(
+        'POST',
+        `municipalities/${ZUBIA}/events/${EVENTS.zubiaDraft}/featured`,
+        { subject: EDITOR, body: { message: 'Venid' } },
+      );
+
+      expect(statusOf(draft)).toBe(403);
+
+      const association = await call(
+        'POST',
+        `municipalities/${ZUBIA}/events/${EVENTS.zubiaPublished}/featured`,
+        { subject: ASSOCIATION, body: { message: 'Venid' } },
+      );
+
+      expect(statusOf(association)).toBe(403);
+
+      // Whitespace passes the schema, which only asks for a character, and is
+      // stopped by the store: a push that says nothing must not go to a town.
+      const empty = await call(
+        'POST',
+        `municipalities/${ZUBIA}/events/${EVENTS.zubiaPublished}/featured`,
+        { subject: EDITOR, body: { message: '   ' } },
+      );
+
+      expect(statusOf(empty)).toBe(403);
+
+      const missing = await call(
+        'POST',
+        `municipalities/${ZUBIA}/events/${EVENTS.zubiaPublished}/featured`,
+        { subject: EDITOR, body: {} },
+      );
+
+      expect(statusOf(missing)).toBe(400);
+    });
   });
 
   describe('associations and access', () => {

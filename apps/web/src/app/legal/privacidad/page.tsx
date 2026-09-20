@@ -66,7 +66,7 @@ export default function PrivacyPage() {
             {
               term: 'Testigo de notificaciones',
               description:
-                'Solo si aceptas recibirlas. Es la dirección a la que el sistema envía el aviso; se borra en cuanto las desactivas.',
+                'Solo si aceptas recibirlas. Es la dirección a la que el sistema envía el aviso; se borra en cuanto las desactivas. Recibirás recordatorios y cambios de lo que hayas marcado y, alguna vez, un evento que el ayuntamiento destaque para todo el municipio. Nunca más de tres al día, y de esos tres el último está reservado para el recordatorio que tú has pedido.',
             },
             {
               term: 'Ubicación',

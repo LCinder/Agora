@@ -31,18 +31,26 @@ export const SHARED_LINK_PREFIX = '/e/';
 /**
  * The host that receives shared links, or null when there is no site yet.
  *
- * Both platforms verify a claim against a file served from this host, so a
- * claim on a host nobody owns does nothing — which is why an empty site URL has
- * to be a case the callers handle rather than a placeholder they pass on.
+ * Both platforms verify a claim against a file served from this host, so a claim
+ * on a host nobody owns does nothing — which is why an empty site URL has to be a
+ * case the callers handle rather than a placeholder they pass on.
+ *
+ * Read with a pattern rather than with `URL`. This package has to compile for
+ * React Native, for a Lambda and for a browser, and it does that by depending on
+ * nothing any of them provides: `URL` is a global of each host, not of the
+ * language. The port is part of the host, because a claim has to match the
+ * address exactly and a local build has one.
  */
+const SITE_URL = /^https?:\/\/([a-z0-9.-]+(?::\d+)?)(?:\/|$)/i;
+
 export function sharedLinkHost(baseUrl: string): string | null {
   const trimmed = baseUrl.trim();
 
   if (trimmed === '') return null;
 
-  try {
-    return new URL(trimmed).host;
-  } catch {
-    throw new Error(`Not a URL: ${baseUrl}`);
-  }
+  const host = SITE_URL.exec(trimmed)?.[1];
+
+  if (host === undefined) throw new Error(`Not a URL: ${baseUrl}`);
+
+  return host.toLowerCase();
 }

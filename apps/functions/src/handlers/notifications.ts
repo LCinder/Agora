@@ -111,6 +111,17 @@ function reminderMessage(
 function outboxMessage(pending: PendingPush, event: Event, target: PushTarget): PushMessage {
   const { t } = copyFor(target);
 
+  if (pending.kind === 'featured') {
+    return {
+      to: target.token,
+      title: event.title,
+      // What the town hall wrote. This one goes to the whole town, so there is no
+      // wording of ours that would suit it better than theirs.
+      body: pending.message ?? '',
+      data: { eventId: event.id, municipalityId: pending.municipalityId },
+    };
+  }
+
   if (pending.kind === 'live_started') {
     return {
       to: target.token,
@@ -233,7 +244,15 @@ async function runOutbox(dependencies: NotificationDependencies): Promise<JobRes
       continue;
     }
 
-    const targets = await store.pushTargets(await store.devicesInterestedIn(pending.eventId));
+    // A featured event is the only notice addressed to a town rather than to the
+    // people who marked something, so it is the only one that asks who follows
+    // the municipality at all.
+    const audience =
+      pending.kind === 'featured'
+        ? await store.devicesFollowing(pending.municipalityId)
+        : await store.devicesInterestedIn(pending.eventId);
+
+    const targets = await store.pushTargets(audience);
     const day = dayKeyInZone(now, town.timeZone);
     const messages: PushMessage[] = [];
 
@@ -246,7 +265,13 @@ async function runOutbox(dependencies: NotificationDependencies): Promise<JobRes
           target.deviceId,
           town.id,
           day,
-          town.maxDailyNotifications,
+          // A broadcast leaves the last slot of the day alone. The three
+          // notifications belong to the resident, and the evening reminder is the
+          // one they actually asked for: a town hall that pushes two featured
+          // events in the afternoon must not be able to eat it.
+          pending.kind === 'featured'
+            ? Math.max(1, town.maxDailyNotifications - 1)
+            : town.maxDailyNotifications,
         );
 
         if (!allowed) {

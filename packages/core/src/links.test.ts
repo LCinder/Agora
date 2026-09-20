@@ -39,9 +39,15 @@ describe('sharedLinkHost', () => {
     expect(sharedLinkHost('   ')).toBeNull();
   });
 
+  it('lower-cases it, because a claim is compared as text', () => {
+    expect(sharedLinkHost('https://HoyQ.ES')).toBe('hoyq.es');
+  });
+
   // Claiming a malformed host is the silent failure this guards: both stores
   // would fetch nothing and hand the link to the browser for ever.
   it('refuses something that is not a url', () => {
     expect(() => sharedLinkHost('hoyq.es')).toThrow(/Not a URL/);
+    expect(() => sharedLinkHost('ftp://hoyq.es')).toThrow(/Not a URL/);
+    expect(() => sharedLinkHost('https://')).toThrow(/Not a URL/);
   });
 });

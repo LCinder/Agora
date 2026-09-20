@@ -12,6 +12,7 @@ import type { StoreClient } from './client';
 import { notFound } from './errors';
 import {
   FOLLOW_PREFIX,
+  audienceIndexPk,
   deviceCountKey,
   monthlyStatsKey,
   deviceFollowKey,
@@ -231,6 +232,11 @@ export function createDeviceStore(
                     deviceId,
                     municipalityId,
                     createdAt: new Date().toISOString(),
+                    // What makes this phone reachable by a notice addressed to
+                    // the whole town. Only the notification function may read
+                    // this index; the panel is denied it outright (D-062).
+                    gsi3pk: audienceIndexPk(municipalityId),
+                    gsi3sk: devicePk(deviceId),
                   },
                   // The condition is what makes the counter mean something: the
                   // second launch fails it, the transaction is cancelled, and
@@ -251,10 +257,31 @@ export function createDeviceStore(
           }),
         );
       } catch (error) {
-        // Already following. Not worth telling anybody about.
-        if (error instanceof TransactionCanceledException) return;
+        if (!(error instanceof TransactionCanceledException)) throw error;
 
-        throw error;
+        // Already following, which is every launch after the first. The write is
+        // still worth making once: a phone that started following before the
+        // audience index existed has a row without those two attributes, and the
+        // condition above means it would never be rewritten — so it would stay
+        // invisible to a notice addressed to the whole town for ever. This puts
+        // them there without touching the counter.
+        await client
+          .send(
+            new UpdateCommand({
+              TableName: tableName,
+              Key: deviceFollowKey(deviceId, municipalityId),
+              UpdateExpression: 'SET gsi3pk = :audience, gsi3sk = :device',
+              ExpressionAttributeValues: {
+                ':audience': audienceIndexPk(municipalityId),
+                ':device': devicePk(deviceId),
+              },
+              ConditionExpression: 'attribute_exists(pk) and attribute_not_exists(gsi3pk)',
+            }),
+          )
+          .catch(() => {
+            // Already indexed, or the row is gone. Both are fine: this is a repair,
+            // not a step the resident is waiting on.
+          });
       }
     },
 

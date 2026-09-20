@@ -289,6 +289,22 @@ export function reviewIndexPk(municipalityId: string): string {
   return `MUN#${municipalityId}#REVIEW`;
 }
 
+/**
+ * Everybody who follows a municipality, on the same index as the interests.
+ *
+ * Deliberately `gsi3` and not a fourth index. That index is the one place in the
+ * system that maps something to devices, the only one the notification function
+ * may read, and the one every other role denies itself explicitly (D-032). A
+ * separate audience index would mean two such places, two grants and two denies —
+ * and the second one to be forgotten in a refactor is the one that leaks.
+ *
+ * It costs one extra index write on the launch where a phone first follows a
+ * town, and nothing after that.
+ */
+export function audienceIndexPk(municipalityId: string): string {
+  return `MUN#${municipalityId}#FOL`;
+}
+
 export interface IndexAttributes {
   gsi1pk?: string;
   gsi1sk?: string;

@@ -199,6 +199,14 @@ export interface PanelClient {
 
   listNotices(eventId: string): Promise<EventNotice[]>;
   sendNotice(eventId: string, type: NoticeType, message: string): Promise<EventNotice>;
+  /**
+   * Pushes a published event to every phone following the municipality.
+   *
+   * Queued rather than sent: the panel is not allowed to know who follows the
+   * town, so it leaves the order and the notification job delivers it within the
+   * minute (D-062).
+   */
+  featureEvent(eventId: string, message: string): Promise<void>;
 
   listOrganizations(): Promise<Organization[]>;
   createOrganization(input: {
@@ -302,6 +310,10 @@ export function createPanelClient(options: PanelClientOptions): PanelClient {
       return noticeSchema.parse(
         await api.send('POST', `${at(eventId)}/notices`, { type, message }),
       );
+    },
+
+    async featureEvent(eventId, message) {
+      await api.send('POST', `${at(eventId)}/featured`, { message });
     },
 
     async listOrganizations() {

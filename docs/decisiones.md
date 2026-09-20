@@ -1097,3 +1097,25 @@ Esta es la clase de hueco que no aparece en ningún test y no rompe nada. Se des
 Y para que eso funcione tuvo que guardarse **con el resto del estado de la demo**, no en memoria. Es un detalle que se ve solo al probarlo en un navegador de verdad: el test entraba en la pantalla con una recarga completa y el registro salía vacío, porque los eventos de la demo sí sobrevivían en `localStorage` y el registro no. Un registro que se vacía justo cuando navegas a él es peor que no tenerlo, porque parece que funciona.
 
 Nueve tests de navegador ahora, y el nuevo afirma la única cosa que importa aquí: que aparece una línea **porque alguien hizo algo**. Una tabla vacía que renderiza bien es indistinguible de un registro que no se está escribiendo.
+
+---
+
+## D-062 — El aviso a todo el pueblo, sin un índice nuevo y sin comerse el recordatorio
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+La tabla de notificaciones del documento de proyecto (§9.7) tiene cuatro filas y solo había tres: el recordatorio de la tarde anterior, el aviso de cambio y el inicio de un directo. Faltaba la cuarta, el **evento destacado**, que es la única que no va dirigida a quien marcó algo sino al municipio entero.
+
+**No hay un cuarto índice.** La audiencia va en `gsi3`, el mismo que va de un evento a los dispositivos interesados. Ese índice es el único sitio del sistema que mapea algo a personas, el único que la función de notificaciones puede leer, y el único que todos los demás roles se niegan explícitamente (D-032). Un índice de audiencia aparte serían **dos** sitios así, dos permisos y dos denegaciones, y la segunda que se olvide en un refactor es la que filtra. Cuesta una escritura de índice más en el arranque en que un móvil empieza a seguir un pueblo, y nada después.
+
+**Las filas antiguas se reparan al arrancar.** La condición que impide contar dos veces al mismo dispositivo también impide que su fila se reescriba nunca, así que un móvil que empezó a seguir el pueblo antes de que existiera el índice se habría quedado invisible **para siempre**. Cuando la condición falla —que es cada arranque a partir del segundo— se escriben los dos atributos si no están, sin tocar el contador. Hay un test que borra esos atributos a mano y comprueba que el siguiente arranque lo arregla, porque es un fallo que no se ve: no hay error, solo un vecino al que nunca le llega nada.
+
+**El panel sigue sin poder saber quién sigue el pueblo.** Escribe la orden en el buzón y el trabajo de notificaciones —el único con permiso sobre el índice— la reparte en menos de un minuto. La promesa no cambia: el ayuntamiento ve cuántos, nunca quiénes.
+
+**Y la regla de la que estoy más contento: una difusión no puede gastar el último aviso del día.** El tope son tres por dispositivo y por municipio, y de esos tres el recordatorio de la tarde es **el único que el vecino ha pedido**. Si una difusión pudiera gastar los tres, un ayuntamiento que destaca dos cosas por la tarde le quitaría al vecino el aviso de la verbena que había marcado él. Así que una difusión se topa en `máximo − 1`: puede gastar dos, nunca el tercero. Hay un test que manda tres difusiones, comprueba que salen dos, y que el recordatorio llega igual.
+
+**Solo un evento publicado.** Un borrador no tiene página pública que abrir al tocar la notificación, y destacar uno cancelado sería el peor mensaje que este sistema puede enviar: un pueblo entero avisado de que vaya a algo que no se celebra.
+
+**Y en el panel pregunta dos veces, y dice el número en voz alta.** Es una tarjeta aparte de los avisos, no un quinto tipo de aviso, porque llega a otra gente: «llega a los 1.240 vecinos con la aplicación, no solo a quien marcó este evento», y hay que confirmar. Lo más fácil de abusar del producto es esto, y lo que hace que las notificaciones valga la pena leerlas es que casi nunca llegan.
+
+Queda en el registro de auditoría como `event.featured`, que es la acción por la que más probablemente pregunte alguien: es la única del panel que llega a todos los móviles del municipio.

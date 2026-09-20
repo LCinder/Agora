@@ -13,6 +13,7 @@ import { fromEventItem } from './items';
 import {
   CALENDAR_INDEX,
   INTERESTS_INDEX,
+  audienceIndexPk,
   NOTICE_PREFIX,
   OUTBOX_PK,
   PLATFORM_PK,
@@ -62,7 +63,7 @@ export interface PendingPush {
   /** The outbox row, so it can be deleted once it is done. */
   id: string;
   createdAt: Date;
-  kind: 'notice' | 'live_started';
+  kind: 'notice' | 'live_started' | 'featured';
   municipalityId: string;
   eventId: string;
   /** Set for a notice, so it can be marked as sent. */
@@ -79,6 +80,15 @@ export interface NotificationStore {
   getEvent(municipalityId: string, eventId: string): Promise<Event | null>;
   /** Device ids to notify about an event. The only event-to-people query there is. */
   devicesInterestedIn(eventId: string): Promise<string[]>;
+  /**
+   * Every device that follows a municipality.
+   *
+   * For the one notice that is not addressed to the people who marked something:
+   * a featured event the town hall pushes to the whole town. It is the widest
+   * audience in the product, so it is on the same restricted index as the
+   * interests and reachable from the same single function (D-062).
+   */
+  devicesFollowing(municipalityId: string): Promise<string[]>;
   /** Devices that can actually receive a push, with the language to write in. */
   pushTargets(deviceIds: readonly string[]): Promise<PushTarget[]>;
   /**
@@ -191,6 +201,34 @@ export function createNotificationStore(client: StoreClient, tableName: string):
       // KEYS_ONLY projection: the index holds the keys and nothing else, which
       // is all a reminder needs and the least it could hold.
       return (result.Items ?? []).map((item) => String(item['gsi3sk']).replace('DEV#', ''));
+    },
+
+    async devicesFollowing(municipalityId) {
+      const devices: string[] = [];
+      let start: Record<string, unknown> | undefined;
+
+      // The only query in the system whose answer grows with the size of the
+      // town, so it is the only one that has to page: a municipality of fifty
+      // thousand does not fit in one response.
+      do {
+        const result = await client.send(
+          new QueryCommand({
+            TableName: tableName,
+            IndexName: INTERESTS_INDEX,
+            KeyConditionExpression: 'gsi3pk = :pk',
+            ExpressionAttributeValues: { ':pk': audienceIndexPk(municipalityId) },
+            ...(start === undefined ? {} : { ExclusiveStartKey: start }),
+          }),
+        );
+
+        for (const item of result.Items ?? []) {
+          devices.push(String(item['gsi3sk']).replace('DEV#', ''));
+        }
+
+        start = result.LastEvaluatedKey;
+      } while (start !== undefined);
+
+      return devices;
     },
 
     async pushTargets(deviceIds) {

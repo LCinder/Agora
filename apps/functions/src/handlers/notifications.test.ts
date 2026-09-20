@@ -268,6 +268,63 @@ describe.skipIf(local === null)('the notification job', () => {
     expect(cancellation.flat()[0]?.title).toMatch(/^Se cancela: /);
   });
 
+  it('sends a featured event to the town, not only to whoever marked it', async () => {
+    const notices = createNoticeStore(client, TABLE, EDITOR);
+    const three = createDeviceStore(client, TABLE, 'device-three');
+
+    // A phone that follows La Zubia and has never marked anything. It is the whole
+    // point of this notification, and the one the other three never reach.
+    await three.register({ platform: 'android', locale: 'es' });
+    await three.setPushToken('ExponentPushToken[three]');
+    await three.follow(ZUBIA);
+
+    await notices.feature({
+      eventId: EVENTS.zubiaPublished,
+      message: 'Ma\u00f1ana empieza la feria.',
+    });
+
+    const { push, flat } = fakePush();
+    const result = await run('outbox', { store, push, now: EVENING });
+
+    expect(result.sent).toBe(1);
+    expect(flat().map((message) => message.to)).toEqual(['ExponentPushToken[three]']);
+    // The town hall's own sentence, unedited: this one goes to everybody, so no
+    // wording of ours would suit it better than theirs.
+    expect(flat()[0]?.body).toBe('Ma\u00f1ana empieza la feria.');
+  });
+
+  it('leaves the last notification of the day for the reminder the resident asked for', async () => {
+    const notices = createNoticeStore(client, TABLE, EDITOR);
+    const one = createDeviceStore(client, TABLE, DEVICE_ONE);
+
+    await one.follow(ZUBIA);
+
+    // Three broadcasts, which is what La Zubia allows per phone per day in total.
+    for (const message of ['Empieza la feria.', 'Hoy hay fuegos.', 'Y ma\u00f1ana la traca.']) {
+      await notices.feature({ eventId: EVENTS.zubiaPublished, message });
+    }
+
+    const broadcasts = fakePush();
+
+    // Only two get through: a broadcast may spend at most two of the three.
+    expect(await run('outbox', { store, push: broadcasts.push, now: EVENING })).toMatchObject({
+      sent: 2,
+      capped: 1,
+    });
+
+    // The third was refused with a slot still free, and that slot is the evening
+    // reminder: a town hall pushing announcements must not be able to eat the one
+    // message the resident actually asked for.
+    const reminder = fakePush();
+
+    await run('reminders', { store, push: reminder.push, now: EVENING });
+
+    // The phone that already had two announcements today still gets it. The other
+    // one is in there because it marked the event and spent nothing: what matters
+    // is that the first is not missing.
+    expect(reminder.flat().map((message) => message.to)).toContain('ExponentPushToken[one]');
+  });
+
   it('tells the interested devices when the live tracking starts', async () => {
     const sessions = createLiveStore(client, TABLE, EDITOR);
 

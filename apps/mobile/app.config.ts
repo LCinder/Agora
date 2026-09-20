@@ -20,20 +20,25 @@ import brand from '../../packages/core/src/brand.json';
  *
  * `EXPO_PUBLIC_SITE_URL` is the same variable the app reads at runtime to build
  * the links it shares, so the domain that receives them and the domain declared
- * here cannot drift apart: there is only one.
+ * here cannot drift apart.
+ *
+ * Read here rather than imported from `@agora/core`: Expo compiles this file on
+ * its own and its resolver only follows the JSON above, not a relative
+ * TypeScript import. `check:native` is what keeps the two readings honest — it
+ * compares the claim this produces against the same variable.
  */
 function siteHost(): string | null {
   const url = process.env.EXPO_PUBLIC_SITE_URL?.trim() ?? '';
 
   if (url === '') return null;
 
-  try {
-    return new URL(url).host;
-  } catch {
-    // A malformed value would otherwise become an app that claims a domain
-    // nobody owns, which fails verification silently on both platforms.
-    throw new Error(`EXPO_PUBLIC_SITE_URL is not a URL: ${url}`);
-  }
+  const host = /^https?:\/\/([a-z0-9.-]+(?::\d+)?)(?:\/|$)/i.exec(url)?.[1];
+
+  // A malformed value would otherwise become an app that claims a domain nobody
+  // owns, which is a verification that fails silently on both platforms.
+  if (host === undefined) throw new Error(`EXPO_PUBLIC_SITE_URL is not a URL: ${url}`);
+
+  return host.toLowerCase();
 }
 
 /**
@@ -56,6 +61,8 @@ function deepLinks(host: string | null): Partial<Pick<ExpoConfig, 'ios' | 'andro
         {
           action: 'VIEW',
           autoVerify: true,
+          // The same `/e/` that `@agora/core` declares and the two .well-known
+          // files answer for. `check:native` fails if they stop agreeing.
           data: [{ scheme: 'https', host, pathPrefix: '/e/' }],
           category: ['BROWSABLE', 'DEFAULT'],
         },

@@ -126,6 +126,14 @@ export interface PanelState {
   approveEvent: (id: string) => Promise<void>;
   rejectEvent: (id: string, reason: string) => Promise<void>;
   addNotice: (notice: Omit<EventNotice, 'id' | 'createdAt'>) => Promise<void>;
+  /**
+   * Pushes a published event to every phone following the municipality.
+   *
+   * The widest thing this panel can do, and the only one that reaches somebody
+   * who never marked anything. Queued rather than sent: the panel is not allowed
+   * to know who follows the town (D-062).
+   */
+  featureEvent: (eventId: string, message: string) => Promise<void>;
   /** Loads the notices of one event. A no-op in the demo, which holds them all. */
   refreshNotices: (eventId: string) => Promise<void>;
 
@@ -637,6 +645,22 @@ export function PanelProvider({ children }: { children: ReactNode }) {
     [client, events, notices, persist, refreshNotices],
   );
 
+  const featureEvent = useCallback(
+    async (eventId: string, message: string) => {
+      if (client !== null) {
+        await client.featureEvent(eventId, message);
+
+        return;
+      }
+
+      // Nothing to send in the demo, and nothing to fake: what it can do
+      // honestly is leave the line in the activity log, which is where somebody
+      // would later look to see that it happened.
+      noteDemo('event.featured', 'event', eventId);
+    },
+    [client, noteDemo],
+  );
+
   // -------------------------------------------------------------------------
   // Associations
   // -------------------------------------------------------------------------
@@ -874,6 +898,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       setOrganizationTrusted,
       setOrganizationStatus,
       auditLog,
+      featureEvent,
       listStaff,
       invite,
       revokeStaff,
@@ -910,6 +935,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       identity,
       invite,
       auditLog,
+      featureEvent,
       listStaff,
       loadRemote,
       loadSeed,

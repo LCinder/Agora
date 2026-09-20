@@ -47,8 +47,18 @@ export default function EditEventPage() {
 
 function EditEventView() {
   const id = useSearchParams().get('id') ?? '';
-  const { addNotice, cancelEvent, events, loading, municipality, notices, refreshNotices, role } =
-    usePanel();
+  const {
+    addNotice,
+    cancelEvent,
+    events,
+    featureEvent,
+    loading,
+    municipality,
+    notices,
+    refreshNotices,
+    role,
+    stats,
+  } = usePanel();
 
   // Cancelling an event and sending a notice are the town hall's (7.3): a message
   // to every neighbour who marked something cannot be taken back.
@@ -100,10 +110,17 @@ function EditEventView() {
 
       <section className="mt-8 grid gap-6 lg:grid-cols-[2fr_1fr]">
         {municipal ? (
-          <NoticeComposer
-            interested={demoInterestCount(event.id, event.isFeatured)}
-            onSend={(type, message) => void addNotice({ eventId: event.id, type, message })}
-          />
+          <div className="grid gap-6">
+            <NoticeComposer
+              interested={demoInterestCount(event.id, event.isFeatured)}
+              onSend={(type, message) => void addNotice({ eventId: event.id, type, message })}
+            />
+            <FeaturedComposer
+              following={stats?.devices.following ?? null}
+              published={event.status === 'published'}
+              onSend={(message) => void featureEvent(event.id, message)}
+            />
+          </div>
         ) : (
           <Card className="h-fit">
             <h2 className="text-lg font-semibold">Avisos</h2>
@@ -145,6 +162,105 @@ function EditEventView() {
  * officer sees that an event has an audience, and it is the whole argument for
  * the "Me interesa" feature in a sales meeting.
  */
+/**
+ * The one thing in this panel that reaches somebody who never asked for anything.
+ *
+ * Which is why it is a separate card from the notice composer instead of a fifth
+ * notice type, why it asks twice, and why it says the number out loud: a notice
+ * goes to the people who marked the event, and this goes to the town. The
+ * difference is the whole reason the product can promise that notifications are
+ * worth reading.
+ *
+ * Only for a published event. A draft has no public page for the notification to
+ * open, and a cancelled one would be the worst message this system could send.
+ */
+function FeaturedComposer({
+  following,
+  published,
+  onSend,
+}: {
+  /** Phones following the municipality, or null when the panel has no figure. */
+  following: number | null;
+  published: boolean;
+  onSend: (message: string) => void;
+}) {
+  const { municipality } = usePanel();
+  const [message, setMessage] = useState('');
+  const [confirming, setConfirming] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  if (!published) {
+    return (
+      <Card className="h-fit">
+        <h2 className="text-lg font-semibold">Destacar en todo el municipio</h2>
+        <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+          Solo se puede destacar un evento publicado. Publícalo arriba y vuelve aquí.
+        </p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <h2 className="text-lg font-semibold">Destacar en todo el municipio</h2>
+      <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+        {following === null
+          ? 'Llega a todos los vecinos con la aplicación, no solo a quien marcó este evento.'
+          : `Llega a los ${following} vecinos con la aplicación, no solo a quien marcó este evento.`}{' '}
+        Úsalo poco: un aviso que llega a todo el mundo lo silencia todo el mundo.
+      </p>
+
+      <div className="mt-4 grid gap-4">
+        <Field label="Mensaje">
+          <TextArea
+            value={message}
+            onChange={(event) => {
+              setMessage(event.target.value);
+              setConfirming(false);
+            }}
+            placeholder="Mañana empieza la feria. Programa completo en la aplicación."
+            rows={3}
+          />
+        </Field>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {confirming ? (
+            <>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  onSend(message.trim());
+                  setMessage('');
+                  setConfirming(false);
+                  setSent(true);
+                }}
+              >
+                Sí, enviar a todo el municipio
+              </Button>
+              <Button variant="secondary" onClick={() => setConfirming(false)}>
+                Mejor no
+              </Button>
+            </>
+          ) : (
+            <Button
+              brand={municipality?.branding.primaryColor}
+              disabled={message.trim() === ''}
+              onClick={() => setConfirming(true)}
+            >
+              Destacar
+            </Button>
+          )}
+          {sent && !confirming ? (
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">
+              Enviado. Sale en menos de un minuto.
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 function NoticeComposer({
   interested,
   onSend,

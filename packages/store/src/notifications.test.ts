@@ -1,3 +1,4 @@
+import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { type StoreClient, createStoreClient } from './client';
@@ -11,6 +12,7 @@ import {
   DEVICE_ONE,
   DEVICE_TWO,
   EVENTS,
+  OTURA,
   ZUBIA,
   createTable,
   dropTable,
@@ -194,6 +196,84 @@ describe.skipIf(local === null)('the notification job', () => {
     expect(await store.devicesInterestedIn(EVENTS.zubiaPublished)).not.toContain(DEVICE_ONE);
     expect(await devices.listInterests()).toEqual([]);
     expect(await store.reserveDailyNotification(DEVICE_ONE, ZUBIA, DAY, 1)).toBe(true);
+  });
+
+  it('reaches every phone following the municipality, and only that municipality', async () => {
+    const store = createNotificationStore(client, TABLE);
+    const here = createDeviceStore(client, TABLE, DEVICE_ONE);
+    const elsewhere = createDeviceStore(client, TABLE, DEVICE_TWO);
+
+    await here.register({ platform: 'android', locale: 'es' });
+    await elsewhere.register({ platform: 'ios', locale: 'es' });
+    await here.follow(ZUBIA);
+    await elsewhere.follow(OTURA);
+
+    // The audience of a featured event is the town, not the people who marked
+    // something — and it stops at the town's edge like everything else here.
+    expect(await store.devicesFollowing(ZUBIA)).toEqual([DEVICE_ONE]);
+    expect(await store.devicesFollowing(OTURA)).toEqual([DEVICE_TWO]);
+  });
+
+  it('indexes a phone that was already following before the index existed', async () => {
+    const store = createNotificationStore(client, TABLE);
+    const devices = createDeviceStore(client, TABLE, DEVICE_ONE);
+
+    await devices.register({ platform: 'android', locale: 'es' });
+    await devices.follow(ZUBIA);
+
+    // What an older row looks like: the follow is there, the two index attributes
+    // are not. Written by hand because no code path produces it any more.
+    await client.send(
+      new UpdateCommand({
+        TableName: TABLE,
+        Key: { pk: `DEV#${DEVICE_ONE}`, sk: `FOL#${ZUBIA}` },
+        UpdateExpression: 'REMOVE gsi3pk, gsi3sk',
+      }),
+    );
+
+    expect(await store.devicesFollowing(ZUBIA)).toEqual([]);
+
+    // The next launch repairs it. Without this the phone would never be reached
+    // by a notice addressed to the town: the condition that stops double counting
+    // also stops the row ever being rewritten.
+    await devices.follow(ZUBIA);
+
+    expect(await store.devicesFollowing(ZUBIA)).toEqual([DEVICE_ONE]);
+  });
+
+  it('queues a featured event for the town, and refuses one that is not published', async () => {
+    const store = createNotificationStore(client, TABLE);
+    const notices = createNoticeStore(client, TABLE, editor);
+
+    // Counted before, because an earlier test in this suite sent a real notice on
+    // the same event and the table is shared.
+    const before = (await notices.list(EVENTS.zubiaPublished)).length;
+
+    await notices.feature({ eventId: EVENTS.zubiaPublished, message: 'Mañana empieza la feria.' });
+
+    const queued = (await store.pendingPushes(10)).filter((push) => push.kind === 'featured');
+
+    expect(queued).toHaveLength(1);
+    expect(queued[0]?.message).toBe('Mañana empieza la feria.');
+    // It leaves no notice behind: a notice records something that changed, and
+    // nothing changed — this is an announcement.
+    expect(await notices.list(EVENTS.zubiaPublished)).toHaveLength(before);
+
+    await store.completePush(queued[0]!);
+
+    // A draft has no public page for the notification to open, and a cancelled
+    // event would be the worst message this system could send.
+    await expect(notices.feature({ eventId: EVENTS.zubiaDraft, message: 'Venid' })).rejects.toThrow(
+      /publicado/,
+    );
+    await expect(
+      notices.feature({ eventId: EVENTS.zubiaCancelled, message: 'Venid' }),
+    ).rejects.toThrow(/publicado/);
+
+    // And an event of the next town along is simply not there.
+    await expect(
+      notices.feature({ eventId: EVENTS.oturaPublished, message: 'Venid' }),
+    ).rejects.toThrow();
   });
 
   it('forgets a token whose app was uninstalled', async () => {

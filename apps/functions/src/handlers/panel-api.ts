@@ -86,6 +86,9 @@ const noticeSchema = z.object({
   message: z.string().min(1),
 });
 
+/** A featured push carries only the sentence; the audience is the whole town. */
+const featuredSchema = z.object({ message: z.string().min(1) });
+
 const newOrganizationSchema = z.object({
   id: z.string().min(1).optional(),
   name: z.string().min(1),
@@ -314,6 +317,27 @@ const ROUTES: readonly Route<RequestContext>[] = [
       // The push itself is not sent here: there is no provider yet, and the
       // notice carries `pushSentAt: null` until whatever delivers it says so.
       return ok(sent);
+    },
+  },
+
+  {
+    method: 'POST',
+    pattern: 'municipalities/:municipalityId/events/:eventId/featured',
+    run: async ({ eventId }, { event, panel }) => {
+      const input = body(event, featuredSchema);
+
+      await panel.notices.feature({ eventId: eventId!, message: input.message });
+
+      // Audited like everything else, and more usefully than most: this is the
+      // one action here that reaches every phone in the municipality, so who
+      // pressed it is a question that will be asked.
+      await panel.audit.record({
+        action: 'event.featured',
+        entity: 'event',
+        entityId: eventId!,
+      });
+
+      return ok({ queued: true });
     },
   },
 
