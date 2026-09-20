@@ -84,3 +84,9 @@ variable "site_url" {
   type        = string
   default     = ""
 }
+
+variable "backups" {
+  description = "Off here: what this table holds is the seed and a handful of test events, and a backup of that is a bill for nothing."
+  type        = bool
+  default     = false
+}

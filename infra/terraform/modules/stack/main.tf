@@ -100,6 +100,10 @@ module "data" {
 
   infra_name  = var.infra_name
   environment = var.environment
+
+  # Dev's data is the seed and a few test events: losing it is an afternoon, and
+  # a backup of it is a bill for nothing.
+  backups = var.backups
 }
 
 module "auth" {

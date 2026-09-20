@@ -58,4 +58,5 @@ module "stack" {
   monthly_budget_amount = var.monthly_budget_amount
   budget_currency       = var.budget_currency
   metric_alarms         = var.metric_alarms
+  backups               = var.backups
 }

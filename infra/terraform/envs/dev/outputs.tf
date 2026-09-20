@@ -26,6 +26,10 @@ output "cognito_client_id" {
   value = module.stack.cognito_client_id
 }
 
+output "backup_role_arn" {
+  value = module.stack.backup_role_arn
+}
+
 output "failed_jobs_queue_url" {
   value = module.stack.failed_jobs_queue_url
 }

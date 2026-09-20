@@ -12,9 +12,9 @@
  * fires for code that is not ours and then nobody reads it.
  *
  * They are created in production and not in dev, and the reason is the bill: ten
- * alarms are free per account and this set is nine, so two environments with
- * alarms would cost about 0,80 $ a month for warnings about an environment
- * nobody is on call for. The budget and the topic stay in both, because a
+ * alarms are free per account and this set is exactly ten — eight functions, the
+ * API and the table — so a second environment with alarms would cost about a
+ * dollar a month for warnings about an environment nobody is on call for. The budget and the topic stay in both, because a
  * runaway cost in dev is exactly the kind that goes unnoticed.
  */
 

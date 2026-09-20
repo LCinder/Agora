@@ -49,3 +49,9 @@ variable "site_url" {
   type        = string
   default     = ""
 }
+
+variable "backups" {
+  description = "Daily backup of the table, kept 30 days. Worth it where there is a real municipality's calendar."
+  type        = bool
+  default     = false
+}

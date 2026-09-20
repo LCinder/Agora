@@ -58,7 +58,13 @@ variable "monthly_budget_amount" {
 }
 
 variable "metric_alarms" {
-  description = "On here: this is the environment where a failure is a municipality's problem and nobody is reading the logs. Nine alarms, inside the ten that are free per account."
+  description = "On here: this is the environment where a failure is a municipality's problem and nobody is reading the logs. Ten alarms, which is exactly what is free per account."
+  type        = bool
+  default     = true
+}
+
+variable "backups" {
+  description = "Daily copy of the table, kept 30 days. On here, because what is in this table is a real municipality's calendar and the mistakes worth insuring against are ours. Priced per gigabyte of what is stored: megabytes are céntimos."
   type        = bool
   default     = true
 }

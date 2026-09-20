@@ -964,3 +964,21 @@ Todo lo demás de este repositorio se prueba sin navegador: las reglas contra un
 Corre contra `next dev`, que es lo que ejecuta una persona; del export estático se encarga la compilación de la CI. Va en su propio trabajo, porque instalar Chromium tarda un minuto y no tiene por qué ponerse delante de los tests que no lo necesitan, y sube el informe de Playwright como artefacto cuando falla.
 
 Lo que sigue sin probarse en navegador es la app móvil: ahí no hay un `next dev` al que apuntar y montar un simulador en la CI cuesta más de lo que ahorraría hoy.
+
+---
+
+## D-056 — Una copia al día, que es la que recupera de nuestros propios errores
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+La replicación entre tres zonas de disponibilidad es automática y no protege de nada de lo que pasa de verdad: una migración que machaca la programación de un municipio, un borrado con la clave equivocada, un fallo que vacía una partición. De eso no recupera la infraestructura, recupera una copia.
+
+**Una copia diaria de la tabla, guardada treinta días, con AWS Backup.** A las cuatro de la mañana en Madrid, que es la hora más tranquila y ya han salido los recordatorios de la tarde. Se paga por gigabyte de lo que hay guardado: una tabla de 50 MB son medio céntimo al mes, y la diferencia entre «barato» y «gratis» deja de importar el día que ahí dentro está el calendario de un ayuntamiento de verdad.
+
+**Solo en producción.** Lo que hay en dev es la semilla y cuatro eventos de prueba: perderlo es una tarde, y una copia de eso es una factura por nada.
+
+**Sigue sin haber PITR** (D-036), y la comparación ahora está escrita donde toca: lo que añade es un registro continuo de 35 días —restaurar al segundo anterior a la migración, en vez de a las cuatro de la mañana— y es el caro de los dos con diferencia. El día que perder una tarde de ediciones de un ayuntamiento sea una llamada de teléfono y no un encogimiento de hombros, se enciende.
+
+**Restaurar crea una tabla nueva y deja la dañada donde está**, que es lo que hay que querer: se comparan antes de tirar nada. El procedimiento, con las órdenes exactas, está en `infra/terraform/README.md`; el rol con el que corre la restauración es una salida de Terraform para que la orden se pueda copiar y pegar.
+
+Y de paso, dos comentarios que se habían quedado viejos: las alarmas de producción ya no son nueve sino **exactamente diez** —ocho funciones, la API y la tabla—, que es justo lo que es gratis por cuenta. Por eso un fallo de envío de notificaciones se registra como error de la función (D-051) en lugar de gastar una alarma nueva.

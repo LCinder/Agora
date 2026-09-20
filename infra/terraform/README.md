@@ -175,6 +175,30 @@ aws cloudfront create-invalidation --distribution-id "$(terraform output -raw di
 Las URLs limpias (`/eventos/editar`) las resuelve una función de CloudFront, porque S3 leído por
 origin access control no añade `.html` por su cuenta. Está en `modules/web/functions/`.
 
+## Recuperar la tabla
+
+En producción hay una copia diaria de la tabla, guardada treinta días (D-056). No está en dev: lo
+que hay ahí es la semilla.
+
+Restaurar **crea una tabla nueva** y deja la dañada donde está, que es lo que hay que querer: se
+compara antes de tirar nada.
+
+```bash
+# Qué copias hay
+aws backup list-recovery-points-by-backup-vault --profile <perfil> --region eu-central-1 \
+  --backup-vault-name agora-prod
+
+# Restaurar una, a una tabla nueva
+aws backup start-restore-job --profile <perfil> --region eu-central-1 \
+  --recovery-point-arn <arn-de-la-copia> \
+  --iam-role-arn "$(terraform output -raw backup_role_arn)" \
+  --metadata '{"targetTableName":"agora-prod-restaurada"}'
+```
+
+Después se compara, y si hay que quedarse con ella se renombra el destino en Terraform —o se
+copian las filas que falten con la CLI, que para un puñado de eventos es más rápido y menos
+arriesgado que cambiar de tabla.
+
 ## Qué falta
 
 - [x] **La API pública y la de dispositivos.** Hechas y probadas contra DynamoDB Local: calendario,
@@ -211,8 +235,11 @@ origin access control no añade `.html` por su cuenta. Está en `modules/web/fun
       Con dominio conviene además una distribución por nombre de host, y entonces el panel puede
       volver a tener su propia página de error.
 - [ ] **Políticas de sesión con `dynamodb:LeadingKeys`**, para que sea AWS y no el código quien
-      rechace el acceso a otro municipio. Media tarde, y la pediría el primer piloto que haga
-      revisión de seguridad.
+      rechace el acceso a otro municipio. El diseño: la Lambda del panel asume un rol por petición
+      con una política de sesión que limita `LeadingKeys` a `MUN#<municipio>`, cacheando las
+      credenciales mientras dure el contenedor. Es la cuarta capa sobre tres que ya existen y están
+      probadas, así que va detrás de lo que sí falta; la pediría el primer piloto que haga revisión
+      de seguridad.
 - [x] **Cola de mensajes fallidos.** Hecha (D-051): los horarios tienen cola SQS y política de
       reintentos, un envío que no llega a nadie devuelve la marca del recordatorio para que el
       reintento lo mande, y una ejecución que no entrega nada se registra como error, que es lo que

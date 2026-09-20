@@ -29,6 +29,11 @@ output "cognito_client_id" {
   value = module.auth.user_pool_client_id
 }
 
+output "backup_role_arn" {
+  description = "The role a restore of the table runs as. Empty where backups are off."
+  value       = module.data.backup_role_arn
+}
+
 output "failed_jobs_queue_url" {
   description = "Scheduled notification runs that never happened, kept for 14 days."
   value       = module.jobs.failed_jobs_queue_url
