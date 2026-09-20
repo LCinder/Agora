@@ -230,6 +230,14 @@ arriesgado que cambiar de tabla.
       evento dentro del testigo (D-043), y `GET /live/{eventId}` para el mapa del vecino.
 - [x] **Notificaciones push.** Expo Push, en la Lambda de notificaciones: recordatorio cada hora
       según los ajustes del municipio y buzón de avisos cada minuto (D-046).
+- [ ] **Los dos ficheros que hacen que el enlace abra la app.** El código está (D-060) y las claves
+      no: `ANDROID_CERT_FINGERPRINT` —la huella SHA-256 del certificado de firma, que da
+      `eas credentials`— y `APPLE_TEAM_ID` —los diez caracteres de App Store Connect—. Con ellas
+      puestas, el build del panel escribe `/.well-known/assetlinks.json` y
+      `/.well-known/apple-app-site-association`; sin ellas no escribe nada y el enlace abre la web,
+      que es el comportamiento correcto mientras no haya cuentas en las tiendas. Comprueba después
+      con `adb shell pm get-app-links com.hoyq.app` y con el validador de Apple que la verificación
+      pasa: es silenciosa cuando falla.
 - [ ] **Dominio propio**, cuando haya nombre comercial (decisión pendiente nº 1). Hasta entonces la
       página pública de evento se comparte con una URL de CloudFront, que en un WhatsApp queda mal.
       Con dominio conviene además una distribución por nombre de host, y entonces el panel puede

@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "build:static": "PANEL_STATIC_EXPORT=1 next build",
+    "well-known": "node scripts/write-well-known.mjs",
+    "build": "pnpm run well-known && next build",
+    "build:static": "pnpm run well-known && PANEL_STATIC_EXPORT=1 next build",
     "test:e2e": "playwright test",
     "start": "next start",
     "lint": "eslint .",

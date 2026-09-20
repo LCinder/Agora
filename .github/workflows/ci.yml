@@ -63,8 +63,8 @@ jobs:
       # Runs the real Expo resolver and compares the permissions the app declares
       # with the ones its code asks for. This is the only check that looks at the
       # iOS side of the app, which is the side no build in this repository covers.
-      - name: Check the app's permissions
-        run: pnpm --filter @agora/mobile check:permissions
+      - name: Check what the app declares natively
+        run: pnpm --filter @agora/mobile check:native
 
   panel:
     name: The panel in a browser

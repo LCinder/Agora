@@ -11,7 +11,7 @@
     "web": "expo start --web",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "check:permissions": "node scripts/check-permissions.mjs"
+    "check:native": "node scripts/check-native-config.mjs"
   },
   "dependencies": {
     "@agora/core": "workspace:*",

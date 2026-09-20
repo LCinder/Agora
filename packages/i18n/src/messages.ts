@@ -131,6 +131,9 @@ export interface Messages {
   'settings.legalNotice': string;
   'settings.accessibility': string;
   'settings.demoNotice': string;
+
+  'shared.unknownMunicipality': string;
+  'shared.openInBrowser': string;
 }
 
 const es: Messages = {
@@ -264,6 +267,8 @@ const es: Messages = {
   'settings.privacyPolicy': 'Política de privacidad',
   'settings.legalNotice': 'Aviso legal',
   'settings.accessibility': 'Accesibilidad',
+  'shared.unknownMunicipality': 'Ese municipio todavía no está en la aplicación',
+  'shared.openInBrowser': 'Abre el enlace en el navegador para ver el evento.',
   'settings.deleteDataBody':
     'Se borrarán los eventos que te interesan y el municipio elegido. No guardamos nada más.',
   'settings.demoNotice': 'Versión de demostración con datos de ejemplo.',
@@ -400,6 +405,8 @@ const en: Messages = {
   'settings.privacyPolicy': 'Privacy policy',
   'settings.legalNotice': 'Legal notice',
   'settings.accessibility': 'Accessibility',
+  'shared.unknownMunicipality': 'That town is not in the app yet',
+  'shared.openInBrowser': 'Open the link in your browser to see the event.',
   'settings.demoNotice': 'Demo version with example data.',
 };
 

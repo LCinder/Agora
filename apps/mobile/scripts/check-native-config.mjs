@@ -1,5 +1,5 @@
 /**
- * Checks that the permissions the app asks for are the permissions it declares.
+ * Checks that what the app declares natively is what the app actually does.
  *
  * This exists because of a bug that survived months: `expo-calendar` and
  * `expo-location` were dependencies and the code called them, but neither was a
@@ -60,6 +60,47 @@ const plist = config.ios?.infoPlist ?? {};
 const android = config.android?.permissions ?? [];
 const problems = [];
 
+// --- deep links -----------------------------------------------------------
+//
+// Both platforms only hand a link to the app when the app claims the domain AND
+// the domain vouches for the app. Half of that lives here; the other half is
+// apps/web/scripts/write-well-known.mjs. A claim on the wrong host, or on a
+// path the app has no screen for, fails silently — the link opens the browser
+// and nothing says why.
+const siteUrl = (process.env.EXPO_PUBLIC_SITE_URL ?? '').trim();
+const associated = config.ios?.associatedDomains ?? [];
+const filters = config.android?.intentFilters ?? [];
+
+if (siteUrl === '') {
+  if (associated.length > 0 || filters.length > 0) {
+    problems.push(
+      'A domain is claimed without EXPO_PUBLIC_SITE_URL, so it cannot be the right one.',
+    );
+  }
+} else {
+  const host = new URL(siteUrl).host;
+
+  if (!associated.includes(`applinks:${host}`)) {
+    problems.push(`iOS does not claim ${host}, so a shared link will open Safari.`);
+  }
+
+  const claimsPath = filters.some((filter) =>
+    (filter.data ?? []).some(
+      (datum) => datum.host === host && datum.scheme === 'https' && datum.pathPrefix === '/e/',
+    ),
+  );
+
+  if (!claimsPath) {
+    problems.push(`Android does not claim https://${host}/e/, so a shared link will open Chrome.`);
+  }
+
+  if (filters.some((filter) => (filter.data ?? []).some((datum) => datum.pathPrefix === '/'))) {
+    problems.push(
+      'Android claims the whole site, which takes the panel and the legal pages into an app that has neither.',
+    );
+  }
+}
+
 for (const [key, source] of Object.entries(REQUIRED)) {
   const value = plist[key];
 
@@ -92,12 +133,14 @@ if ((plist.UIBackgroundModes ?? []).includes('location')) {
 }
 
 if (problems.length > 0) {
-  console.error(`\nThe permissions the app declares are not the ones it asks for:\n`);
+  console.error(`\nWhat the app declares is not what the app does:\n`);
   for (const problem of problems) console.error(`  · ${problem}`);
   console.error('');
   process.exit(1);
 }
 
 const declared = Object.keys(REQUIRED).length;
+const links =
+  siteUrl === '' ? 'no domain claimed yet' : `${new URL(siteUrl).host} claimed for /e/*`;
 
-console.log(`The ${declared} declared permissions match what the app asks for, and nothing else.`);
+console.log(`${declared} permissions declared and nothing else; deep links: ${links}.`);

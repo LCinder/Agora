@@ -69,3 +69,7 @@ coverage/
 terraform.tfvars
 *.auto.tfvars
 crash.log
+
+# Written from the store credentials at build time, never committed: the
+# fingerprint and the team id belong to accounts, not to the repository.
+apps/web/public/.well-known/

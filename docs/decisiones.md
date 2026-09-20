@@ -1053,3 +1053,25 @@ La segunda dirección es la que importa. Un permiso de más no rompe nada, no sa
 Esto corre en la CI, que hasta ahora **solo compilaba el APK de Android**: es la única comprobación del repositorio que mira el lado de iOS. La ubicación en segundo plano sigue fuera, y ahora hay un test que falla si alguien la enciende sin querer.
 
 De paso, la política de privacidad dice ahora que la app puede pedir la ubicación una vez para sugerir el municipio, que esa coordenada se resuelve en el propio móvil y que no se envía a ningún sitio. Era verdad y no estaba escrito, y un permiso que aparece en pantalla sin aparecer en la política es la clase de hueco que un delegado de protección de datos encuentra en dos minutos.
+
+---
+
+## D-060 — Un solo enlace, que abre la app si está y la web si no
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+El comentario de `packages/core/src/links.ts` describía desde el principio cómo tenía que funcionar un enlace compartido: abrir el evento en la app cuando está instalada y la página pública cuando no. La página existía, el `scheme` estaba registrado, y la mitad que hace que eso ocurra de verdad no estaba: sin ella el enlace de WhatsApp abría siempre el navegador, también en un móvil con la app puesta.
+
+**El enlace es uno, y es el `https`.** No hay un enlace para quien tiene la app y otro para quien no; eso obliga a quien comparte a saber algo que no puede saber. Así que se declara el mismo `https://<dominio>/e/<municipio>/<evento>` en los dos sistemas —`associatedDomains` en iOS, un `intentFilter` con `autoVerify` en Android— y el sistema operativo decide. `appEventUrl`, que construía un `hoyq://`, se ha borrado: no lo usaba nadie y con esto no hace falta.
+
+**Solo se reclama `/e/`.** El panel, las tres páginas legales y el lector de carteles viven en el mismo dominio y la app no tiene ninguno de los tres: una app que reclamara el dominio entero se tragaría enlaces que no sabe enseñar. El prefijo está una vez, en `@agora/core`, y lo leen el `app.config.ts`, el generador de los ficheros y la comprobación.
+
+**Las dos plataformas no se creen a la app.** Ambas piden un fichero servido desde el dominio que nombre a la aplicación, y esa es la parte que nadie recuerda: `autoVerify` sin `assetlinks.json` no es media función, es cero función. `apps/web/scripts/write-well-known.mjs` los escribe en el build del panel, desde dos variables de entorno que pertenecen a cuentas que todavía no existen.
+
+**Y sin esas claves no escribe nada, a propósito.** Un `assetlinks.json` con una huella de relleno es peor que no tenerlo: la verificación falla contra un fichero que parece correcto, en silencio, y se tarda una tarde en encontrarlo. Así que si no hay huella no hay fichero, el enlace abre la web —que es lo correcto mientras no haya app en las tiendas— y el build lo dice por pantalla. Las dos variables se validan con su forma exacta (32 pares hexadecimales y diez caracteres) porque son las dos cosas que se copian mal.
+
+**La pantalla que recibe el enlace selecciona el municipio.** Es lo que se olvida al pensar en enlaces profundos: el enlace que corre por un pueblo suele llegarle a alguien que no ha abierto la app nunca, así que `/e/:slug/:id` resuelve el municipio por su slug, lo activa y redirige al evento. Si el municipio no está en esa versión de la app, no sale un error: sale una línea que dice que se abra en el navegador, porque el evento existe y la web sí puede enseñarlo. La pantalla redirige, así que no se queda en la pila de atrás.
+
+**La comprobación de D-059 ahora cubre esto también**, y por eso se llama `check:native` en vez de `check:permissions`: afirma que el dominio declarado es el de `EXPO_PUBLIC_SITE_URL`, que el prefijo es `/e/`, que no se reclama el sitio entero, y que no hay un dominio reclamado sin variable —que sería reclamar el dominio equivocado—. Los cuatro fallos son silenciosos en producción, que es exactamente el motivo de comprobarlos en la CI.
+
+Y `links.ts`, que era el fichero que describía el contrato entre cuatro sitios, tiene por fin tests: siete, incluido el que exige que un valor mal formado explote en vez de convertirse en un dominio que no es de nadie.
