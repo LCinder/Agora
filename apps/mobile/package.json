@@ -11,7 +11,8 @@
     "web": "expo start --web",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "check:native": "node scripts/check-native-config.mjs"
+    "check:native": "node scripts/check-native-config.mjs",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@agora/core": "workspace:*",
@@ -50,9 +51,11 @@
     "react-native-worklets": "0.10.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/react": "~19.2.2",
     "eslint": "^9",
     "eslint-config-expo": "~10.0.0",
+    "serve": "^14.2.6",
     "typescript": "~6.0.3"
   }
 }

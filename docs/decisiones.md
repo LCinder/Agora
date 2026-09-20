@@ -1165,3 +1165,29 @@ La declaración de accesibilidad decía «parcialmente conforme» y nombraba tre
 **Y hay un test que a mí me parece el más útil de los catorce**: que algo coja el foco al primer tabulador. Si no lo coge nada, el panel entero está cerrado para quien no puede usar el ratón, y ninguna comprobación de contraste lo habría dicho nunca.
 
 **La declaración ahora distingue las dos mitades**, que es la parte honesta: dice que la autoevaluación es automática y continua para lo que una máquina puede comprobar —contraste, encabezados, nombres, atributos—, y dice explícitamente que **no** cubre que lo que lee un lector de pantalla se entienda, que el orden de tabulación tenga sentido, ni la app del vecino con VoiceOver y TalkBack. Eso sigue debiéndose, y ahora está escrito como lo que se debe en vez de quedar tapado por una herramienta en verde.
+
+---
+
+## D-065 — La app del vecino, por fin en un navegador
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+388 tests y ninguno tocaba una pantalla de la aplicación que usa el vecino. Todo lo de debajo estaba probado —la lógica del calendario, los clientes de la API, los manejadores— y las pantallas se comprobaban abriéndolas a mano, que es exactamente cómo el panel acumuló dos fallos que un navegador encontró en un minuto.
+
+**Expo exporta esta app para web**, así que el mismo código de React Native que va en el APK se renderiza aquí. El trato es claro: no es un teléfono, así que no dice nada de VoiceOver, ni del diálogo de permiso de notificaciones, ni de cómo va el mapa en un Android de hace cuatro años. Lo que sí dice es si una pantalla se pinta, si un vecino puede marcar un evento y volver a encontrarlo, y si el enlace compartido aterriza en algún sitio — que es la clase de fallo que deja a un concejal mirando un spinner.
+
+**Se prueba contra el export de verdad, no contra un servidor de desarrollo.** Un `expo export` es lo que se serviría, y construirlo es además cómo se caza una ruta que no se puede exportar.
+
+**Y la red está cortada.** Nada fuera de la aplicación es alcanzable durante los tests, que es la condición para la que se diseñó: una calle llena de gente en una procesión. El calendario va dentro del paquete, así que todo lo que lee un vecino tiene que seguir ahí, y el mapa —cuyas teselas vienen de un CDN de terceros— tiene que fallar sin llevarse la pantalla por delante.
+
+Cuatro cosas aprendidas escribiéndolo, y las cuatro están en el fichero:
+
+**Los selectores son roles, no texto ni clases.** El diseño pone los encabezados en mayúsculas y flota la barra de pestañas sobre el contenido; un test que dependiera de cualquiera de las dos cosas se rompería en el siguiente cambio visual sin que nada estuviera mal. Y «Gratis» es a la vez un filtro y una etiqueta impresa en cada evento gratuito: buscar las palabras encuentra el filtro y un cartel.
+
+**No se cuentan tarjetas.** La lista se renderiza a medida que se desplaza, así que cuántas hay depende de cuándo mires. Lo que se afirma es que después de cada filtro sigue habiendo calendario.
+
+**Toda espera es una afirmación positiva sobre lo que debe estar en pantalla.** Escribí primero un ayudante que comprobaba que no hubiera un «Cargando…», y es inútil: `goto` vuelve antes de que la app hidrate, y una página en blanco tampoco tiene spinner. Ese ayudante pasaba con una aplicación que no había arrancado, que es justo el fallo que pretendía cazar. No queda ninguno en el fichero.
+
+**Y el idioma es el del dispositivo.** Un navegador sin cabeza pide `en-US`, así que la primera versión probó cada pantalla en inglés —la app le hace caso, correctamente— con lo que casi ningún usuario ve. Ahora se fija `es-ES`, y hay un test aparte con un dispositivo en inglés, que es lo único que demuestra que el segundo idioma está conectado al teléfono y no solo escrito.
+
+El test de «Me interesa» se ha verificado rompiendo la persistencia: si el marcado no se guarda en el teléfono, falla. Y eso importa más de lo que parece, porque un marcado que no sobrevive a cerrar la aplicación es un recordatorio que nunca llega.

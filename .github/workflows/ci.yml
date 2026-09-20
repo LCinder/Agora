@@ -103,6 +103,42 @@ jobs:
           path: apps/web/playwright-report/
           retention-days: 7
 
+  app:
+    name: The resident's app in a browser
+    runs-on: ubuntu-latest
+
+    # Separate from the panel's job because it builds the app for web first, which
+    # is 5.6MB of JavaScript bundled from scratch and slower than everything else
+    # in this workflow put together.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm --filter @agora/mobile exec playwright install --with-deps chromium
+
+      # The four paths a neighbour takes: choose a town, read the calendar, mark an
+      # event and find it again, arrive from a shared link. Everything outside the
+      # app is blocked, which is the coverage this app was designed for.
+      - name: Drive the app
+        run: pnpm --filter @agora/mobile run test:e2e
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-app
+          path: apps/mobile/playwright-report/
+          retention-days: 7
+
   infra:
     name: Terraform format and validate
     runs-on: ubuntu-latest

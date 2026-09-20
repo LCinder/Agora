@@ -14,6 +14,10 @@ out/
 # Playwright: the browser's own reports and traces of a failed run
 apps/web/test-results/
 apps/web/playwright-report/
+apps/mobile/test-results/
+apps/mobile/playwright-report/
+# The app exported for web, which is what its browser tests run against.
+apps/mobile/.web-build/
 apps/web/blob-report/
 apps/web/.playwright/
 
