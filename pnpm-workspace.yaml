@@ -12,7 +12,10 @@ minimumReleaseAgeExclude:
   - '@expo/*'
 
 allowBuilds:
-  core-js: set this to true or false
+  # core-js arrives under jsPDF and its postinstall only prints a sponsorship
+  # message. Nothing in this repository needs it to run, and the panel uses jsPDF's
+  # prebuilt bundle, so it stays off rather than being left for pnpm to ask about.
+  core-js: false
   # esbuild fetches its platform binary in a postinstall script. It bundles the
   # Lambdas of apps/functions and never ships in the app or the panel.
   esbuild: true
