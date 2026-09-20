@@ -1,8 +1,14 @@
-import { DeleteCommand, GetCommand, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { GetCommand, QueryCommand, TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
 
 import type { StoreClient } from './client';
 import { forbidden, notFound } from './errors';
-import { MEMBERSHIP_PREFIX, membershipKey, membershipPk } from './keys';
+import {
+  MEMBERSHIP_PREFIX,
+  membershipKey,
+  membershipPk,
+  municipalMemberKey,
+  municipalityPk,
+} from './keys';
 import type { StaffActor, StaffRole } from './staff-store';
 
 /**
@@ -49,6 +55,13 @@ export interface NewMembership {
 export interface MembershipStore {
   /** Every municipality this person may work in. */
   listForUser(authUserId: string): Promise<Membership[]>;
+  /**
+   * Everybody with access to a municipality, for the screen that manages them.
+   *
+   * Municipal staff only — an association has no business knowing who else works
+   * for the town hall — and the check is here rather than in the handler.
+   */
+  listForMunicipality(actor: StaffActor): Promise<Membership[]>;
   get(authUserId: string, municipalityId: string): Promise<Membership | null>;
   /** Municipal administrators only, and only for their own municipality. */
   grant(actor: StaffActor, membership: NewMembership): Promise<Membership>;
@@ -110,6 +123,25 @@ export function createMembershipStore(client: StoreClient, tableName: string): M
 
     get,
 
+    async listForMunicipality(actor) {
+      if (actor.role !== 'municipal_editor' && actor.role !== 'municipal_admin') {
+        throw forbidden('Quién tiene acceso lo ve el ayuntamiento.');
+      }
+
+      const result = await client.send(
+        new QueryCommand({
+          TableName: tableName,
+          KeyConditionExpression: 'pk = :pk and begins_with(sk, :prefix)',
+          ExpressionAttributeValues: {
+            ':pk': municipalityPk(actor.municipalityId),
+            ':prefix': MEMBERSHIP_PREFIX,
+          },
+        }),
+      );
+
+      return (result.Items ?? []).map(toMembership);
+    },
+
     async grant(actor, membership) {
       assertMayGrant(actor);
 
@@ -130,15 +162,34 @@ export function createMembershipStore(client: StoreClient, tableName: string): M
         createdAt: new Date(),
       };
 
+      const item = {
+        entity: 'membership',
+        ...created,
+        createdAt: created.createdAt.toISOString(),
+      };
+
+      // Both rows or neither: the mirror under the municipality is what the panel
+      // reads to show who has access, and one written without the other would
+      // either hide somebody who can log in or list somebody who cannot.
       await client.send(
-        new PutCommand({
-          TableName: tableName,
-          Item: {
-            ...membershipKey(created.authUserId, created.municipalityId),
-            entity: 'membership',
-            ...created,
-            createdAt: created.createdAt.toISOString(),
-          },
+        new TransactWriteCommand({
+          TransactItems: [
+            {
+              Put: {
+                TableName: tableName,
+                Item: { ...membershipKey(created.authUserId, created.municipalityId), ...item },
+              },
+            },
+            {
+              Put: {
+                TableName: tableName,
+                Item: {
+                  ...municipalMemberKey(created.municipalityId, created.authUserId),
+                  ...item,
+                },
+              },
+            },
+          ],
         }),
       );
 
@@ -161,9 +212,21 @@ export function createMembershipStore(client: StoreClient, tableName: string): M
       }
 
       await client.send(
-        new DeleteCommand({
-          TableName: tableName,
-          Key: membershipKey(authUserId, actor.municipalityId),
+        new TransactWriteCommand({
+          TransactItems: [
+            {
+              Delete: {
+                TableName: tableName,
+                Key: membershipKey(authUserId, actor.municipalityId),
+              },
+            },
+            {
+              Delete: {
+                TableName: tableName,
+                Key: municipalMemberKey(actor.municipalityId, authUserId),
+              },
+            },
+          ],
         }),
       );
     },

@@ -372,6 +372,49 @@ describe.skipIf(local === null)('the panel', () => {
   // The data panel
   // -------------------------------------------------------------------------
 
+  describe('who has access', () => {
+    it('lists everybody with a membership in the municipality', async () => {
+      const store = createMembershipStore(client, TABLE);
+
+      await store.grant(admin, {
+        authUserId: 'auth-listed',
+        role: 'municipal_editor',
+        email: 'listado@lazubia.es',
+        fullName: 'Persona listada',
+      });
+
+      const people = await store.listForMunicipality(editor);
+      const listed = people.find((member) => member.authUserId === 'auth-listed');
+
+      expect(listed?.email).toBe('listado@lazubia.es');
+      expect(people.every((member) => member.municipalityId === ZUBIA)).toBe(true);
+    });
+
+    it('stops listing somebody whose access was taken away', async () => {
+      const store = createMembershipStore(client, TABLE);
+
+      await store.grant(admin, {
+        authUserId: 'auth-temporary',
+        role: 'municipal_editor',
+        email: 'temporal@lazubia.es',
+      });
+
+      await store.revoke(admin, 'auth-temporary');
+
+      const people = await store.listForMunicipality(admin);
+
+      // Both rows go, or the screen would offer to remove somebody who is gone.
+      expect(people.map((member) => member.authUserId)).not.toContain('auth-temporary');
+      expect(await store.listForUser('auth-temporary')).toEqual([]);
+    });
+
+    it('is not an association\u2019s business', async () => {
+      await expect(
+        createMembershipStore(client, TABLE).listForMunicipality(hermandad),
+      ).rejects.toThrow(StoreError);
+    });
+  });
+
   describe('the neighbours, counted', () => {
     it('counts a phone once however many times it says it follows a town', async () => {
       const one = createDeviceStore(client, TABLE, 'device-follow-one');

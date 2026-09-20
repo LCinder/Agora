@@ -14,12 +14,24 @@ import { usePanel } from '../../../lib/panel-store';
  * town hall only says yes or no.
  */
 export default function ReviewPage() {
-  const { approveEvent, events, loading, municipality, organizations, rejectEvent } = usePanel();
+  const { approveEvent, events, loading, municipality, organizations, rejectEvent, role } =
+    usePanel();
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [reason, setReason] = useState('');
 
   if (loading || !municipality) {
     return <p className="text-sm text-neutral-500">Cargando…</p>;
+  }
+
+  // Reachable by typing the address, since a static site has no server to stop
+  // anybody. The API refuses it too, which is where it matters.
+  if (role === 'org_editor') {
+    return (
+      <>
+        <PageHeader title="Revisión" />
+        <Empty>La bandeja de revisión es del ayuntamiento.</Empty>
+      </>
+    );
   }
 
   const context = { now: new Date(), timeZone: municipality.timeZone, locale: 'es' as const };

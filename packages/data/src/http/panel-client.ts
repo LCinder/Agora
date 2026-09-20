@@ -210,6 +210,8 @@ export interface PanelClient {
     status: (typeof ORGANIZATION_STATUSES)[number],
   ): Promise<Organization>;
 
+  /** Everybody with access to this municipality. Municipal staff only. */
+  listStaff(): Promise<Membership[]>;
   /** Creates the account in Cognito and the membership in one request. */
   invite(input: {
     email: string;
@@ -322,6 +324,10 @@ export function createPanelClient(options: PanelClientOptions): PanelClient {
           status,
         }),
       );
+    },
+
+    async listStaff() {
+      return api.get(`${town}/staff`, one(z.array(membershipSchema)));
     },
 
     async invite(input) {

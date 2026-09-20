@@ -16,16 +16,25 @@ const STATUS_OPTIONS: { value: EventStatus | 'all'; label: string }[] = [
 ];
 
 export default function EventsPage() {
-  const { categories, events, loading, municipality, organizations } = usePanel();
+  const { categories, events, loading, municipality, organizationId, organizations, role } =
+    usePanel();
   const [status, setStatus] = useState<EventStatus | 'all'>('all');
   const [categoryId, setCategoryId] = useState('all');
 
+  const ownOnly = role === 'org_editor';
+
   const filtered = useMemo(() => {
-    return events
-      .filter((event) => status === 'all' || event.status === status)
-      .filter((event) => categoryId === 'all' || event.categoryId === categoryId)
-      .sort(byStartDate);
-  }, [categoryId, events, status]);
+    return (
+      events
+        // An association's panel is its own events, as the product document puts
+        // it (9.6). The API already keeps the rest of the town's drafts away from
+        // them; this is so the list is theirs and not a mixed one.
+        .filter((event) => !ownOnly || event.organizationId === organizationId)
+        .filter((event) => status === 'all' || event.status === status)
+        .filter((event) => categoryId === 'all' || event.categoryId === categoryId)
+        .sort(byStartDate)
+    );
+  }, [categoryId, events, organizationId, ownOnly, status]);
 
   if (loading || !municipality) {
     return <p className="text-sm text-neutral-500">Cargando…</p>;
@@ -36,8 +45,12 @@ export default function EventsPage() {
   return (
     <>
       <PageHeader
-        title="Eventos"
-        description="Todo lo que hay en la agenda, en cualquier estado."
+        title={ownOnly ? 'Mis eventos' : 'Eventos'}
+        description={
+          ownOnly
+            ? 'Los eventos de tu asociación, con el estado en el que está cada uno.'
+            : 'Todo lo que hay en la agenda, en cualquier estado.'
+        }
         action={
           <Link
             href="/eventos/nuevo"

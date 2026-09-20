@@ -388,6 +388,12 @@ const ROUTES: readonly Route<RequestContext>[] = [
     },
   },
   {
+    method: 'GET',
+    pattern: 'municipalities/:municipalityId/staff',
+    run: async (_parameters, { panel }) =>
+      ok(await panel.memberships.listForMunicipality(panel.actor)),
+  },
+  {
     method: 'POST',
     pattern: 'municipalities/:municipalityId/invitations',
     run: async (_parameters, { event, panel, identities }) => {

@@ -17,9 +17,23 @@ import { Button, Card, Checkbox, Field, Input, Select, TextArea } from './ui';
  * and can be filled in later.
  */
 export function EventForm({ event }: { event?: Event }) {
-  const { categories, createEvent, municipality, organizations, updateEvent } = usePanel();
+  const {
+    categories,
+    createEvent,
+    municipality,
+    organizationId: ownOrganizationId,
+    organizations,
+    role,
+    updateEvent,
+  } = usePanel();
   const router = useRouter();
   const timeZone = municipality?.timeZone ?? 'Europe/Madrid';
+
+  // What the button can honestly promise. An association that the town hall has
+  // not marked as trusted cannot publish, whatever it asks the API for, so saying
+  // "Publicar evento" to them would be a lie the next screen would correct.
+  const mine = organizations.find((organization) => organization.id === ownOrganizationId);
+  const publishesDirectly = role !== 'org_editor' || mine?.isTrusted === true;
 
   const start = event ? toLocalParts(event.startAt, timeZone) : null;
   const end = event?.endAt ? toLocalParts(event.endAt, timeZone) : null;
@@ -36,6 +50,7 @@ export function EventForm({ event }: { event?: Event }) {
   const [isFeatured, setIsFeatured] = useState(event?.isFeatured ?? false);
   const [organizationId, setOrganizationId] = useState(event?.organizationId ?? '');
   const [error, setError] = useState<string | null>(null);
+  const [queued, setQueued] = useState<'new' | 'edit' | null>(null);
 
   const titleRef = useRef<HTMLInputElement>(null);
 
@@ -76,8 +91,22 @@ export function EventForm({ event }: { event?: Event }) {
     // The list is only left once the write has landed: with a real backend behind
     // this, navigating first would show the previous calendar for a second and
     // hide any refusal the API sent back.
-    if (event) await updateEvent(event.id, draft);
-    else await createEvent(draft);
+    if (event) {
+      const result = await updateEvent(event.id, draft);
+
+      // An untrusted association editing something already published does not
+      // change what the neighbours see: the change waits for the town hall, and
+      // saying so here is what stops them editing it again tomorrow.
+      if (result === 'queued') {
+        setQueued('edit');
+
+        return;
+      }
+    } else if ((await createEvent(draft)) === 'queued') {
+      setQueued('new');
+
+      return;
+    }
 
     router.push('/eventos');
   }
@@ -147,7 +176,9 @@ export function EventForm({ event }: { event?: Event }) {
             </Select>
           </Field>
 
-          <Field label="Organiza">
+          {/* An association's events are its own, and the API writes them that way
+              whatever this form sends, so there is nothing here to choose. */}
+          <Field label="Organiza" hidden={role === 'org_editor'}>
             <Select
               value={organizationId}
               onChange={(changeEvent) => setOrganizationId(changeEvent.target.value)}
@@ -194,9 +225,28 @@ export function EventForm({ event }: { event?: Event }) {
             </p>
           ) : null}
 
+          {queued !== null ? (
+            <p role="status" className="text-sm font-medium">
+              {queued === 'edit'
+                ? 'Guardado y enviado al ayuntamiento. Hasta que lo aprueben, los vecinos siguen viendo la versión anterior.'
+                : 'Enviado al ayuntamiento. Aparecerá en la agenda cuando lo aprueben.'}{' '}
+              <button
+                type="button"
+                onClick={() => router.push('/eventos')}
+                className="underline underline-offset-2"
+              >
+                Volver a mis eventos
+              </button>
+            </p>
+          ) : null}
+
           <div className="flex flex-wrap gap-3">
             <Button type="submit" brand={municipality?.branding.primaryColor}>
-              {event ? 'Guardar cambios' : 'Publicar evento'}
+              {event
+                ? 'Guardar cambios'
+                : publishesDirectly
+                  ? 'Publicar evento'
+                  : 'Enviar al ayuntamiento'}
             </Button>
             <Button variant="secondary" onClick={() => router.push('/eventos')}>
               Cancelar

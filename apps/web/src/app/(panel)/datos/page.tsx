@@ -38,7 +38,8 @@ function shorten(title: string): string {
 }
 
 export default function DataPage() {
-  const { categories, events, loading, municipality, stats } = usePanel();
+  const { categories, events, loading, municipality, role, stats } = usePanel();
+  const municipal = role === 'municipal_editor' || role === 'municipal_admin';
   const [asTable, setAsTable] = useState(false);
 
   const published = useMemo(() => residentVisibleEvents(events), [events]);
@@ -164,11 +165,15 @@ export default function DataPage() {
         <StatTile label="Eventos publicados" value={publishedCount} />
         <StatTile label="Marcas de «Me interesa»" value={totalInterest.toLocaleString('es-ES')} />
         <StatTile label="Media por evento" value={averagePerEvent} />
-        <StatTile
-          label="Dispositivos activos"
-          value={(stats?.devices.following ?? DEMO_ACTIVE_DEVICES).toLocaleString('es-ES')}
-          hint="Vecinos con la app, sin registrarse"
-        />
+        {municipal ? (
+          <StatTile
+            label="Dispositivos activos"
+            value={(stats?.devices.following ?? DEMO_ACTIVE_DEVICES).toLocaleString('es-ES')}
+            hint="Vecinos con la app, sin registrarse"
+          />
+        ) : (
+          <StatTile label="Eventos en revisión" value={stats?.events.awaitingReview ?? 0} />
+        )}
       </div>
 
       {stats !== null && stats.suppressed > 0 ? (

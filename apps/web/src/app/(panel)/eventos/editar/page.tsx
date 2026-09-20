@@ -47,8 +47,12 @@ export default function EditEventPage() {
 
 function EditEventView() {
   const id = useSearchParams().get('id') ?? '';
-  const { addNotice, cancelEvent, events, loading, municipality, notices, refreshNotices } =
+  const { addNotice, cancelEvent, events, loading, municipality, notices, refreshNotices, role } =
     usePanel();
+
+  // Cancelling an event and sending a notice are the town hall's (7.3): a message
+  // to every neighbour who marked something cannot be taken back.
+  const municipal = role === 'municipal_editor' || role === 'municipal_admin';
 
   // With a real backend the notices live under the event, so they are asked for
   // when one is opened. A no-op in the demo, which holds them all in the browser.
@@ -95,10 +99,20 @@ function EditEventView() {
       <EventForm event={event} />
 
       <section className="mt-8 grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <NoticeComposer
-          interested={demoInterestCount(event.id, event.isFeatured)}
-          onSend={(type, message) => void addNotice({ eventId: event.id, type, message })}
-        />
+        {municipal ? (
+          <NoticeComposer
+            interested={demoInterestCount(event.id, event.isFeatured)}
+            onSend={(type, message) => void addNotice({ eventId: event.id, type, message })}
+          />
+        ) : (
+          <Card className="h-fit">
+            <h2 className="text-lg font-semibold">Avisos</h2>
+            <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+              Los avisos a los vecinos los envía el ayuntamiento. Si cambia la hora o el lugar,
+              edítalo aquí y ellos lo avisarán.
+            </p>
+          </Card>
+        )}
 
         <Card className="h-fit">
           <h2 className="text-lg font-semibold">Avisos enviados</h2>

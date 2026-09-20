@@ -166,6 +166,17 @@ describe.skipIf(local === null)('the panel API', () => {
       expect(invitations).toHaveLength(before);
     });
 
+    it('lists who has access, and refuses an association', async () => {
+      const mine = await call('GET', `municipalities/${ZUBIA}/staff`, { subject: EDITOR });
+      const theirs = await call('GET', `municipalities/${ZUBIA}/staff`, { subject: ASSOCIATION });
+
+      const people = bodyOf(mine) as { email: string }[];
+
+      expect(statusOf(mine)).toBe(200);
+      expect(people.map((member) => member.email)).toContain('admin@lazubia.es');
+      expect(statusOf(theirs)).toBe(403);
+    });
+
     it('refuses a body without a real email', async () => {
       const result = await call('POST', `municipalities/${ZUBIA}/invitations`, {
         subject: ADMIN,

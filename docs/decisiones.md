@@ -844,3 +844,25 @@ Lo que faltaba era la cifra que el panel promete desde el principio: **cuántos 
 **Nunca se oculta por ser pequeño**, a diferencia de los segmentos: es el total del municipio, como el total de marcas, y un total no identifica a nadie. Lo que sí se oculta —los interesados de un evento con menos de 5— sigue igual.
 
 Un fallo que salió escribiéndolo, y que solo existía en el arnés de pruebas: el contrato repartía las peticiones a un manejador u otro **por lo que contenía la ruta**, así que `PUT /me/municipalities/{id}` se fue a la API pública en cuanto la ruta de un dispositivo llevó la palabra «municipalities» dentro. En la nube no pasa —API Gateway tiene una integración por ruta— pero el arnés tiene que ser fiel, así que ahora reparte por ruta exacta.
+
+---
+
+## D-050 — El panel sabe quién eres, y ya tiene todas sus pantallas
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+El panel leía la membresía y tiraba el rol. La API no: comprueba en cada petición lo que esa persona puede hacer, así que nada estaba abierto — pero una asociación veía la pestaña «Revisión» con botones de aprobar que el servidor rechazaba. Ofrecer un botón que contesta 403 es peor que no ofrecerlo.
+
+**El rol viene de la tabla y se usa solo para no mentir.** No es un permiso: el permiso sigue estando en la API y en el almacén, probado contra DynamoDB de verdad. Aquí sirve para que la barra de navegación, los botones y los textos digan lo que esa persona puede hacer. La demo se enseña como el panel del ayuntamiento, así que allí el rol es responsable municipal.
+
+**Lo que ve una asociación:** sus eventos («Mis eventos», no la agenda entera), sus métricas, y nada de la bandeja de revisión, las asociaciones, los directos o los usuarios. En el formulario desaparece el selector de «Organiza» —sus eventos son suyos y la API los escribe así de todos modos— y el botón dice **«Enviar al ayuntamiento»** en vez de «Publicar evento» cuando la asociación no es de confianza, porque es lo que va a pasar. Al guardar un cambio sobre algo ya publicado se le dice que queda pendiente y que **los vecinos siguen viendo la versión anterior**, que es justo el criterio de aceptación de la sección 7.2 y lo único que evita que lo vuelva a editar mañana.
+
+**Tres pantallas nuevas, sobre API que ya existía y estaba probada:**
+
+- **Asociaciones.** Alta, correo de contacto, baja y reactivación, y el interruptor **«De confianza»** con su consecuencia escrita al lado: sus eventos se publican sin pasar por revisión. Es la palanca que mantiene corta la bandeja, y merecía explicarse en vez de etiquetarse.
+- **Usuarios.** Invitar (cuenta en Cognito + membresía en una petición) y quitar acceso. Quitar el acceso es borrar la membresía: la cuenta puede seguir existiendo y ya no abre nada, que es la propiedad por la que se eligió esta arquitectura — nada que esperar, ningún testigo que caduque.
+- **Directos.** Preparar el directo de un evento, el código en tipografía grande para leerlo en voz alta con un botón de copiar, y empezar, pausar y terminar. **No hay QR**, y no por olvido: la app no tiene lector, así que un código que nadie puede escanear solo parecería una funcionalidad. Cuando haya lector, el QR es media hora.
+
+**Y una fila más en la tabla para poder contestar «quién tiene acceso».** La membresía se guardaba solo bajo la persona (`USER#<sub>` / `MEM#<municipio>`), lo que responde «dónde puede trabajar esta persona» pero no «quién entra en mi ayuntamiento». Ahora se escribe también bajo el municipio (`MUN#<id>` / `MEM#<sub>`), las dos en una transacción: un espejo que pueda desincronizarse sería peor que no tenerlo, porque enseñaría a un técnico que ya se fue. Se lee con la misma consulta que el panel ya hace, sin índice nuevo y sin recorrer la tabla.
+
+En la demo todo esto funciona sin API: las asociaciones y sus cambios se guardan en el navegador como los eventos, las invitaciones se quedan en memoria y la pantalla lo dice, y los directos llevan un código con el mismo alfabeto sin O, 0, I ni 1 para que lo que se enseña en una reunión se parezca a lo que luego sale.

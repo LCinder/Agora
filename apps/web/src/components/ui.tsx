@@ -97,13 +97,18 @@ export function Field({
   label,
   hint,
   required = false,
+  hidden = false,
   children,
 }: {
   label: string;
   hint?: string;
   required?: boolean;
+  /** For a field that does not apply to whoever is looking at the form. */
+  hidden?: boolean;
   children: ReactNode;
 }) {
+  if (hidden) return null;
+
   return (
     <label className="block">
       <span className="mb-1 block text-sm font-medium">
@@ -138,10 +143,13 @@ export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
 
 export function Checkbox({
   label,
+  hint,
   checked,
   onChange,
 }: {
   label: string;
+  /** For a switch whose consequence is not obvious from its name. */
+  hint?: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
 }) {
@@ -153,7 +161,12 @@ export function Checkbox({
         onChange={(event) => onChange(event.target.checked)}
         className="size-4"
       />
-      {label}
+      <span>
+        {label}
+        {hint === undefined ? null : (
+          <span className="block text-xs text-neutral-500 dark:text-neutral-400">{hint}</span>
+        )}
+      </span>
     </label>
   );
 }

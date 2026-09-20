@@ -48,7 +48,9 @@ pnpm install
 pnpm --filter @agora/web dev
 ```
 
-- Panel del ayuntamiento: <http://localhost:3000>
+- Panel del ayuntamiento: <http://localhost:3000> — inicio, eventos, revisión, directos,
+  asociaciones, datos y usuarios. Lo que se ve depende del rol de quien entra: una asociación ve sus
+  eventos y sus métricas y nada más (D-050).
 - Página pública de un evento: <http://localhost:3000/e/la-zubia/lz-cabalgata>
 
 Para que funcionen los carteles, copia `apps/web/.env.example` a `apps/web/.env.local` y pon tus

@@ -165,7 +165,8 @@ origin access control no añade `.html` por su cuenta. Está en `modules/web/fun
       pendientes, avisos, asociaciones, altas de personal, estadísticas y auditoría (D-040).
 - [x] **Invitar a una persona.** Hecho: `POST /panel/.../invitations` crea la cuenta en Cognito y la
       membresía en la tabla en la misma petición, con permiso de IAM solo para crear y leer un
-      usuario (D-048). Lo que falta es la pantalla en el panel; el endpoint y el cliente existen.
+      usuario (D-048), y el panel tiene la pantalla de usuarios, la de asociaciones y la de directos
+      (D-050).
 - [x] **La página pública de evento y los carteles.** Hechos (D-041). La página se sirve desde la
       Lambda con sus etiquetas Open Graph, y los carteles comparten implementación con el panel.
 - [ ] **`site_url` en el segundo apply.** La página de evento necesita su dirección absoluta para las

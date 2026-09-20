@@ -105,6 +105,25 @@ export const AUDIT_PREFIX = 'AUD#';
 
 export const MEMBERSHIP_PREFIX = 'MEM#';
 
+/**
+ * The same membership, filed under the municipality instead of the person.
+ *
+ * Two rows for one fact, which is the price of answering both questions this
+ * product asks: "where may this person work" (by person) and "who has access to
+ * my town hall" (by municipality). A single row cannot answer both without an
+ * index, and an index costs a write on every change too — the difference is that
+ * this one is readable in the same query the panel already makes.
+ *
+ * They are written and deleted together, in a transaction, because a mirror that
+ * can drift is worse than not having one: it would show a technician who left.
+ */
+export function municipalMemberKey(
+  municipalityId: string,
+  authUserId: string,
+): { pk: string; sk: string } {
+  return { pk: municipalityPk(municipalityId), sk: `MEM#${authUserId}` };
+}
+
 export function liveSessionKey(eventId: string): { pk: string; sk: string } {
   return { pk: `EVT#${eventId}`, sk: 'LIVE' };
 }
