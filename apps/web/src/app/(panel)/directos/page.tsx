@@ -178,6 +178,20 @@ export default function LivePage() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-3">
+                    {/* Flagged for live tracking but with no session behind it: what a
+                        seeded event looks like, and what an ended one leaves. The
+                        card offers the same thing the form above does, so nobody has
+                        to work out that they are the same action. */}
+                    {session === null || session.status === 'ended' ? (
+                      <Button
+                        disabled={working}
+                        brand={municipality.branding.primaryColor}
+                        onClick={() => void run(event.id, 'schedule')}
+                      >
+                        {session === null ? 'Preparar' : 'Preparar otro'}
+                      </Button>
+                    ) : null}
+
                     {session?.status === 'active' ? (
                       <Button
                         variant="secondary"
