@@ -146,9 +146,25 @@ export function liveCodeKey(code: string): { pk: string; sk: string } {
   return { pk: `CODE#${code.toUpperCase()}`, sk: 'LIVE' };
 }
 
-export function dailyStatsKey(eventId: string, day: string): { pk: string; sk: string } {
-  return { pk: `EVT#${eventId}`, sk: `STAT#${day}` };
+/**
+ * Marks added in one month, in one municipality.
+ *
+ * A counter and not a log, for the same reason as the device count: the panel
+ * needs the shape of the curve and nothing else. It lives under the municipality
+ * so the whole series comes back in the query the statistics already make, and it
+ * is keyed `MONTH#` rather than `STAT#` so it does not share a prefix with the
+ * device counter next to it.
+ *
+ * It counts **additions**, never subtractions. A neighbour who unmarks an event
+ * three months later cannot un-happen the interest they showed in June, and
+ * deciding which month to take it off is a question with no good answer — so the
+ * series says "marcas nuevas por mes", which is what it is.
+ */
+export function monthlyStatsKey(municipalityId: string, month: string): { pk: string; sk: string } {
+  return { pk: municipalityPk(municipalityId), sk: `MONTH#${month}` };
 }
+
+export const MONTH_PREFIX = 'MONTH#';
 
 /**
  * A resident's mark. The partition is the device, which is what makes one

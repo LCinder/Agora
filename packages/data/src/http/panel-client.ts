@@ -96,6 +96,8 @@ const statsSchema = z.object({
       }),
     ),
     byCategory: z.array(z.object({ categoryId: z.string(), interested: reportableSchema })),
+    /** New marks per month, oldest first. A municipal total, never suppressed. */
+    monthly: z.array(z.object({ month: z.string(), interested: z.number() })),
   }),
   suppressed: z.number(),
   generatedAt: z.coerce.date(),

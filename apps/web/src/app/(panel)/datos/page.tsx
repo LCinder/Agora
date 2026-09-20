@@ -33,6 +33,48 @@ import { downloadReport, type ReportRow } from '../../../lib/report';
 
 const MONTHS = ['Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep'] as const;
 
+/** `2026-09` written out for a document: "septiembre de 2026". */
+function monthName(month: string): string {
+  const [year, index] = month.split('-');
+  const names = [
+    'enero',
+    'febrero',
+    'marzo',
+    'abril',
+    'mayo',
+    'junio',
+    'julio',
+    'agosto',
+    'septiembre',
+    'octubre',
+    'noviembre',
+    'diciembre',
+  ];
+
+  return `${names[Number(index) - 1] ?? month} de ${year ?? ''}`.trim();
+}
+
+/** `2026-09` as the axis wants it: "sep 26". */
+function monthLabel(month: string): string {
+  const [year, index] = month.split('-');
+  const names = [
+    'ene',
+    'feb',
+    'mar',
+    'abr',
+    'may',
+    'jun',
+    'jul',
+    'ago',
+    'sep',
+    'oct',
+    'nov',
+    'dic',
+  ];
+
+  return `${names[Number(index) - 1] ?? month} ${year?.slice(2) ?? ''}`.trim();
+}
+
 /** A title that fits on an axis. */
 function shorten(title: string): string {
   return title.length > 34 ? `${title.slice(0, 33)}…` : title;
@@ -97,17 +139,29 @@ export default function DataPage() {
       .sort((a, b) => b.interesados - a.interesados);
   }, [categories, published, stats]);
 
-  const monthly = useMemo(
-    () =>
-      MONTHS.map((month, index) => ({
-        name: month,
-        interesados: Math.round(
-          (byEvent.reduce((sum, entry) => sum + entry.interesados, 0) / MONTHS.length) *
-            (0.6 + index * 0.16),
-        ),
-      })),
-    [byEvent],
-  );
+  /**
+   * New marks per month.
+   *
+   * From the API when there is one, where it is a counter written the moment a
+   * resident marks something. In the demo it is invented from the seed, which is
+   * why the card says so and why the PDF leaves it out (D-054).
+   */
+  const monthly = useMemo(() => {
+    if (stats !== null) {
+      return stats.interests.monthly.map((entry) => ({
+        name: monthLabel(entry.month),
+        interesados: entry.interested,
+      }));
+    }
+
+    return MONTHS.map((month, index) => ({
+      name: month,
+      interesados: Math.round(
+        (byEvent.reduce((sum, entry) => sum + entry.interesados, 0) / MONTHS.length) *
+          (0.6 + index * 0.16),
+      ),
+    }));
+  }, [byEvent, stats]);
 
   if (loading || !municipality) {
     return <p className="text-sm text-neutral-500">Cargando…</p>;
@@ -191,6 +245,16 @@ export default function DataPage() {
           name: entry.name,
           interested: entry.interesados,
         })),
+        // Only when it is real. The demo's line is invented from the seed, and a
+        // made-up curve is the one thing a document with a town hall's name on it
+        // must not carry — the screen may show it with a caption, paper cannot.
+        monthly:
+          stats === null
+            ? []
+            : stats.interests.monthly.map((entry) => ({
+                label: monthName(entry.month),
+                interested: entry.interested,
+              })),
         suppressed: stats?.suppressed ?? 0,
         demo,
       });
@@ -341,10 +405,10 @@ export default function DataPage() {
               </ResponsiveContainer>
             </ChartCard>
 
-            {/* Invented from the seed, so it is shown only in the demo: the API has
-                no monthly series yet, and a made-up line on a councillor's report
-                is the one thing this screen must never do. */}
-            <ChartCard title="Evolución mensual" hidden={stats !== null}>
+            {/* Real when there is an API behind it. In the demo it is invented from
+                the seed, and the caption underneath says so: a made-up line on a
+                councillor's report is the one thing this screen must never do. */}
+            <ChartCard title="Marcas nuevas por mes" hidden={monthly.length === 0}>
               <ResponsiveContainer width="100%" height={260}>
                 <LineChart data={monthly} margin={{ left: 0, right: 8 }}>
                   <CartesianGrid vertical={false} stroke="var(--viz-grid)" />
@@ -375,8 +439,9 @@ export default function DataPage() {
       )}
 
       <p className="mt-6 text-xs text-neutral-500">
-        Datos de ejemplo para la demostración. En el producto real proceden de las marcas anónimas
-        de «Me interesa», y nunca se muestran segmentos con menos de cinco dispositivos.
+        {stats === null
+          ? 'Datos de ejemplo para la demostración. En el producto real proceden de las marcas anónimas de «Me interesa», y nunca se muestran segmentos con menos de cinco dispositivos.'
+          : 'Las cifras salen de las marcas anónimas de «Me interesa». Nunca se muestran segmentos con menos de cinco dispositivos.'}
       </p>
     </div>
   );

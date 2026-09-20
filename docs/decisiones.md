@@ -926,3 +926,23 @@ Desplegar esto son seis pasos en un orden concreto —estado remoto, backend, co
 Los mensajes están en español porque los lee una persona; el código y los comentarios, en inglés como todo lo demás. La CI lo pasa por `bash -n` y `shellcheck`, porque es el único fichero del repositorio que se ejecuta contra una cuenta de verdad y merece revisarse como código y no creerse como un documento.
 
 Los pasos a mano siguen en `infra/terraform/README.md`, y conviene leerlos la primera vez: el script es para la segunda.
+
+---
+
+## D-054 — La serie mensual: un contador, y solo hacia arriba
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+La última gráfica que seguía inventada. Ahora existe de verdad y, con ella, la sección que le faltaba al informe.
+
+**Es un contador por municipio y mes** (`MUN#<id>` / `MONTH#<aaaa-mm>`), no un registro de eventos. Se incrementa en la misma transacción que escribe la marca, así que no hay forma de que una cosa esté y la otra no, y toda la serie vuelve en la consulta que las estadísticas ya hacían — sin índice nuevo y sin recorrer nada. La clave lleva prefijo `MONTH#` y no `STAT#` para no compartirlo con el contador de dispositivos que vive al lado.
+
+**Cuenta altas, nunca bajas, y es a propósito.** Un vecino que desmarca un evento tres meses después no puede des-ocurrir el interés que mostró en junio, y decidir de qué mes descontarlo es una pregunta sin buena respuesta. Así que la serie se llama lo que es: **«marcas nuevas por mes»**. El contador de cada evento sí baja al desmarcar, porque ese número responde a otra pregunta — cuánta gente está interesada ahora.
+
+**El mes se calcula en la zona del municipio**, como todas las fechas del producto: las doce y media de la noche del 30 de septiembre en Madrid ya es octubre, y esa marca pertenece a octubre aunque el servidor piense en UTC. Se usa la zona por defecto en lugar de leer la del municipio en cada marca: son una lectura por marca para mover la frontera de un cubo estadístico, y todos los municipios de la plataforma están en la misma zona. El día que haya uno fuera, se lee.
+
+**Un año y no más.** La consulta pide los doce últimos meses ordenados de nuevo a viejo y los da la vuelta, así que la pantalla y el informe tardan lo mismo el primer año que el quinto.
+
+**Y en el informe solo sale si es real.** La demo dibuja su línea inventada con una nota debajo que lo dice, porque enseñarla en una reunión es útil; el PDF la omite, porque un documento con el nombre de un ayuntamiento no puede llevar una curva inventada y la nota no viaja con el papel.
+
+Sustituye a `dailyStatsKey`, que estaba definida desde el principio y no la escribía nadie: estadísticas diarias por evento habrían sido una lectura por evento para dibujar una línea del municipio.

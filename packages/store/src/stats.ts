@@ -3,7 +3,7 @@ import { GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 
 import type { StoreClient } from './client';
 import { interestCountOf } from './items';
-import { SK_PREFIX, deviceCountKey, municipalityPk } from './keys';
+import { MONTH_PREFIX, SK_PREFIX, deviceCountKey, municipalityPk } from './keys';
 import type { StaffActor } from './staff-store';
 
 /**
@@ -27,6 +27,9 @@ import type { StaffActor } from './staff-store';
  * a second source of truth to keep honest.
  */
 export const MINIMUM_SEGMENT = 5;
+
+/** A year of the monthly series is what a memoria anual compares against. */
+const MONTHS_KEPT = 12;
 
 /** A count, or null when it is too small to be shown. */
 export type ReportableCount = number | null;
@@ -61,6 +64,15 @@ export interface PanelStats {
     /** Most marked events first. */
     topEvents: EventInterest[];
     byCategory: { categoryId: string; interested: ReportableCount }[];
+    /**
+     * New marks per month, oldest first, as `2026-09`.
+     *
+     * The shape of the curve, which is the question a councillor actually asks:
+     * is this growing. Counted on the way up only, so it never goes backwards
+     * because somebody tidied their list — and it is a municipal total, not a
+     * segment, so it is never suppressed.
+     */
+    monthly: { month: string; interested: number }[];
   };
   /** How many numbers were held back for being too small. */
   suppressed: number;
@@ -82,7 +94,7 @@ export function createStatsStore(
 ): StatsStore {
   return {
     async summary(options = {}) {
-      const [result, devices] = await Promise.all([
+      const [result, devices, months] = await Promise.all([
         client.send(
           new QueryCommand({
             TableName: tableName,
@@ -99,10 +111,31 @@ export function createStatsStore(
             Key: deviceCountKey(actor.municipalityId),
           }),
         ),
+        client.send(
+          new QueryCommand({
+            TableName: tableName,
+            KeyConditionExpression: 'pk = :pk and begins_with(sk, :prefix)',
+            ExpressionAttributeValues: {
+              ':pk': municipalityPk(actor.municipalityId),
+              ':prefix': MONTH_PREFIX,
+            },
+            // Newest first, then reversed below: a year is all this reads, however
+            // many years the municipality has been on the platform.
+            ScanIndexForward: false,
+            Limit: MONTHS_KEPT,
+          }),
+        ),
       ]);
 
       const items = result.Items ?? [];
       const following = Number(devices.Item?.['deviceCount'] ?? 0);
+
+      const monthly = (months.Items ?? [])
+        .map((item) => ({
+          month: String(item['sk']).replace(MONTH_PREFIX, ''),
+          interested: Number(item['interestsAdded'] ?? 0),
+        }))
+        .reverse();
 
       // An association gets the numbers of its own events, which is what the
       // product document promises it, and nothing about the rest of the town.
@@ -175,7 +208,7 @@ export function createStatsStore(
       return {
         devices: { following },
         events,
-        interests: { total, topEvents, byCategory },
+        interests: { total, topEvents, byCategory, monthly },
         suppressed,
         generatedAt: new Date(),
       };

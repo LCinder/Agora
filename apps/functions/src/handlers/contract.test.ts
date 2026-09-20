@@ -592,6 +592,9 @@ describe.skipIf(local === null)('the app against the API', () => {
 
     expect(summary.events.published).toBeGreaterThan(0);
     expect(summary.generatedAt).toBeInstanceOf(Date);
+    // The series the panel draws and the report prints, in the shape the client
+    // declares: a month and a number, oldest first.
+    expect(Array.isArray(summary.interests.monthly)).toBe(true);
 
     const cancelled = await panel.cancelEvent(created.id);
 

@@ -1,3 +1,4 @@
+import { DEFAULT_TIME_ZONE, monthKeyInZone } from '@agora/core';
 import { TransactionCanceledException } from '@aws-sdk/client-dynamodb';
 import {
   DeleteCommand,
@@ -12,6 +13,7 @@ import { notFound } from './errors';
 import {
   FOLLOW_PREFIX,
   deviceCountKey,
+  monthlyStatsKey,
   deviceFollowKey,
   deviceKey,
   devicePk,
@@ -124,6 +126,24 @@ export function createDeviceStore(
             },
           };
 
+    // The month a mark was added to, for the series the panel draws. Counted in
+    // the time zone the whole product computes dates in rather than the server's,
+    // and only on the way up: see `monthlyStatsKey`.
+    const monthly =
+      by === 1
+        ? [
+            {
+              Update: {
+                TableName: tableName,
+                Key: monthlyStatsKey(municipalityId, monthKeyInZone(new Date(), DEFAULT_TIME_ZONE)),
+                UpdateExpression:
+                  'SET interestsAdded = if_not_exists(interestsAdded, :zero) + :one, entity = :entity',
+                ExpressionAttributeValues: { ':zero': 0, ':one': 1, ':entity': 'monthly_stats' },
+              },
+            },
+          ]
+        : [];
+
     try {
       await client.send(
         new TransactWriteCommand({
@@ -138,6 +158,7 @@ export function createDeviceStore(
                 ConditionExpression: 'attribute_exists(pk)',
               },
             },
+            ...monthly,
           ],
         }),
       );

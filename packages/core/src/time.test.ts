@@ -8,6 +8,7 @@ import {
   hourInZone,
   isSameDayInZone,
   minutesSince,
+  monthKeyInZone,
   nextDayRange,
   parseLocalDateTime,
   toLocalParts,
@@ -171,6 +172,16 @@ describe('nextDayRange', () => {
 
     expect(range.start.toISOString()).toBe('2026-10-24T22:00:00.000Z');
     expect(range.end.toISOString()).toBe('2026-10-25T22:59:59.999Z');
+  });
+});
+
+describe('monthKeyInZone', () => {
+  it('buckets by the clock of the municipality', () => {
+    // Half past midnight on the first of October in Madrid is still September in
+    // UTC, and the series is the town's, not the server's.
+    expect(monthKeyInZone(new Date('2026-09-30T22:30:00Z'), 'Europe/Madrid')).toBe('2026-10');
+    expect(monthKeyInZone(new Date('2026-09-30T22:30:00Z'), 'UTC')).toBe('2026-09');
+    expect(monthKeyInZone(new Date('2026-01-15T12:00:00Z'), 'Europe/Madrid')).toBe('2026-01');
   });
 });
 

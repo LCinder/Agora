@@ -58,6 +58,13 @@ export function hourInZone(instant: Date, timeZone: string): number {
   return inZone(instant, timeZone).getHours();
 }
 
+/** The calendar month in `timeZone`, as `2026-04`. Used to key the monthly series. */
+export function monthKeyInZone(instant: Date, timeZone: string): string {
+  const zoned = inZone(instant, timeZone);
+
+  return `${zoned.getFullYear()}-${String(zoned.getMonth() + 1).padStart(2, '0')}`;
+}
+
 /** The calendar day in `timeZone`, as `2026-04-03`. Used to key daily counters. */
 export function dayKeyInZone(instant: Date, timeZone: string): string {
   const zoned = inZone(instant, timeZone);

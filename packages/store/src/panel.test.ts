@@ -498,6 +498,35 @@ describe.skipIf(local === null)('the panel', () => {
       expect(top?.interested).toBe(6);
     });
 
+    it('count new marks by month, and never take them off again', async () => {
+      const before = await createStatsStore(client, TABLE, editor).summary();
+      const month = new Date().toISOString().slice(0, 7);
+      const started =
+        before.interests.monthly.find((entry) => entry.month === month)?.interested ?? 0;
+
+      const device = createDeviceStore(client, TABLE, 'device-monthly');
+
+      await device.markInterest(ZUBIA, EVENTS.zubiaPublished);
+
+      const after = await createStatsStore(client, TABLE, editor).summary();
+      const counted =
+        after.interests.monthly.find((entry) => entry.month === month)?.interested ?? 0;
+
+      expect(counted).toBe(started + 1);
+
+      // Unmarking does not un-happen the interest somebody showed in June, and
+      // deciding which month to take it off has no good answer. The event's own
+      // counter does go down, which is the number the panel shows per event.
+      await device.unmarkInterest(ZUBIA, EVENTS.zubiaPublished);
+
+      const later = await createStatsStore(client, TABLE, editor).summary();
+
+      expect(later.interests.monthly.find((entry) => entry.month === month)?.interested).toBe(
+        started + 1,
+      );
+      expect(later.interests.total).toBe(after.interests.total - 1);
+    });
+
     it('give an association its own events and not the town', async () => {
       const all = await createStatsStore(client, TABLE, editor).summary();
       const mine = await createStatsStore(client, TABLE, hermandad).summary();

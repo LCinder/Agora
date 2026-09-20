@@ -111,7 +111,7 @@ Una sola tabla, `agora-<entorno>`, con clave de partición `pk` y de ordenación
 | Posición del directo | `EVT#<eventId>` | `POS#<recordedAt>` |
 | Código de voluntario | `CODE#<código>` | `LIVE` |
 | Cambio pendiente | `EVT#<eventId>` | `CHG#<changeId>` |
-| Estadística diaria | `EVT#<eventId>` | `STAT#<fecha>` |
+| Marcas nuevas de un mes | `MUN#<id>` | `MONTH#<aaaa-mm>` |
 | Dispositivo | `DEV#<deviceId>` | `META` |
 | Interés de un vecino | `DEV#<deviceId>` | `INT#<municipalityId>#<eventId>` |
 | Municipio que sigue un vecino | `DEV#<deviceId>` | `FOL#<municipalityId>` |

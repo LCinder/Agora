@@ -31,6 +31,12 @@ export interface ReportRow {
   interested: number | null;
 }
 
+export interface ReportMonth {
+  /** Written out for a person: "septiembre de 2026". */
+  label: string;
+  interested: number;
+}
+
 export interface ReportInput {
   municipalityName: string;
   slug: string;
@@ -42,6 +48,8 @@ export interface ReportInput {
   figures: ReportFigure[];
   events: ReportRow[];
   categories: { name: string; interested: number | null }[];
+  /** New marks per month, oldest first. Empty when there is no series to show. */
+  monthly: ReportMonth[];
   /** How many numbers were held back, so the sheet can say why. */
   suppressed: number;
   /** True when the numbers come from the seed and not from a municipality. */
@@ -242,6 +250,33 @@ export async function downloadReport(input: ReportInput): Promise<void> {
       doc.text(category.name, PAGE.margin, y);
       doc.text(countLabel(category.interested), columns.interested, y, { align: 'right' });
       y += 5.5;
+    }
+  }
+
+  // --- the shape of the year ------------------------------------------------
+  if (input.monthly.length > 0) {
+    y += 6;
+    heading('Marcas nuevas por mes');
+
+    const widest = Math.max(...input.monthly.map((month) => month.interested), 1);
+    const barLeft = PAGE.margin + 46;
+    const barWidth = right - barLeft - 18;
+
+    for (const month of input.monthly) {
+      room(7);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(INK.text);
+      doc.text(month.label, PAGE.margin, y);
+
+      // A bar rather than a line: this is printed, often in black and white, and a
+      // bar says the same thing without a legend or an axis to read.
+      doc.setFillColor(r, g, b);
+      doc.rect(barLeft, y - 3, Math.max((month.interested / widest) * barWidth, 0.4), 3.2, 'F');
+      doc.text(month.interested.toLocaleString('es-ES'), columns.interested, y, { align: 'right' });
+
+      y += 6;
     }
   }
 
