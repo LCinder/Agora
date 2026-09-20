@@ -49,6 +49,14 @@ export interface DeviceClient {
   mark(municipalityId: string, eventId: string): Promise<void>;
   unmark(municipalityId: string, eventId: string): Promise<void>;
   /**
+   * Says this phone follows a municipality.
+   *
+   * What the town hall's count of neighbours with the app is made of, and the only
+   * thing the app sends about a resident who has not marked anything yet. Nobody
+   * registers for it: it is a row saying a phone follows a town.
+   */
+  follow(municipalityId: string): Promise<void>;
+  /**
    * Where the reminders should be sent, or null to stop receiving them.
    *
    * Called after the neighbour grants the notification permission, and again on
@@ -124,6 +132,11 @@ export function createDeviceClient(options: DeviceClientOptions): DeviceClient {
     async unmark(municipalityId, eventId) {
       await register();
       await api.send('DELETE', interestPath(municipalityId, eventId));
+    },
+
+    async follow(municipalityId) {
+      await register();
+      await api.send('PUT', `/me/municipalities/${encodeURIComponent(municipalityId)}`);
     },
 
     async setPushToken(token) {

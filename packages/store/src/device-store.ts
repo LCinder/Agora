@@ -9,7 +9,15 @@ import {
 
 import type { StoreClient } from './client';
 import { notFound } from './errors';
-import { deviceKey, devicePk, eventKey, interestKey } from './keys';
+import {
+  FOLLOW_PREFIX,
+  deviceCountKey,
+  deviceFollowKey,
+  deviceKey,
+  devicePk,
+  eventKey,
+  interestKey,
+} from './keys';
 
 /**
  * What a resident's device can reach: itself.
@@ -41,6 +49,15 @@ export interface DeviceStore {
    * person: nothing about it says who is holding it.
    */
   setPushToken(token: string | null): Promise<void>;
+  /**
+   * Says this phone follows a municipality, which is how the town hall learns how
+   * many neighbours have the app.
+   *
+   * Called when a resident picks a town and again when they mark an event in one.
+   * Idempotent: following twice counts once, so it is safe to call on every launch.
+   */
+  follow(municipalityId: string): Promise<void>;
+  listFollowed(): Promise<string[]>;
   listInterests(): Promise<Interest[]>;
   markInterest(municipalityId: string, eventId: string): Promise<void>;
   unmarkInterest(municipalityId: string, eventId: string): Promise<void>;
@@ -179,6 +196,60 @@ export function createDeviceStore(
       );
     },
 
+    async follow(municipalityId) {
+      try {
+        await client.send(
+          new TransactWriteCommand({
+            TransactItems: [
+              {
+                Put: {
+                  TableName: tableName,
+                  Item: {
+                    ...deviceFollowKey(deviceId, municipalityId),
+                    entity: 'device_follow',
+                    deviceId,
+                    municipalityId,
+                    createdAt: new Date().toISOString(),
+                  },
+                  // The condition is what makes the counter mean something: the
+                  // second launch fails it, the transaction is cancelled, and
+                  // nobody is counted twice.
+                  ConditionExpression: 'attribute_not_exists(pk)',
+                },
+              },
+              {
+                Update: {
+                  TableName: tableName,
+                  Key: deviceCountKey(municipalityId),
+                  UpdateExpression:
+                    'SET deviceCount = if_not_exists(deviceCount, :zero) + :one, entity = :entity',
+                  ExpressionAttributeValues: { ':zero': 0, ':one': 1, ':entity': 'device_count' },
+                },
+              },
+            ],
+          }),
+        );
+      } catch (error) {
+        // Already following. Not worth telling anybody about.
+        if (error instanceof TransactionCanceledException) return;
+
+        throw error;
+      }
+    },
+
+    async listFollowed() {
+      const result = await client.send(
+        new QueryCommand({
+          TableName: tableName,
+          KeyConditionExpression: 'pk = :pk and begins_with(sk, :prefix)',
+          ExpressionAttributeValues: { ':pk': devicePk(deviceId), ':prefix': FOLLOW_PREFIX },
+          ProjectionExpression: 'municipalityId',
+        }),
+      );
+
+      return (result.Items ?? []).map((item) => String(item['municipalityId']));
+    },
+
     async listInterests() {
       const result = await client.send(
         new QueryCommand({
@@ -214,6 +285,28 @@ export function createDeviceStore(
 
         if (sk.startsWith('INT#')) {
           await move(String(item['municipalityId']), String(item['eventId']), -1);
+
+          continue;
+        }
+
+        // Unfollowing hands the count back, or the town hall would keep reading a
+        // neighbour who asked to be forgotten as one of theirs.
+        if (sk.startsWith(FOLLOW_PREFIX)) {
+          await client.send(
+            new TransactWriteCommand({
+              TransactItems: [
+                { Delete: { TableName: tableName, Key: { pk: String(item['pk']), sk } } },
+                {
+                  Update: {
+                    TableName: tableName,
+                    Key: deviceCountKey(String(item['municipalityId'])),
+                    UpdateExpression: 'SET deviceCount = if_not_exists(deviceCount, :one) - :one',
+                    ExpressionAttributeValues: { ':one': 1 },
+                  },
+                },
+              ],
+            }),
+          );
 
           continue;
         }

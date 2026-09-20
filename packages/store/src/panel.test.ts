@@ -372,6 +372,44 @@ describe.skipIf(local === null)('the panel', () => {
   // The data panel
   // -------------------------------------------------------------------------
 
+  describe('the neighbours, counted', () => {
+    it('counts a phone once however many times it says it follows a town', async () => {
+      const one = createDeviceStore(client, TABLE, 'device-follow-one');
+      const two = createDeviceStore(client, TABLE, 'device-follow-two');
+
+      await one.register({ platform: 'android', locale: 'es' });
+      await two.register({ platform: 'ios', locale: 'es' });
+
+      const before = (await createStatsStore(client, TABLE, editor).summary()).devices.following;
+
+      // Nobody registered for this: a resident opened the app and picked a town.
+      await one.follow(ZUBIA);
+      await one.follow(ZUBIA);
+      await two.follow(ZUBIA);
+      await two.follow(OTURA);
+
+      const after = await createStatsStore(client, TABLE, editor).summary();
+
+      expect(after.devices.following).toBe(before + 2);
+      expect(await two.listFollowed()).toEqual([OTURA, ZUBIA]);
+    });
+
+    it('hands the count back when a phone asks to be forgotten', async () => {
+      const device = createDeviceStore(client, TABLE, 'device-goodbye');
+
+      await device.register({ platform: 'web', locale: 'es' });
+      await device.follow(ZUBIA);
+
+      const withThem = (await createStatsStore(client, TABLE, editor).summary()).devices.following;
+
+      await device.forget();
+
+      const without = (await createStatsStore(client, TABLE, editor).summary()).devices.following;
+
+      expect(without).toBe(withThem - 1);
+    });
+  });
+
   describe('the statistics', () => {
     it('count the events of the municipality by state', async () => {
       const stats = await createStatsStore(client, TABLE, editor).summary();

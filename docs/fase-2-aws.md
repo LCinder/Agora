@@ -111,7 +111,12 @@ Una sola tabla, `agora-<entorno>`, con clave de partición `pk` y de ordenación
 | Código de voluntario | `CODE#<código>` | `LIVE` |
 | Cambio pendiente | `EVT#<eventId>` | `CHG#<changeId>` |
 | Estadística diaria | `EVT#<eventId>` | `STAT#<fecha>` |
+| Dispositivo | `DEV#<deviceId>` | `META` |
 | Interés de un vecino | `DEV#<deviceId>` | `INT#<municipalityId>#<eventId>` |
+| Municipio que sigue un vecino | `DEV#<deviceId>` | `FOL#<municipalityId>` |
+| Tope de avisos del día | `DEV#<deviceId>` | `NOTIF#<municipio>#<fecha>` |
+| Vecinos que siguen un municipio | `MUN#<id>` | `STAT#DEVICES` |
+| Buzón de salida de avisos | `OUTBOX` | `<createdAt>#<id>` |
 | Pertenencia de un usuario | `USER#<cognitoSub>` | `MEM#<municipalityId>` |
 | Registro de auditoría | `MUN#<id>` | `AUD#<createdAt>#<id>` |
 | Índice de municipios | `PLATFORM` | `MUN#<slug>` |

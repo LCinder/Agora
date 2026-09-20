@@ -1,9 +1,9 @@
 import { type Event, isAwaitingReview } from '@agora/core';
-import { QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 
 import type { StoreClient } from './client';
 import { interestCountOf } from './items';
-import { SK_PREFIX, municipalityPk } from './keys';
+import { SK_PREFIX, deviceCountKey, municipalityPk } from './keys';
 import type { StaffActor } from './staff-store';
 
 /**
@@ -39,6 +39,15 @@ export interface EventInterest {
 }
 
 export interface PanelStats {
+  /**
+   * The neighbours, counted and nothing else.
+   *
+   * The number of phones that follow this municipality. Nobody registers to be in
+   * it: a resident opens the app, picks their town and is counted, and there is no
+   * name, email or telephone attached to any of them (D-029). It is the
+   * municipality's own total and not a segment, so it is never suppressed.
+   */
+  devices: { following: number };
   events: {
     total: number;
     published: number;
@@ -73,18 +82,27 @@ export function createStatsStore(
 ): StatsStore {
   return {
     async summary(options = {}) {
-      const result = await client.send(
-        new QueryCommand({
-          TableName: tableName,
-          KeyConditionExpression: 'pk = :pk and begins_with(sk, :prefix)',
-          ExpressionAttributeValues: {
-            ':pk': municipalityPk(actor.municipalityId),
-            ':prefix': SK_PREFIX.event,
-          },
-        }),
-      );
+      const [result, devices] = await Promise.all([
+        client.send(
+          new QueryCommand({
+            TableName: tableName,
+            KeyConditionExpression: 'pk = :pk and begins_with(sk, :prefix)',
+            ExpressionAttributeValues: {
+              ':pk': municipalityPk(actor.municipalityId),
+              ':prefix': SK_PREFIX.event,
+            },
+          }),
+        ),
+        client.send(
+          new GetCommand({
+            TableName: tableName,
+            Key: deviceCountKey(actor.municipalityId),
+          }),
+        ),
+      ]);
 
       const items = result.Items ?? [];
+      const following = Number(devices.Item?.['deviceCount'] ?? 0);
 
       // An association gets the numbers of its own events, which is what the
       // product document promises it, and nothing about the rest of the town.
@@ -155,6 +173,7 @@ export function createStatsStore(
         });
 
       return {
+        devices: { following },
         events,
         interests: { total, topEvents, byCategory },
         suppressed,

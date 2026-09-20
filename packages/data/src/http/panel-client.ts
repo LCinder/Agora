@@ -76,6 +76,8 @@ export type EventNotice = z.infer<typeof noticeSchema>;
 const reportableSchema = z.number().nullable();
 
 const statsSchema = z.object({
+  /** Phones that follow this municipality. Nobody registered to be in it. */
+  devices: z.object({ following: z.number() }),
   events: z.object({
     total: z.number(),
     published: z.number(),

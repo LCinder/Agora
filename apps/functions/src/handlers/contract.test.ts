@@ -107,6 +107,12 @@ const ROUTES: { method: string; pattern: RegExp; routeKey: string; names: string
     routeKey: 'DELETE /me/interests/{eventId}',
     names: ['eventId'],
   },
+  {
+    method: 'PUT',
+    pattern: /^\/me\/municipalities\/([^/]+)$/,
+    routeKey: 'PUT /me/municipalities/{municipalityId}',
+    names: ['municipalityId'],
+  },
   { method: 'PUT', pattern: /^\/me\/push-token$/, routeKey: 'PUT /me/push-token', names: [] },
   { method: 'DELETE', pattern: /^\/me$/, routeKey: 'DELETE /me', names: [] },
   {
@@ -216,10 +222,13 @@ describe.skipIf(local === null)('the app against the API', () => {
 
     if (event === null) return new Response('no such route', { status: 404 });
 
+    // Which function answers, decided per route and not by what the path contains.
+    // In the cloud API Gateway does this with one integration per route key, and a
+    // substring test here got it wrong the moment a device route gained the word
+    // "municipalities" in it.
     if (
-      event.routeKey.includes('/municipalities') ||
-      event.routeKey.includes('/events') ||
-      event.routeKey.includes('/live/')
+      event.routeKey.startsWith('GET /municipalities') ||
+      event.routeKey === 'GET /live/{eventId}'
     ) {
       return toResponse(await publicRoute(event, publicReadable(client, TABLE)));
     }
@@ -381,6 +390,40 @@ describe.skipIf(local === null)('the app against the API', () => {
     await devices.unmark(ZUBIA, EVENTS.zubiaPublished);
 
     expect(await devices.listInterests()).toEqual([]);
+  });
+
+  it('counts a resident who never registered, and shows them to the town hall', async () => {
+    // The whole of what a neighbour does to exist here: open the app and pick a
+    // town. No account, no email, no form.
+    await devices.follow(ZUBIA);
+    await devices.follow(ZUBIA);
+
+    const memberships = createMembershipStore(client, TABLE);
+    const bootstrap = {
+      authUserId: 'auth-counter',
+      municipalityId: ZUBIA,
+      role: 'municipal_admin' as const,
+      organizationId: null,
+    };
+
+    await memberships.grant(bootstrap, {
+      authUserId: 'auth-counter',
+      role: 'municipal_admin',
+      email: 'contador@lazubia.es',
+    });
+
+    const panel = createPanelClient({
+      baseUrl: BASE,
+      fetch: apiAsFetch,
+      municipalityId: ZUBIA,
+      token: () => 'auth-counter',
+    });
+
+    const summary = await panel.stats();
+
+    // One phone, counted once, and nothing in the answer that says who it is.
+    expect(summary.devices.following).toBe(1);
+    expect(JSON.stringify(summary)).not.toContain((await devices.register()).deviceId);
   });
 
   it('leaves the address the reminders are sent to, and takes it away again', async () => {

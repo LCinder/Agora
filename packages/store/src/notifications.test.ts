@@ -181,6 +181,7 @@ describe.skipIf(local === null)('the notification job', () => {
 
     await devices.register({ platform: 'android', locale: 'es' });
     await devices.setPushToken('ExponentPushToken[one]');
+    await devices.follow(ZUBIA);
     await devices.markInterest(ZUBIA, EVENTS.zubiaPublished);
     await store.reserveDailyNotification(DEVICE_ONE, ZUBIA, DAY, 3);
 

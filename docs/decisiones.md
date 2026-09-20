@@ -824,3 +824,23 @@ El panel llevaba desde la Fase 0 funcionando sobre la semilla en el navegador. A
 **Y el panel de datos deja de inventar cuando hay backend.** Las cifras salen de `GET /panel/.../stats`, que ya aplicaba el mínimo de 5: un dato retenido llega como `null` y se **omite** del gráfico en lugar de dibujarse como un cero — un cero diría «nadie», que no es lo que significa — y debajo se dice cuántos se han omitido y por qué. La gráfica de evolución mensual solo se enseña en la demo: la API no tiene todavía esa serie, y una línea inventada en la memoria anual de un ayuntamiento es la única cosa que esta pantalla no debe hacer nunca.
 
 Lo que queda para más adelante, y no bloquea un piloto: una pantalla de usuarios y asociaciones en el panel (el endpoint de invitación existe y el cliente también, pero no hay formulario todavía), y la serie mensual de interés.
+
+---
+
+## D-049 — El vecino no se registra: se le cuenta
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+Un recordatorio que merecía quedar escrito, porque es el modelo entero del lado del vecino: **nadie se registra**. Se abre la app, se elige el pueblo, se marca lo que gusta, y eso ya está en la base de datos y ya cuenta en las estadísticas del ayuntamiento. Sin cuenta, sin correo, sin formulario.
+
+Lo que faltaba era la cifra que el panel promete desde el principio: **cuántos vecinos**. No se podía responder, porque un dispositivo no dejaba constancia de qué municipio sigue.
+
+**Ahora sí, con una fila y un contador.** Cuando un vecino elige un pueblo —o marca un evento de ese pueblo, aunque haya llegado por un enlace compartido y no lo haya elegido nunca— se escribe una fila bajo su dispositivo (`DEV#<id>` / `FOL#<municipio>`) y se incrementa un contador bajo el municipio (`MUN#<id>` / `STAT#DEVICES`), las dos cosas en la misma transacción. La condición sobre la fila es lo que hace que el contador signifique algo: el segundo arranque la incumple, la transacción se cancela y nadie se cuenta dos veces. Así se puede llamar en cada arranque sin pensarlo.
+
+**Es un contador, no una lista, y a propósito.** El panel necesita el número; la lista de quién sigue al pueblo sería exactamente lo que este producto promete no tener. Y como vive bajo el municipio, las estadísticas lo leen con una lectura más, sin acercarse al índice que el rol del panel tiene denegado (D-032).
+
+**Al pedir «borrar mis datos» se devuelve la cuenta.** Si no, el ayuntamiento seguiría contando como suyo a un vecino que pidió que lo olvidaran.
+
+**Nunca se oculta por ser pequeño**, a diferencia de los segmentos: es el total del municipio, como el total de marcas, y un total no identifica a nadie. Lo que sí se oculta —los interesados de un evento con menos de 5— sigue igual.
+
+Un fallo que salió escribiéndolo, y que solo existía en el arnés de pruebas: el contrato repartía las peticiones a un manejador u otro **por lo que contenía la ruta**, así que `PUT /me/municipalities/{id}` se fue a la API pública en cuanto la ruta de un dispositivo llevó la palabra «municipalities» dentro. En la nube no pasa —API Gateway tiene una integración por ruta— pero el arnés tiene que ser fiel, así que ahora reparte por ruta exacta.

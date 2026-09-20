@@ -164,15 +164,11 @@ export default function DataPage() {
         <StatTile label="Eventos publicados" value={publishedCount} />
         <StatTile label="Marcas de «Me interesa»" value={totalInterest.toLocaleString('es-ES')} />
         <StatTile label="Media por evento" value={averagePerEvent} />
-        {stats === null ? (
-          <StatTile
-            label="Dispositivos activos"
-            value={DEMO_ACTIVE_DEVICES.toLocaleString('es-ES')}
-            hint="Vecinos con la app instalada"
-          />
-        ) : (
-          <StatTile label="En revisión" value={stats.events.awaitingReview} />
-        )}
+        <StatTile
+          label="Dispositivos activos"
+          value={(stats?.devices.following ?? DEMO_ACTIVE_DEVICES).toLocaleString('es-ES')}
+          hint="Vecinos con la app, sin registrarse"
+        />
       </div>
 
       {stats !== null && stats.suppressed > 0 ? (

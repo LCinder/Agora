@@ -106,10 +106,21 @@ async function dispatch(event: ApiEvent, dependencies: DeviceApiDependencies): P
 
       if (municipalityId === null) return badRequest('Falta municipalityId.');
 
+      // Marking an event in a town is following that town, whether or not the
+      // resident ever chose it from the list: somebody who arrived through a
+      // shared link is one of that municipality's neighbours too.
+      await store.follow(municipalityId);
       await store.markInterest(municipalityId, pathParameter(event, 'eventId'));
 
       return noContent();
     }
+
+    // Choosing a municipality in the app. Nothing personal is written: one row
+    // saying a phone follows a town, and one more on that town's counter.
+    case 'PUT /me/municipalities/{municipalityId}':
+      await store.follow(pathParameter(event, 'municipalityId'));
+
+      return noContent();
 
     case 'DELETE /me/interests/{eventId}': {
       const municipalityId = municipalityFrom(event);

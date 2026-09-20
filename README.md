@@ -72,6 +72,13 @@ En la nube estos dos endpoints no los sirve el panel, que es estático, sino la 
 pnpm --filter @agora/web build:static     # deja el resultado en apps/web/out
 ```
 
+En local el panel arranca **en modo demostración**: la semilla en el navegador, sin cuentas y sin
+red, que es lo que se enseña en una reunión. Para que hable con el backend de verdad e inicie sesión
+contra Cognito hacen falta tres variables al compilar (`NEXT_PUBLIC_API_BASE_URL`,
+`NEXT_PUBLIC_COGNITO_USER_POOL_ID` y `NEXT_PUBLIC_COGNITO_CLIENT_ID`); las órdenes completas están en
+[`infra/terraform/README.md`](infra/terraform/README.md). Ninguna pantalla cambia: las dos
+implementaciones son del mismo interfaz (D-048).
+
 ### App móvil
 
 ```bash
@@ -88,6 +95,10 @@ EXPO_PUBLIC_API_BASE_URL="$(terraform -chdir=infra/terraform/envs/dev output -ra
 ```
 
 Ninguna pantalla cambia: las dos implementaciones son del mismo interfaz (D-042).
+
+Las notificaciones necesitan además un proyecto de Expo, porque el testigo de push se pide a los
+servidores de Expo: `EXPO_PUBLIC_EAS_PROJECT_ID`. Sin él la app funciona igual y Ajustes dice que en
+esta versión no se envían avisos (D-047).
 
 MapLibre es un módulo nativo y **no funciona en Expo Go**, así que la app se prueba con una
 _development build_ instalada en el dispositivo (decisión D-004). Esa build la genera la CI sola:

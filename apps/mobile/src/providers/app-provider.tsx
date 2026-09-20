@@ -20,7 +20,7 @@ import {
 import { useColorScheme } from 'react-native';
 
 import { dataSource } from '../lib/data';
-import { forgetDevice, pushInterest, syncInterests } from '../lib/devices';
+import { followMunicipality, forgetDevice, pushInterest, syncInterests } from '../lib/devices';
 import { enablePush, refreshPushToken } from '../lib/push';
 import {
   clearAllData,
@@ -105,7 +105,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setReady(true);
 
       // After the screen is up, never before it: the calendar must not wait for
-      // the network to paint. Both of these are no-ops in the demo build.
+      // the network to paint. All three are no-ops in the demo build.
+      if (selected !== null) void followMunicipality(selected.id);
       void syncInterests(storedInterests);
       void refreshPushToken();
     }
@@ -127,6 +128,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       await saveActiveMunicipality(municipalityId);
       setMunicipality(selected);
+
+      // A resident who picks their town is a resident that town can be told about,
+      // counted and never named.
+      void followMunicipality(municipalityId);
     },
     [municipalities],
   );

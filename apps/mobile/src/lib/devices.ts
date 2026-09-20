@@ -37,6 +37,27 @@ function split(key: string): { municipalityId: string; eventId: string } | null 
 }
 
 /**
+ * Says this phone follows a municipality.
+ *
+ * Called when a resident picks a town and on every launch for the one they are
+ * looking at. It is what lets a town hall be told how many of their neighbours
+ * have the app — the number on the panel's first screen — and it is the only thing
+ * the app sends about somebody who has not marked anything yet: a row saying a
+ * phone follows a town, with no name, email or telephone attached to it (D-029).
+ *
+ * Following twice counts once, so calling it on every launch is free.
+ */
+export async function followMunicipality(municipalityId: string): Promise<void> {
+  if (deviceClient === null) return;
+
+  try {
+    await deviceClient.follow(municipalityId);
+  } catch {
+    // No coverage. Tried again on the next launch.
+  }
+}
+
+/**
  * Tells the API about one mark, or one unmark.
  *
  * A failure is swallowed on purpose: the neighbour already sees the heart filled

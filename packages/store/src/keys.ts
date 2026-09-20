@@ -185,6 +185,34 @@ export function outboxKey(createdAt: Date, id: string): { pk: string; sk: string
   return { pk: OUTBOX_PK, sk: `${createdAt.toISOString()}#${id}` };
 }
 
+/**
+ * A municipality a device follows.
+ *
+ * Under the device, like everything else it owns, so it goes when the device asks
+ * to be forgotten. It says a phone follows a town and nothing about who holds it:
+ * there is no name here to leak because no name was ever asked for (D-029).
+ */
+export function deviceFollowKey(
+  deviceId: string,
+  municipalityId: string,
+): { pk: string; sk: string } {
+  return { pk: devicePk(deviceId), sk: `FOL#${municipalityId}` };
+}
+
+export const FOLLOW_PREFIX = 'FOL#';
+
+/**
+ * How many devices follow a municipality.
+ *
+ * A counter, not a list: the panel's "dispositivos activos" tile is the number of
+ * neighbours with the app, and the only way to answer it that does not involve a
+ * query the panel's role is forbidden from making. Kept under the municipality so
+ * the statistics read it with the same query they already make.
+ */
+export function deviceCountKey(municipalityId: string): { pk: string; sk: string } {
+  return { pk: municipalityPk(municipalityId), sk: 'STAT#DEVICES' };
+}
+
 export function devicePk(deviceId: string): string {
   return `DEV#${deviceId}`;
 }

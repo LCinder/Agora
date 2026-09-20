@@ -428,8 +428,19 @@ describe.skipIf(local === null)('the panel API', () => {
       const stats = bodyOf(result) as Record<string, unknown>;
 
       expect(statusOf(result)).toBe(200);
-      expect(Object.keys(stats)).toEqual(['events', 'interests', 'suppressed', 'generatedAt']);
-      expect(JSON.stringify(stats)).not.toContain('device');
+      expect(Object.keys(stats)).toEqual([
+        'devices',
+        'events',
+        'interests',
+        'suppressed',
+        'generatedAt',
+      ]);
+
+      // `devices` is a count of phones following the town and nothing else: no id
+      // of any of them, and nothing that could be matched back to a person.
+      expect(stats['devices']).toEqual({ following: expect.any(Number) });
+      expect(JSON.stringify(stats)).not.toContain('DEV#');
+      expect(JSON.stringify(stats)).not.toContain('deviceId');
     });
 
     it('keeps the audit log for the administrator', async () => {

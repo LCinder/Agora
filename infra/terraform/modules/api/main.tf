@@ -367,6 +367,9 @@ locals {
     "GET /me/interests",
     "PUT /me/interests/{eventId}",
     "DELETE /me/interests/{eventId}",
+    # Following a municipality: what the town hall's "dispositivos activos" is
+    # counted from. One row per phone per town, and no name anywhere in it.
+    "PUT /me/municipalities/{municipalityId}",
     # Where the notification job sends. Behind the device authorizer like the
     # rest: a token nobody signed cannot leave an address on somebody's phone.
     "PUT /me/push-token",
