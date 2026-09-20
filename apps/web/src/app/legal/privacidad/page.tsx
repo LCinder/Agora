@@ -22,7 +22,7 @@ export default function PrivacyPage() {
       <p>
         {BRAND.name} es una aplicación que muestra la agenda de eventos de un municipio. Está hecha
         para pedir lo menos posible: un vecino la usa <strong>sin registrarse</strong>, sin dar su
-        nombre, su correo ni su teléfono, y sin que la aplicación sepa dónde está.
+        nombre, su correo ni su teléfono, y sin que en ningún momento se guarde dónde está.
       </p>
 
       <Article title="1. Quién trata tus datos">
@@ -71,7 +71,7 @@ export default function PrivacyPage() {
             {
               term: 'Ubicación',
               description:
-                'La tuya no se recoge nunca. La única ubicación que trata este sistema es la del voluntario que lleva el móvil en una procesión o una cabalgata, mientras está emitiendo y con su consentimiento explícito.',
+                'La tuya no se recoge nunca. La aplicación puede pedirte permiso de ubicación una sola vez, para sugerirte tu municipio al empezar: esa coordenada se resuelve en tu propio móvil y no se envía ni se guarda en ningún sitio. La única ubicación que trata este sistema es la del voluntario que lleva el móvil en una procesión o una cabalgata, mientras está emitiendo, con su consentimiento explícito y nunca en segundo plano.',
             },
             {
               term: 'Personal del ayuntamiento y de las asociaciones',

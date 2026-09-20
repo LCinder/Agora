@@ -36,6 +36,25 @@
       ],
       "expo-localization",
       "expo-notifications",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Para añadir a tu calendario los eventos que te interesan. No se envía a ningún sitio nada de lo que haya en él.",
+          "remindersPermission": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Para sugerirte tu municipio al empezar y, si eres voluntario de una procesión, para compartir por dónde va mientras emites.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "motionUsagePermission": false,
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false,
+          "isAndroidForegroundServiceEnabled": false
+        }
+      ],
       "@maplibre/maplibre-react-native",
       "expo-font"
     ],

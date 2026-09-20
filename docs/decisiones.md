@@ -1026,3 +1026,30 @@ Un ayuntamiento no firma una aplicación que no trae política de privacidad, av
 **Nada de esto lo ha revisado un abogado** y los tres documentos lo dicen. Lo que ahorra la revisión no es escribirlos: es tener que explicarle a quien la haga qué trata el sistema, porque ya está escrito y es corto.
 
 Se enlazan desde los tres sitios donde alguien los busca: Ajustes de la app, el pie del panel y el pie de la página pública de un evento, que es la que se comparte por WhatsApp y la única que ve quien no tiene la app instalada.
+
+---
+
+## D-059 — Los permisos que la app pide, y solo esos
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+`expo-calendar` y `expo-location` estaban en las dependencias y el código los llamaba, pero ninguno estaba declarado como plugin en `app.json`. Expo los enlaza igualmente, así que **el fallo no era una pantalla que se cae**: era peor, y más silencioso.
+
+Lo que se habría publicado en la App Store, con sus valores por defecto:
+
+- Los textos de permiso **en inglés** —«Allow HoyQ to access your calendars»— a un vecino de un pueblo de Granada.
+- `NSLocationAlwaysUsageDescription` y `NSLocationAlwaysAndWhenInUseUsageDescription`: la app **pidiendo ubicación permanente**, cuando la decisión del producto es que el voluntario emite en primer plano con la pantalla encendida (D-016) y la política de privacidad dice que la ubicación del vecino no se recoge nunca. La etiqueta de privacidad de la ficha de la tienda habría declarado seguimiento continuo de ubicación.
+- `NSRemindersUsageDescription` y su variante de acceso completo: permiso sobre los recordatorios del sistema, que la app no toca.
+- `NSMotionUsageDescription`: detección de actividad física, que la app no toca.
+
+Cuatro permisos que nadie pide y uno que contradice por escrito lo que se le promete al ayuntamiento. Para una venta a una administración pública eso no es un detalle técnico: es la ficha de la tienda desmintiendo el contrato de encargo.
+
+**Ahora los dos plugins están declarados, con su razón escrita en español, y lo que no se usa se borra en vez de quedarse.** El plugin de permisos de Expo interpreta `false` como «quita esta clave», así que pasar `remindersPermission: false` o `locationAlwaysPermission: false` no es un apaño: es la forma que tiene la herramienta de decir que no.
+
+**Y hay un comando que lo comprueba contra el resolvedor de verdad.** `pnpm --filter @agora/mobile check:permissions` ejecuta `expo config --type introspect` —lo que vería una build, plugins incluidos— y afirma en dos direcciones: que están las tres claves que el código necesita, y que **no** están las ocho que no usa. Comprueba además que ninguna se ha quedado con el texto inglés por defecto, porque una cadena que empieza por «Allow $(PRODUCT_NAME)» significa que nadie ha escrito el motivo que el vecino va a leer.
+
+La segunda dirección es la que importa. Un permiso de más no rompe nada, no sale en ningún test y no se ve hasta que lo lee quien revisa la app o quien firma el encargo del tratamiento. Añadir uno ahora obliga a editar esa lista a mano, que es exactamente la fricción que se busca.
+
+Esto corre en la CI, que hasta ahora **solo compilaba el APK de Android**: es la única comprobación del repositorio que mira el lado de iOS. La ubicación en segundo plano sigue fuera, y ahora hay un test que falla si alguien la enciende sin querer.
+
+De paso, la política de privacidad dice ahora que la app puede pedir la ubicación una vez para sugerir el municipio, que esa coordenada se resuelve en el propio móvil y que no se envía a ningún sitio. Era verdad y no estaba escrito, y un permiso que aparece en pantalla sin aparecer en la política es la clase de hueco que un delegado de protección de datos encuentra en dos minutos.
