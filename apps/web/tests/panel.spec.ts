@@ -50,6 +50,7 @@ test('every screen of the town hall opens with its own content', async ({ page }
     ['/asociaciones', 'Asociaciones'],
     ['/datos', 'Datos'],
     ['/usuarios', 'Usuarios'],
+    ['/actividad', 'Actividad'],
     ['/eventos/nuevo', 'Nuevo evento'],
   ] as const;
 
@@ -155,4 +156,28 @@ test('the three legal pages open and link to each other', async ({ page }) => {
   // The footer of each one is how a neighbour gets to the other two.
   await page.getByRole('link', { name: 'Privacidad' }).click();
   await expect(page).toHaveURL(/\/legal\/privacidad/);
+});
+
+test('the activity log shows what was just done, not an empty table', async ({ page }) => {
+  // The whole point of the screen: a line appears because somebody did
+  // something. A log that renders an empty table is indistinguishable from a log
+  // that is not being written, which is the bug this catches.
+  await page.goto('/actividad');
+  await expectLoaded(page);
+  await expect(page.getByText('Todavía no hay nada registrado en este municipio.')).toBeVisible();
+
+  await page.goto('/revision');
+  await expectLoaded(page);
+
+  const approve = page.getByRole('button', { name: 'Aprobar' });
+
+  test.skip((await approve.count()) === 0, 'The seed has nothing waiting to approve.');
+  await approve.first().click();
+
+  await page.goto('/actividad');
+  await expectLoaded(page);
+
+  const row = page.getByRole('row').filter({ hasText: 'aprobó un evento' });
+
+  await expect(row).toHaveCount(1);
 });

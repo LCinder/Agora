@@ -1075,3 +1075,25 @@ El comentario de `packages/core/src/links.ts` describía desde el principio cóm
 **La comprobación de D-059 ahora cubre esto también**, y por eso se llama `check:native` en vez de `check:permissions`: afirma que el dominio declarado es el de `EXPO_PUBLIC_SITE_URL`, que el prefijo es `/e/`, que no se reclama el sitio entero, y que no hay un dominio reclamado sin variable —que sería reclamar el dominio equivocado—. Los cuatro fallos son silenciosos en producción, que es exactamente el motivo de comprobarlos en la CI.
 
 Y `links.ts`, que era el fichero que describía el contrato entre cuatro sitios, tiene por fin tests: siete, incluido el que exige que un valor mal formado explote en vez de convertirse en un dominio que no es de nadie.
+
+---
+
+## D-061 — Un registro que se escribe y no se puede leer no es un registro
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+Quince operaciones del panel dejaban su línea en el registro de auditoría. La ruta `GET .../audit` existía. El almacén comprobaba que solo un responsable municipal puede leerlo. La política de privacidad declaraba cuánto tiempo se conserva. **Y no había ninguna pantalla**, así que nada de eso servía para nada: la promesa estaba escrita y la prueba no se podía enseñar.
+
+Esta es la clase de hueco que no aparece en ningún test y no rompe nada. Se descubre el día que la secretaría del ayuntamiento lee el encargo del tratamiento, llega a la parte de poder acreditar quién publicó algo, y pregunta.
+
+**La pantalla es una tabla, y solo eso.** Cuándo, quién y qué, de lo más reciente a lo más antiguo, para el responsable municipal. No hay filtros, no hay búsqueda y no hay paginación porque todavía no hay volumen que lo justifique; lo que sí hay es un botón de actualizar, que es lo que se pulsa cuando alguien está mirando por encima del hombro.
+
+**No hay forma de editar ni borrar una línea, y por eso tampoco hay un botón que lo ofrezca.** El almacén no tiene un método que lo permita: es de solo añadir, que es justo lo que hace que un registro valga como prueba.
+
+**Una acción que no se reconoce se imprime tal cual.** Una tabla que se salta en silencio las filas que no sabe traducir es peor que una con una clave en crudo, y más en la pantalla cuyo único trabajo es estar completa.
+
+**En la demostración el registro es de verdad, no inventado.** Lo que aparece son las acciones que hace quien está enseñando la app: aprueba una verbena en Revisión, entra en Actividad y ahí está su línea. Un registro con filas ficticias no le enseña nada a un concejal; uno que refleja lo que acaba de hacer, sí.
+
+Y para que eso funcione tuvo que guardarse **con el resto del estado de la demo**, no en memoria. Es un detalle que se ve solo al probarlo en un navegador de verdad: el test entraba en la pantalla con una recarga completa y el registro salía vacío, porque los eventos de la demo sí sobrevivían en `localStorage` y el registro no. Un registro que se vacía justo cuando navegas a él es peor que no tenerlo, porque parece que funciona.
+
+Nueve tests de navegador ahora, y el nuevo afirma la única cosa que importa aquí: que aparece una línea **porque alguien hizo algo**. Una tabla vacía que renderiza bien es indistinguible de un registro que no se está escribiendo.

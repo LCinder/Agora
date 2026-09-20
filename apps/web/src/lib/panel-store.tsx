@@ -9,6 +9,7 @@ import type {
   OrganizationType,
 } from '@agora/core';
 import {
+  type AuditEntry,
   type LiveSession,
   type Membership,
   type NewEventInput,
@@ -56,6 +57,8 @@ interface StoredState {
   notices: EventNotice[];
   /** Added later than the rest, so a stored state without it is still valid. */
   organizations?: Organization[];
+  /** The demo's activity log. Also added later, also optional. */
+  audit?: AuditEntry[];
 }
 
 /**
@@ -136,6 +139,15 @@ export interface PanelState {
   setOrganizationTrusted: (organizationId: string, isTrusted: boolean) => Promise<void>;
   setOrganizationStatus: (organizationId: string, status: OrganizationStatus) => Promise<void>;
 
+  /**
+   * Who did what in this municipality, newest first. Administrators only.
+   *
+   * In the demo it is this session's own writes rather than invented rows: a
+   * councillor who has just approved a verbena in the meeting should see that
+   * line, and a log of things nobody did teaches them nothing.
+   */
+  auditLog: () => Promise<AuditEntry[]>;
+
   // --- the people with access ----------------------------------------------
   listStaff: () => Promise<Membership[]>;
   /** Creates the account and the membership. Municipal administrators only. */
@@ -193,7 +205,16 @@ function readStored(): StoredState | null {
     if (!raw) return null;
 
     const parsed = JSON.parse(raw) as StoredState;
-    return { events: parsed.events.map(reviveEvent), notices: parsed.notices };
+
+    return {
+      events: parsed.events.map(reviveEvent),
+      notices: parsed.notices,
+      ...(parsed.organizations === undefined ? {} : { organizations: parsed.organizations }),
+      audit: (parsed.audit ?? []).map((entry) => ({
+        ...entry,
+        createdAt: new Date(entry.createdAt),
+      })),
+    };
   } catch {
     return null;
   }
@@ -241,6 +262,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<Event[]>([]);
   const [notices, setNotices] = useState<EventNotice[]>([]);
   const [stats, setStats] = useState<PanelStats | null>(null);
+  const [demoAudit, setDemoAudit] = useState<AuditEntry[]>([]);
 
   /** The demo's own store: whatever a councillor changed, kept across reloads. */
   const persist = useCallback(
@@ -254,6 +276,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
         events: nextEvents,
         notices: nextNotices,
         organizations: nextOrganizations ?? organizations,
+        audit: readStored()?.audit ?? [],
       });
     },
     [organizations],
@@ -285,12 +308,14 @@ export function PanelProvider({ children }: { children: ReactNode }) {
     setEvents(nextEvents);
     setNotices(nextNotices);
     setOrganizations(nextOrganizations);
+    setDemoAudit(stored?.audit ?? []);
 
     if (!stored) {
       writeStored({
         events: nextEvents,
         notices: nextNotices,
         organizations: nextOrganizations,
+        audit: [],
       });
     }
 
@@ -364,6 +389,39 @@ export function PanelProvider({ children }: { children: ReactNode }) {
   const reload = useCallback(async (panel: PanelClient) => {
     setEvents(await panel.listEvents());
   }, []);
+
+  /**
+   * Notes one write in the demo's own log.
+   *
+   * Newest first, like the API's, and capped: the demo is reset between meetings
+   * but a browser tab that never is would otherwise grow for ever.
+   */
+  const noteDemo = useCallback(
+    (action: string, entity: string, entityId: string) => {
+      setDemoAudit((current) => {
+        const next = [
+          {
+            id: `audit-${Date.now().toString(36)}-${current.length}`,
+            municipalityId: DEMO_MUNICIPALITY_ID,
+            actorId: 'demo',
+            action,
+            entity,
+            entityId,
+            createdAt: new Date(),
+          },
+          ...current,
+        ].slice(0, 200);
+
+        // Written straight through rather than in an effect: the screen that reads
+        // it is reached by a full page load, and a log that empties when you
+        // navigate to it is worse than no log at all.
+        writeStored({ ...(readStored() ?? { events, notices }), audit: next });
+
+        return next;
+      });
+    },
+    [events, notices],
+  );
 
   const createEvent = useCallback(
     async (draft: NewEvent) => {
@@ -499,6 +557,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
     async (id: string) => {
       if (client === null) {
         setStatus(id, 'cancelled');
+        noteDemo('event.cancel', 'event', id);
 
         return;
       }
@@ -506,13 +565,14 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       await client.cancelEvent(id);
       await reload(client);
     },
-    [client, reload, setStatus],
+    [client, noteDemo, reload, setStatus],
   );
 
   const approveEvent = useCallback(
     async (id: string) => {
       if (client === null) {
         setStatus(id, 'published');
+        noteDemo('event.approve', 'event', id);
 
         return;
       }
@@ -520,13 +580,14 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       await client.approveEvent(id);
       await reload(client);
     },
-    [client, reload, setStatus],
+    [client, noteDemo, reload, setStatus],
   );
 
   const rejectEvent = useCallback(
     async (id: string, reason: string) => {
       if (client === null) {
         setStatus(id, 'rejected', reason);
+        noteDemo('event.reject', 'event', id);
 
         return;
       }
@@ -534,7 +595,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       await client.rejectEvent(id, reason);
       await reload(client);
     },
-    [client, reload, setStatus],
+    [client, noteDemo, reload, setStatus],
   );
 
   const refreshNotices = useCallback(
@@ -655,6 +716,12 @@ export function PanelProvider({ children }: { children: ReactNode }) {
   // -------------------------------------------------------------------------
 
   const [demoStaff, setDemoStaff] = useState<Membership[]>([]);
+
+  const auditLog = useCallback(async () => {
+    if (client === null) return demoAudit;
+
+    return client.auditLog();
+  }, [client, demoAudit]);
 
   const listStaff = useCallback(async () => {
     if (client === null) return demoStaff;
@@ -806,6 +873,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       createOrganization,
       setOrganizationTrusted,
       setOrganizationStatus,
+      auditLog,
       listStaff,
       invite,
       revokeStaff,
@@ -841,6 +909,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       getLive,
       identity,
       invite,
+      auditLog,
       listStaff,
       loadRemote,
       loadSeed,

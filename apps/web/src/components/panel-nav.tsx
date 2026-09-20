@@ -27,6 +27,7 @@ const LINKS = [
   { href: '/asociaciones', label: 'Asociaciones', municipal: true, adminOnly: false },
   { href: '/datos', label: 'Datos', municipal: false, adminOnly: false },
   { href: '/usuarios', label: 'Usuarios', municipal: true, adminOnly: true },
+  { href: '/actividad', label: 'Actividad', municipal: true, adminOnly: true },
 ] as const;
 
 export function PanelNav() {
