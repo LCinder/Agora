@@ -7,6 +7,7 @@
  */
 
 export * from './brand';
+export * from './company';
 export * from './category';
 export * from './color';
 export * from './cover';

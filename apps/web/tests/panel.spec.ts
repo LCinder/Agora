@@ -137,3 +137,22 @@ test('an association can be created and trusted', async ({ page }) => {
   await trusted.check();
   await expect(trusted).toBeChecked();
 });
+
+test('the three legal pages open and link to each other', async ({ page }) => {
+  // A public administration has to serve these, and the app and the shared event
+  // page both link to them, so a broken route here is a broken link in the stores.
+  const pages = [
+    ['/legal/privacidad', 'Política de privacidad'],
+    ['/legal/aviso-legal', 'Aviso legal'],
+    ['/legal/accesibilidad', 'Declaración de accesibilidad'],
+  ] as const;
+
+  for (const [path, heading] of pages) {
+    await page.goto(path);
+    await expect(page.getByRole('heading', { name: heading, level: 1 })).toBeVisible();
+  }
+
+  // The footer of each one is how a neighbour gets to the other two.
+  await page.getByRole('link', { name: 'Privacidad' }).click();
+  await expect(page).toHaveURL(/\/legal\/privacidad/);
+});

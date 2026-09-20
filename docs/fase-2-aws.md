@@ -174,7 +174,8 @@ notificaciones, y **no puede leerlo nadie más**: el rol de IAM de la Lambda del
 permiso sobre ese índice. Por eso el panel no envía el aviso él mismo: escribe la orden en el buzón
 de salida (`pk = OUTBOX`) y la tarea, que se ejecuta cada minuto, la reparte (D-046).
 
-Esa es la promesa de la política de privacidad — el ayuntamiento ve cuántos, nunca quiénes — puesta
+Esa es la promesa de la [política de privacidad](../apps/web/src/app/legal/privacidad/page.tsx) — el
+ayuntamiento ve cuántos, nunca quiénes — puesta
 donde el código no puede saltársela. Los números que ve el panel salen de un contador atómico en el
 propio evento, que se incrementa al marcar y se decrementa al desmarcar.
 

@@ -127,6 +127,9 @@ export interface Messages {
   'settings.privacy': string;
   'settings.deleteData': string;
   'settings.deleteDataBody': string;
+  'settings.privacyPolicy': string;
+  'settings.legalNotice': string;
+  'settings.accessibility': string;
   'settings.demoNotice': string;
 }
 
@@ -258,6 +261,9 @@ const es: Messages = {
   'settings.notificationsUnsupported': 'En esta versión de demostración no se envían avisos.',
   'settings.privacy': 'Privacidad',
   'settings.deleteData': 'Borrar mis datos',
+  'settings.privacyPolicy': 'Política de privacidad',
+  'settings.legalNotice': 'Aviso legal',
+  'settings.accessibility': 'Accesibilidad',
   'settings.deleteDataBody':
     'Se borrarán los eventos que te interesan y el municipio elegido. No guardamos nada más.',
   'settings.demoNotice': 'Versión de demostración con datos de ejemplo.',
@@ -391,6 +397,9 @@ const en: Messages = {
   'settings.deleteData': 'Delete my data',
   'settings.deleteDataBody':
     'This removes the events you marked and the town you chose. We store nothing else.',
+  'settings.privacyPolicy': 'Privacy policy',
+  'settings.legalNotice': 'Legal notice',
+  'settings.accessibility': 'Accessibility',
   'settings.demoNotice': 'Demo version with example data.',
 };
 

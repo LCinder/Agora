@@ -14,6 +14,7 @@ cambia la app, el panel, el APK y los correos del panel a la vez. Ver
 - Módulos contratables por municipio: [`docs/modulos-por-municipio.md`](docs/modulos-por-municipio.md)
 - **Guion de la demostración: [`docs/demo.md`](docs/demo.md)**
 - Arquitectura en AWS de la Fase 2: [`docs/fase-2-aws.md`](docs/fase-2-aws.md)
+- Textos legales y contrato de encargo: [`docs/legal/`](docs/legal/) (las tres páginas se sirven en `/legal/…`)
 - Desplegar: [`infra/deploy.sh`](infra/deploy.sh) y [`infra/terraform/README.md`](infra/terraform/README.md)
 - Cómo renombrar la aplicación: [`docs/renombrar-la-app.md`](docs/renombrar-la-app.md)
 

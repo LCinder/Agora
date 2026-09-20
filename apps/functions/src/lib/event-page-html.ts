@@ -172,7 +172,15 @@ export function renderEventPage(input: EventPageInput): string {
         <p class="small">Recibe un recordatorio de lo que te interesa y entérate si algo cambia de hora o se cancela.</p>
         <a href="${escapeHtml(`${BRAND.scheme}://event/${event.id}`)}">Abrir en ${escapeHtml(BRAND.name)}</a>
       </div>
-      <footer>${escapeHtml(BRAND.name)} · ${escapeHtml(municipality.name)}</footer>
+      <footer>
+        ${escapeHtml(BRAND.name)} · ${escapeHtml(municipality.name)}
+        ${
+          siteUrl === ''
+            ? ''
+            : `· <a href="${escapeHtml(siteUrl.replace(/\/$/, ''))}/legal/privacidad">Privacidad</a>
+        · <a href="${escapeHtml(siteUrl.replace(/\/$/, ''))}/legal/aviso-legal">Aviso legal</a>`
+        }
+      </footer>
     </main>
   </body>
 </html>

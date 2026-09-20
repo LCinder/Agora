@@ -1002,3 +1002,27 @@ El aislamiento entre municipios ya estaba tres veces: la clave de partición de 
 **Y sin rol que asumir, se usa el cliente de la función.** Es el caso local: los tests y una ejecución contra DynamoDB Local no tienen IAM que estrechar, y un panel que se negara a funcionar sin ella sería un panel contra el que nadie puede desarrollar. En la nube Terraform pone siempre las dos variables.
 
 Lo que se prueba aquí es **el documento**, no lo que AWS hace con él: seis tests sobre la política —que acota la tabla, que acota los dos índices, que no nombra otro municipio, que no lleva un comodín en la clave propia, que no menciona dispositivos ni el índice de la plataforma, y que no pide permiso para recorrer la tabla— más uno que comprueba que la ruta pide de verdad el cliente acotado para el municipio de la URL. Lo demás lo contesta IAM, y eso solo se ve en una cuenta.
+
+---
+
+## D-058 — Los textos legales, escritos desde lo que el sistema hace
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+Un ayuntamiento no firma una aplicación que no trae política de privacidad, aviso legal ni declaración de accesibilidad, y no los firma tarde: son de las primeras preguntas de la secretaría, antes que el precio. Hasta hoy el producto los tenía pendientes y eso bloqueaba una venta, no un despliegue.
+
+**Están escritos desde la arquitectura, no desde una plantilla.** Cada párrafo de la política de privacidad corresponde a algo que el código hace o deliberadamente no hace: el vecino no se registra (D-029), su ubicación no se recoge nunca —solo la del voluntario, mientras emite—, las métricas son agregados y los segmentos de menos de cinco dispositivos no se muestran. La consecuencia es una política corta, que es la única señal fiable de que el producto pide poco.
+
+**Y dice la verdad en lo que un texto de plantilla maquilla.** El identificador del dispositivo no permite saber quién es nadie, así que el artículo 11 del RGPD aplica: si un vecino pide sus datos y no nos da ese identificador, **no podemos encontrarlos**, y eso está escrito en la página en vez de prometer un derecho que no se puede ejercer. Lo que sí puede hacer, y es lo que funciona, es borrarlos desde Ajustes con un botón.
+
+**La transferencia a Estados Unidos aparece, porque existe.** Todo está en AWS Fráncfort menos las notificaciones, que salen por el servicio de Expo (D-021). Está declarada con sus cláusulas contractuales tipo en lugar de esconderse detrás de «proveedores tecnológicos».
+
+**La declaración de accesibilidad dice «parcialmente conforme» y nombra los tres huecos**: el mapa del directo, un PDF del informe sin etiquetar y los carteles que sube el ayuntamiento, cuyo texto alternativo depende de quien los suba. El Real Decreto 1112/2018 pide la declaración, no la perfección; una que dijera «plenamente conforme» sería falsa el primer día y es exactamente lo que se reclama.
+
+**Los datos de la empresa son variables, no texto.** `packages/core/src/company.json` tiene cuatro campos y una fecha, y mientras digan `PENDIENTE` las tres páginas muestran un aviso ámbar que explica que el texto está sin cerrar. No es un descuido disimulado: es imposible publicar esto por accidente sin verlo. Rellenar la sociedad cuando exista es una edición de un fichero.
+
+**El contrato de encargo del artículo 28 va aparte**, en `docs/legal/encargo-del-tratamiento.md`, porque no es una página web sino un papel que se firma con cada ayuntamiento. Lleva sus anexos —qué datos, qué medidas de seguridad, cómo se atienden los derechos—, la tabla de subencargados con AWS y Expo, notificación de brechas en 24 horas y las cuatro capas de aislamiento entre municipios escritas como garantía contractual, que es lo que las convierte en algo exigible.
+
+**Nada de esto lo ha revisado un abogado** y los tres documentos lo dicen. Lo que ahorra la revisión no es escribirlos: es tener que explicarle a quien la haga qué trata el sistema, porque ya está escrito y es corto.
+
+Se enlazan desde los tres sitios donde alguien los busca: Ajustes de la app, el pie del panel y el pie de la página pública de un evento, que es la que se comparte por WhatsApp y la única que ve quien no tiene la app instalada.

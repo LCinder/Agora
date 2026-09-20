@@ -1,9 +1,11 @@
 import { SUPPORTED_LOCALES } from '@agora/i18n';
+import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { Body, Button, Caption, Card, Chip, Display, Screen, Subtitle } from '../../components/ui';
+import { PUBLIC_SITE_URL } from '../../lib/config';
 import { type PushState, disablePush, enablePush, pushState } from '../../lib/push';
 import { useApp } from '../../providers/app-provider';
 import { APPEARANCES, type Appearance } from '../../theme/theme';
@@ -161,6 +163,33 @@ export default function SettingsScreen() {
             onPress={() => void deleteEverything()}
             style={{ marginTop: theme.spacing(3) }}
           />
+
+          {/* The law wants these reachable from the application itself, and a
+              resident who wonders what is stored should not have to look for
+              them. They open in the browser: they are the same pages the panel
+              and the public event page link to. */}
+          <View style={{ gap: theme.spacing(2), marginTop: theme.spacing(4) }}>
+            {(
+              [
+                ['settings.privacyPolicy', 'privacidad'],
+                ['settings.legalNotice', 'aviso-legal'],
+                ['settings.accessibility', 'accesibilidad'],
+              ] as const
+            ).map(([label, path]) => (
+              <Text
+                key={path}
+                accessibilityRole="link"
+                onPress={() => void Linking.openURL(`${PUBLIC_SITE_URL}/legal/${path}`)}
+                style={{
+                  color: theme.colors.textMuted,
+                  fontSize: theme.fontSize.caption,
+                  textDecorationLine: 'underline',
+                }}
+              >
+                {t(label)}
+              </Text>
+            ))}
+          </View>
         </Card>
 
         <Caption>{t('settings.demoNotice')}</Caption>
