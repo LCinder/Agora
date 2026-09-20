@@ -191,6 +191,14 @@ async function runReminders(dependencies: NotificationDependencies): Promise<Job
       result.failed += outcome.failed;
 
       await forget(store, targets, outcome.unregistered);
+
+      // Nothing got through at all, which is the provider being down or this
+      // function having no network. The claim goes back so the retry — the
+      // schedule's, minutes later — sends it, instead of an evening of reminders
+      // being marked as sent and never sent.
+      if (outcome.sent === 0 && outcome.failed > 0) {
+        await store.releaseReminder(town.id, event.id);
+      }
     }
   }
 
@@ -277,6 +285,22 @@ export async function run(job: Job, dependencies: NotificationDependencies): Pro
   return job === 'reminders' ? runReminders(dependencies) : runOutbox(dependencies);
 }
 
+/**
+ * A run that had something to send and sent none of it.
+ *
+ * Which is the one outcome worth waking somebody for. A handful of failures among
+ * many is routine — a phone that uninstalled the app counts as one — but zero
+ * delivered out of anything is the push provider being down, and until this was
+ * checked it looked exactly like a quiet evening in a small town.
+ *
+ * `run` reports and does not throw, because the other municipalities' work has to
+ * finish. What turns the report into an error is the handler, so the function's own
+ * error metric catches it and the schedule keeps the event that did not happen.
+ */
+export function deliveredNothing(result: JobResult): boolean {
+  return result.sent === 0 && result.failed > 0;
+}
+
 let client: StoreClient | null = null;
 
 /** What EventBridge Scheduler sends. Anything else is the evening reminder. */
@@ -295,8 +319,18 @@ export const handler = async (event: JobEvent = {}): Promise<JobResult> => {
   });
 
   // One line per run, which is what makes "did the reminders go out on Wednesday"
-  // answerable from CloudWatch without a dashboard.
+  // answerable from CloudWatch without a dashboard. Logged before the throw below,
+  // so the numbers are there either way.
   console.log(JSON.stringify({ ...result, environment: process.env['ENVIRONMENT'] }));
+
+  if (deliveredNothing(result)) {
+    // Recorded as an error on purpose: it is what the alarm watches, and what
+    // sends the event to the queue of runs that did not happen instead of letting
+    // the afternoon pass in silence.
+    throw new Error(
+      `The ${result.job} job delivered none of its ${result.failed} messages. See the log line above.`,
+    );
+  }
 
   return result;
 };

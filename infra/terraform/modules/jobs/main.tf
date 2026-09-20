@@ -62,6 +62,29 @@ module "notifications" {
   }
 }
 
+# ---------------------------------------------------------------------------
+# What happens to a run that never happened.
+#
+# The outbox already survives a failed *send*: the order stays in the partition
+# and the next minute tries again. What it does not survive is an invocation that
+# never ran — a Lambda that could not start, a function error, a timeout — because
+# the reminder's hour passes and nothing says it did.
+#
+# So the schedules keep those events instead of dropping them. Fourteen days of
+# retention, which is long enough for somebody to come back from a feria and read
+# what was lost, and a queue that costs nothing while it is empty (the first
+# million requests a month are free, and an empty queue makes none).
+# ---------------------------------------------------------------------------
+resource "aws_sqs_queue" "failed_jobs" {
+  name = "${local.prefix}-failed-jobs"
+
+  message_retention_seconds = 1209600
+
+  # Nothing in this queue is read by code: it is read by a person, with the AWS
+  # CLI, when an alarm said the notification job was erroring.
+  sqs_managed_sse_enabled = true
+}
+
 resource "aws_iam_role" "scheduler" {
   name = "${local.prefix}-scheduler"
 
@@ -81,11 +104,18 @@ resource "aws_iam_role_policy" "scheduler" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = "lambda:InvokeFunction"
-      Resource = module.notifications.arn
-    }]
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = module.notifications.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = "sqs:SendMessage"
+        Resource = aws_sqs_queue.failed_jobs.arn
+      },
+    ]
   })
 }
 
@@ -106,6 +136,18 @@ resource "aws_scheduler_schedule" "reminders" {
     arn      = module.notifications.arn
     role_arn = aws_iam_role.scheduler.arn
     input    = jsonencode({ job = "reminders" })
+
+    # Worth retrying: the reminder of an evening only goes out once, and a
+    # DynamoDB blip or a cold start that timed out is exactly what a retry fixes.
+    # Ten minutes of attempts, then the event is kept rather than lost.
+    retry_policy {
+      maximum_retry_attempts       = 3
+      maximum_event_age_in_seconds = 600
+    }
+
+    dead_letter_config {
+      arn = aws_sqs_queue.failed_jobs.arn
+    }
   }
 }
 
@@ -124,5 +166,17 @@ resource "aws_scheduler_schedule" "outbox" {
     arn      = module.notifications.arn
     role_arn = aws_iam_role.scheduler.arn
     input    = jsonencode({ job = "outbox" })
+
+    # Not worth retrying, and that is deliberate: another run starts in sixty
+    # seconds and does the same work, so a retry would only double it. The failure
+    # still goes to the queue, which is what makes a run that died visible.
+    retry_policy {
+      maximum_retry_attempts       = 0
+      maximum_event_age_in_seconds = 60
+    }
+
+    dead_letter_config {
+      arn = aws_sqs_queue.failed_jobs.arn
+    }
   }
 }

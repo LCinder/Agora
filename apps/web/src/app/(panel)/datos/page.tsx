@@ -1,6 +1,6 @@
 'use client';
 
-import { readableOn, residentVisibleEvents } from '@agora/core';
+import { byStartDate, formatShortDate, readableOn, residentVisibleEvents } from '@agora/core';
 import { useMemo, useState, type CSSProperties } from 'react';
 import {
   Bar,
@@ -17,6 +17,7 @@ import {
 import { Button, Card, Empty, PageHeader, StatTile } from '../../../components/ui';
 import { DEMO_ACTIVE_DEVICES, demoInterestCount } from '../../../lib/demo';
 import { usePanel } from '../../../lib/panel-store';
+import { downloadReport, type ReportRow } from '../../../lib/report';
 
 /**
  * The data panel.
@@ -38,9 +39,10 @@ function shorten(title: string): string {
 }
 
 export default function DataPage() {
-  const { categories, events, loading, municipality, role, stats } = usePanel();
+  const { categories, demo, events, loading, municipality, role, stats } = usePanel();
   const municipal = role === 'municipal_editor' || role === 'municipal_admin';
   const [asTable, setAsTable] = useState(false);
+  const [writing, setWriting] = useState(false);
 
   const published = useMemo(() => residentVisibleEvents(events), [events]);
 
@@ -116,6 +118,87 @@ export default function DataPage() {
   const publishedCount = stats?.events.published ?? published.length;
   const averagePerEvent = publishedCount === 0 ? 0 : Math.round(totalInterest / publishedCount);
 
+  /**
+   * The PDF the memoria anual is made of.
+   *
+   * It carries the same numbers as this screen and the same rule about small
+   * counts: what the API held back arrives as null and is printed as "menos de 5".
+   * The rows come from the events themselves rather than from the chart, so the
+   * report says what happened and when, which is what a report is for.
+   */
+  async function exportPdf() {
+    if (!municipality) return;
+
+    setWriting(true);
+
+    try {
+      // Dates in the municipality's own time zone, like everywhere else in this
+      // product: a report that says the cabalgata was on the 5th in Madrid and the
+      // 4th on the server is a report nobody trusts twice.
+      const context = {
+        now: new Date(),
+        timeZone: municipality.timeZone,
+        locale: 'es' as const,
+      };
+
+      const ordered = [...published].sort(byStartDate);
+      const first = ordered[0];
+      const last = ordered[ordered.length - 1];
+      const period =
+        first === undefined || last === undefined
+          ? 'Sin eventos publicados'
+          : `Del ${formatShortDate(first.startAt, context)} al ${formatShortDate(last.startAt, context)}`;
+
+      // Keyed by title, because that is what both the chart and the API's top
+      // events carry, and the API's list is the one that applies the threshold.
+      const heldBack = new Map(
+        (stats?.interests.topEvents ?? []).map((entry) => [entry.eventId, entry.interested]),
+      );
+
+      const rows: ReportRow[] = ordered
+        .map((event) => ({
+          title: event.title,
+          when: formatShortDate(event.startAt, context),
+          category: categories.find((entry) => entry.id === event.categoryId)?.name ?? '—',
+          interested:
+            stats === null
+              ? demoInterestCount(event.id, event.isFeatured)
+              : (heldBack.get(event.id) ?? null),
+        }))
+        .sort((left, right) => (right.interested ?? -1) - (left.interested ?? -1));
+
+      await downloadReport({
+        municipalityName: municipality.name,
+        slug: municipality.slug,
+        primaryColor: municipality.branding.primaryColor,
+        generatedAt: new Date(),
+        period,
+        figures: [
+          { label: 'Eventos publicados', value: String(publishedCount) },
+          { label: 'Marcas de «Me interesa»', value: totalInterest.toLocaleString('es-ES') },
+          { label: 'Media por evento', value: String(averagePerEvent) },
+          ...(municipal
+            ? [
+                {
+                  label: 'Dispositivos activos',
+                  value: (stats?.devices.following ?? DEMO_ACTIVE_DEVICES).toLocaleString('es-ES'),
+                },
+              ]
+            : []),
+        ],
+        events: rows,
+        categories: byCategory.map((entry) => ({
+          name: entry.name,
+          interested: entry.interesados,
+        })),
+        suppressed: stats?.suppressed ?? 0,
+        demo,
+      });
+    } finally {
+      setWriting(false);
+    }
+  }
+
   function exportCsv() {
     const rows = [
       ['evento', 'interesados'],
@@ -154,8 +237,15 @@ export default function DataPage() {
             <Button variant="secondary" onClick={() => setAsTable(!asTable)}>
               {asTable ? 'Ver gráficas' : 'Ver como tabla'}
             </Button>
-            <Button brand={municipality.branding.primaryColor} onClick={exportCsv}>
+            <Button variant="secondary" onClick={exportCsv}>
               Exportar CSV
+            </Button>
+            <Button
+              brand={municipality.branding.primaryColor}
+              disabled={writing}
+              onClick={() => void exportPdf()}
+            >
+              {writing ? 'Generando…' : 'Informe en PDF'}
             </Button>
           </div>
         }

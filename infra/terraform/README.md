@@ -194,9 +194,10 @@ origin access control no añade `.html` por su cuenta. Está en `modules/web/fun
 - [ ] **Políticas de sesión con `dynamodb:LeadingKeys`**, para que sea AWS y no el código quien
       rechace el acceso a otro municipio. Media tarde, y la pediría el primer piloto que haga
       revisión de seguridad.
-- [ ] **Cola de mensajes fallidos** en la Lambda de notificaciones. Hoy un aviso que no consigue
-      salir se queda en el buzón y se reintenta al minuto siguiente, y caduca solo a las 24 horas; lo
-      que falta es enterarse de que ha pasado sin mirar los registros.
+- [x] **Cola de mensajes fallidos.** Hecha (D-051): los horarios tienen cola SQS y política de
+      reintentos, un envío que no llega a nadie devuelve la marca del recordatorio para que el
+      reintento lo mande, y una ejecución que no entrega nada se registra como error, que es lo que
+      mira la alarma. La cola se lee con `aws sqs receive-message --queue-url "$(terraform output -raw failed_jobs_queue_url)"`.
 
 ## Lo que comprueba la CI
 

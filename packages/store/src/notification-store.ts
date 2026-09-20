@@ -93,6 +93,14 @@ export interface NotificationStore {
   ): Promise<boolean>;
   /** False when a reminder for this event already went out. */
   claimReminder(municipalityId: string, eventId: string, at: Date): Promise<boolean>;
+  /**
+   * Gives the claim back, for a reminder that was claimed and then reached nobody.
+   *
+   * Without it, an evening when the push provider was down would leave every
+   * reminder marked as sent and never sent: the claim is what stops a double send,
+   * so it has to be released when there was no send at all.
+   */
+  releaseReminder(municipalityId: string, eventId: string): Promise<void>;
   pendingPushes(limit: number): Promise<PendingPush[]>;
   /** Deletes the outbox row: this push is done, whatever came of it. */
   completePush(push: PendingPush): Promise<void>;
@@ -273,6 +281,17 @@ export function createNotificationStore(client: StoreClient, tableName: string):
 
         throw error;
       }
+    },
+
+    async releaseReminder(municipalityId, eventId) {
+      await client.send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: eventKey(municipalityId, eventId),
+          UpdateExpression: 'REMOVE reminderSentAt',
+          ConditionExpression: 'attribute_exists(pk)',
+        }),
+      );
     },
 
     async pendingPushes(limit) {

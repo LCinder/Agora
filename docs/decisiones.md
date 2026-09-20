@@ -866,3 +866,39 @@ El panel leía la membresía y tiraba el rol. La API no: comprueba en cada petic
 **Y una fila más en la tabla para poder contestar «quién tiene acceso».** La membresía se guardaba solo bajo la persona (`USER#<sub>` / `MEM#<municipio>`), lo que responde «dónde puede trabajar esta persona» pero no «quién entra en mi ayuntamiento». Ahora se escribe también bajo el municipio (`MUN#<id>` / `MEM#<sub>`), las dos en una transacción: un espejo que pueda desincronizarse sería peor que no tenerlo, porque enseñaría a un técnico que ya se fue. Se lee con la misma consulta que el panel ya hace, sin índice nuevo y sin recorrer la tabla.
 
 En la demo todo esto funciona sin API: las asociaciones y sus cambios se guardan en el navegador como los eventos, las invitaciones se quedan en memoria y la pantalla lo dice, y los directos llevan un código con el mismo alfabeto sin O, 0, I ni 1 para que lo que se enseña en una reunión se parezca a lo que luego sale.
+
+---
+
+## D-051 — Un envío que no sale deja de ser silencioso
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+El buzón de salida ya sobrevivía a un **envío** fallido: la orden se queda en la partición y al minuto siguiente se reintenta. Lo que no sobrevivía era una **ejecución que no ocurrió** —una Lambda que no arrancó, un error de función, un tiempo agotado— porque la hora del recordatorio pasa y nadie dice que pasó.
+
+**Los horarios guardan esos eventos en una cola SQS.** Catorce días de retención, que es lo que tarda alguien en volver de la feria y leer qué se perdió, y no cuesta nada mientras esté vacía: el primer millón de peticiones al mes es gratis y una cola vacía no hace ninguna. Nadie la lee por código; la lee una persona con la CLI cuando la alarma avisó.
+
+**Las dos tareas tienen política de reintentos distinta, y es a propósito.** El recordatorio merece reintentos —la tarde de un evento solo ocurre una vez, y un pico de DynamoDB o un arranque frío es justo lo que un reintento arregla—, así que tres intentos en diez minutos. El buzón **no**: otra ejecución empieza en sesenta segundos y hace el mismo trabajo, así que reintentar solo lo duplicaría. Su fallo va igualmente a la cola, que es lo que hace visible una ejecución que se murió.
+
+**Y un recordatorio que no llegó a nadie devuelve su marca.** La marca se reclama antes de enviar, para que no se envíe dos veces; eso significa que una tarde con el proveedor de push caído habría dejado todos los recordatorios marcados como enviados y sin enviar. Ahora, cuando de un evento no sale ni un mensaje, la marca se libera y el reintento del horario lo manda.
+
+**Lo que convierte el informe en un error es el manejador, no la tarea.** `run` cuenta y no lanza, porque el trabajo de los demás municipios tiene que terminar. El manejador registra la línea de siempre —así los números están en CloudWatch de todas formas— y después lanza si la ejecución tenía algo que enviar y no envió nada. Eso es lo que hace saltar la alarma de errores de la función, que ya existía, sin gastar una alarma nueva: las diez gratis están todas puestas.
+
+**Un puñado de fallos entre muchos no es un incidente** y no lanza: un móvil que desinstaló la app cuenta como fallo. Cero entregados de lo que fuera, sí — y hasta ahora se parecía exactamente a una tarde tranquila en un pueblo pequeño.
+
+---
+
+## D-052 — El informe en PDF, que es lo que se pega en la memoria anual
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+Lo que hay detrás de «Me interesa» comercialmente: el técnico de cultura tiene que escribir una memoria a final de año y hasta ahora la escribía de memoria. El documento de producto pide CSV **y** PDF; el CSV es para una hoja de cálculo y esto es para pegarlo en un documento o adjuntarlo a un correo.
+
+**Se dibuja en el navegador, con jsPDF cargado dinámicamente.** El panel es un sitio estático y no tiene servidor donde renderizar (D-013), así que se genera en el móvil o el portátil de quien lo pide. `await import('jspdf')` mantiene 400 kB fuera del paquete inicial de un panel que la mayor parte del tiempo solo lista eventos, y la fuente estándar del formato cubre acentos y ñ, así que no hay tipografía que incrustar.
+
+**Hereda las dos reglas de la pantalla de datos.** Todo es agregado, y un dato que la API retuvo por ser pequeño llega como `null` y se imprime **«menos de 5»** — nunca un número y nunca un cero, porque un cero diría «nadie». Al final se dice cuántos se han retenido y por qué.
+
+**Y si el panel está en modo demostración, lo dice en la primera página.** Un PDF con el nombre de un ayuntamiento y cifras inventadas dentro es exactamente lo que acaba archivado como real.
+
+Lo demás es oficio: banda con el color del municipio, las cuatro cifras grandes, la tabla de eventos ordenada por interesados con los títulos partidos a lo ancho de su columna, el interés por tipo de actividad, y en cada página el pie que dice que ningún dato identifica a un vecino. Las fechas van en la zona horaria del municipio, como en todo el producto: un informe que dice que la cabalgata fue el 5 en Madrid y el 4 en el servidor es un informe que nadie vuelve a creer.
+
+Verificado renderizándolo de verdad, no solo compilándolo: 60 eventos, un título largo, un dato retenido y el sello de demostración salen en cuatro páginas, con los acentos, las comillas latinas y el pie en todas.

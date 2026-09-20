@@ -80,6 +80,7 @@ municipio** y los grupos de Cognito no saben de eso.
 
    Cognito ──► personal municipal y asociaciones
    EventBridge Scheduler ──► notificaciones (recordatorios y avisos) ──► Expo Push
+                          └─► SQS: ejecuciones que no llegaron a pasar
 ```
 
 Ninguna pieza está dentro de una VPC. Todo vive en tu cuenta de AWS, en `eu-central-1`.

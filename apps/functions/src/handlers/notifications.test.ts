@@ -22,7 +22,7 @@ import {
 } from '@agora/store/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { run } from './notifications';
+import { deliveredNothing, run } from './notifications';
 
 /**
  * The notification job over a real table.
@@ -124,6 +124,38 @@ describe.skipIf(local === null)('the notification job', () => {
     expect(spanish?.body).toBe('Mañana a las 20:00');
     expect(english?.body).toBe('Tomorrow at 20:00');
     expect(spanish?.data).toEqual({ eventId: EVENTS.zubiaPublished, municipalityId: ZUBIA });
+  });
+
+  it('gives the claim back when the reminder reached nobody, so a retry sends it', async () => {
+    const dead = fakePush({ deadNetwork: true });
+    const first = await run('reminders', { store, push: dead.push, now: EVENING });
+
+    expect(first).toMatchObject({ sent: 0, failed: 2 });
+
+    // What the schedule's retry finds minutes later: still to be sent, not marked
+    // as sent. Losing an evening's reminders to a provider being down for a minute
+    // is the failure this exists to stop.
+    const recovered = fakePush();
+    const second = await run('reminders', { store, push: recovered.push, now: EVENING });
+
+    expect(second.sent).toBe(2);
+    expect(recovered.flat()).toHaveLength(2);
+  });
+
+  it('calls a run that delivered nothing what it is', () => {
+    expect(
+      deliveredNothing({ job: 'reminders', considered: 1, sent: 0, capped: 0, failed: 4 }),
+    ).toBe(true);
+
+    // One phone that uninstalled the app among ten is not an incident.
+    expect(deliveredNothing({ job: 'outbox', considered: 1, sent: 9, capped: 0, failed: 1 })).toBe(
+      false,
+    );
+
+    // And a quiet evening with nothing to send is not one either.
+    expect(
+      deliveredNothing({ job: 'reminders', considered: 0, sent: 0, capped: 0, failed: 0 }),
+    ).toBe(false);
   });
 
   it('sends the reminder once, however many times it runs', async () => {

@@ -16,6 +16,7 @@
     "@agora/i18n": "workspace:*",
     "@agora/poster": "workspace:*",
     "amazon-cognito-identity-js": "^6.3.20",
+    "jspdf": "^4.2.1",
     "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",

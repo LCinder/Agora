@@ -12,6 +12,7 @@ minimumReleaseAgeExclude:
   - '@expo/*'
 
 allowBuilds:
+  core-js: set this to true or false
   # esbuild fetches its platform binary in a postinstall script. It bundles the
   # Lambdas of apps/functions and never ships in the app or the panel.
   esbuild: true
