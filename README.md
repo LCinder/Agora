@@ -16,6 +16,7 @@ cambia la app, el panel, el APK y los correos del panel a la vez. Ver
 - Arquitectura en AWS de la Fase 2: [`docs/fase-2-aws.md`](docs/fase-2-aws.md)
 - Textos legales y contrato de encargo: [`docs/legal/`](docs/legal/) (las tres páginas se sirven en `/legal/…`)
 - Desplegar: [`infra/deploy.sh`](infra/deploy.sh) y [`infra/terraform/README.md`](infra/terraform/README.md)
+- Dar de alta un ayuntamiento: `pnpm --filter @agora/tools create-municipality -- --help`
 - Cómo renombrar la aplicación: [`docs/renombrar-la-app.md`](docs/renombrar-la-app.md)
 
 ## Qué hay dentro

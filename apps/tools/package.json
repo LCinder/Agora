@@ -6,12 +6,15 @@
   "scripts": {
     "migrate-seed": "esbuild src/migrate-seed.ts --bundle --platform=node --target=node22 --format=cjs --outfile=dist/migrate-seed.cjs --log-level=warning && node dist/migrate-seed.cjs",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "create-municipality": "esbuild src/create-municipality.ts --bundle --platform=node --target=node22 --format=cjs --outfile=dist/create-municipality.cjs --log-level=warning && node dist/create-municipality.cjs"
   },
   "dependencies": {
     "@agora/core": "workspace:*",
     "@agora/data": "workspace:*",
-    "@agora/store": "workspace:*"
+    "@agora/store": "workspace:*",
+    "@aws-sdk/client-cognito-identity-provider": "^3.700.0",
+    "zod": "^4.6.1"
   },
   "devDependencies": {
     "@types/node": "^22",

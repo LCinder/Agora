@@ -230,6 +230,9 @@ arriesgado que cambiar de tabla.
       evento dentro del testigo (D-043), y `GET /live/{eventId}` para el mapa del vecino.
 - [x] **Notificaciones push.** Expo Push, en la Lambda de notificaciones: recordatorio cada hora
       según los ajustes del municipio y buzón de avisos cada minuto (D-046).
+- [x] **Dar de alta un ayuntamiento.** Hecho (D-063). La orden
+      `pnpm --filter @agora/tools create-municipality` crea el municipio, sus categorías y su primer
+      responsable, con la cuenta de Cognito incluida. Pruébalo siempre antes con `--dry-run`.
 - [ ] **Los dos ficheros que hacen que el enlace abra la app.** El código está (D-060) y las claves
       no: `ANDROID_CERT_FINGERPRINT` —la huella SHA-256 del certificado de firma, que da
       `eas credentials`— y `APPLE_TEAM_ID` —los diez caracteres de App Store Connect—. Con ellas

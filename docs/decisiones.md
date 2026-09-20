@@ -1119,3 +1119,27 @@ La tabla de notificaciones del documento de proyecto (§9.7) tiene cuatro filas 
 **Y en el panel pregunta dos veces, y dice el número en voz alta.** Es una tarjeta aparte de los avisos, no un quinto tipo de aviso, porque llega a otra gente: «llega a los 1.240 vecinos con la aplicación, no solo a quien marcó este evento», y hay que confirmar. Lo más fácil de abusar del producto es esto, y lo que hace que las notificaciones valga la pena leerlas es que casi nunca llegan.
 
 Queda en el registro de auditoría como `event.featured`, que es la acción por la que más probablemente pregunte alguien: es la única del panel que llega a todos los móviles del municipio.
+
+---
+
+## D-063 — El alta de un ayuntamiento es una orden, no una pantalla
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+`superadmin` estaba en la tabla de roles de `CLAUDE.md` y **en nada más**: ni ruta, ni pantalla, ni comando. Lo único que existía era `migrate-seed`, que escribe los cuatro municipios de la semilla de Granada. Vender al segundo ayuntamiento era, literalmente, imposible sin escribir esto.
+
+**Es un comando, y eso es la decisión.** Se ejecutará unas veinte veces en la vida del producto, necesita credenciales que el panel no tiene, y un formulario para crear inquilinos es un formulario al que alguien acaba llegando. La tabla de roles dice que el superadmin somos nosotros; esto es a lo que se parece «nosotros».
+
+**No se exporta desde `@agora/store`.** Está en `@agora/store/onboarding`, una subruta que hay que importar a propósito y que no importa ninguna Lambda. Escribir el primer responsable de un municipio es la única operación del sistema **sin un actor que comprobar**, porque la persona que crea es la primera que podría haberla autorizado. Un método en el almacén de membresías habría sido un agujero en todas las comprobaciones de permisos del producto; una puerta aparte que solo abre una orden de consola es una puerta sin nadie detrás.
+
+**El municipio, su puntero y su responsable van en una transacción.** La mitad de eso no es un ayuntamiento: una fila sin puntero es invisible, un puntero sin fila es un enlace roto, y cualquiera de las dos sin la membresía es un calendario que nadie puede editar. Las categorías van después y a propósito: DynamoDB acepta cien elementos por transacción, y un municipio al que le falta una categoría es un desplegable con un hueco, no un ayuntamiento que no funciona. Se vuelve a ejecutar y aparecen.
+
+**Lo que más protege es el `slug` ocupado.** Un slug es por donde resuelven el enlace compartido y el QR, así que uno ya en uso pertenece a un ayuntamiento con el calendario vivo: pisarlo es el peor error disponible aquí. Se comprueba antes de escribir y se repite como condición en la transacción, porque lo primero lee y lo segundo sujeta.
+
+**Y ahí el test encontró un fallo de verdad**, que es la razón de escribirlo: la comprobación leía `municipalityId` del puntero y la fila guarda `id`, así que **todos los slugs parecían libres**. La transacción lo habría frenado igual —por eso están las dos cosas—, pero el mensaje habría sido «ese municipio ya existe» en lugar de «ese slug es de otro», que es una pista muy distinta a las once de la noche.
+
+**Lo que se prueba no es que aparezcan las filas, es que el ayuntamiento se pueda usar.** El test comprueba que el slug resuelve, que las categorías están, y que la persona nombrada puede hacer de responsable municipal **sin que nadie le conceda nada** — que es lo que convierte esto en un arranque y no en una invitación.
+
+**Un dato mal escrito se lee.** Zod nombra el campo y la regla y entierra las dos en JSON; la orden traduce eso a la opción que hay que arreglar: «`--ine`: Expected a five digit INE code». Son valores que se teclean a mano en una consola, y por eso se validan.
+
+Queda pendiente lo de siempre: esto no se ha ejecutado nunca contra una cuenta de AWS de verdad, solo contra DynamoDB Local. La parte de Cognito es la única que no puedo probar aquí.

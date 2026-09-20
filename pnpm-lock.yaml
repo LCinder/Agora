@@ -360,6 +360,12 @@ importers:
       '@agora/store':
         specifier: workspace:*
         version: link:../../packages/store
+      '@aws-sdk/client-cognito-identity-provider':
+        specifier: ^3.700.0
+        version: 3.1135.0
+      zod:
+        specifier: ^4.6.1
+        version: 4.6.1
     devDependencies:
       '@types/node':
         specifier: ^22
@@ -9945,6 +9951,7 @@ snapshots:
       - expo-font
       - react-native-worklets
       - supports-color
+    optional: true
 
   expo-router@57.0.21(d126a5e0f6b3ac7c28dd6bc66146d006):
     dependencies:
