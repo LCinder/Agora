@@ -11,6 +11,12 @@ out/
 .turbo/
 *.tsbuildinfo
 
+# Playwright: the browser's own reports and traces of a failed run
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/blob-report/
+apps/web/.playwright/
+
 # Expo
 .expo/
 .expo-shared/

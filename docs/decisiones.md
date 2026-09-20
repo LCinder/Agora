@@ -946,3 +946,21 @@ La última gráfica que seguía inventada. Ahora existe de verdad y, con ella, l
 **Y en el informe solo sale si es real.** La demo dibuja su línea inventada con una nota debajo que lo dice, porque enseñarla en una reunión es útil; el PDF la omite, porque un documento con el nombre de un ayuntamiento no puede llevar una curva inventada y la nota no viaja con el papel.
 
 Sustituye a `dailyStatsKey`, que estaba definida desde el principio y no la escribía nadie: estadísticas diarias por evento habrían sido una lectura por evento para dibujar una línea del municipio.
+
+---
+
+## D-055 — Probar el panel en un navegador, porque los dos fallos que se escaparon eran de pantalla
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+Todo lo demás de este repositorio se prueba sin navegador: las reglas contra un DynamoDB de verdad, los manejadores contra los almacenes de verdad, los clientes contra los manejadores de verdad. Y aun así los dos únicos fallos que llegaron a existir en el panel eran exactamente lo que nada de eso mira: un directo sin ningún botón para empezarlo, y una pantalla que se habría quedado en «Cargando…» para siempre sin que nadie se enterara. Los encontré abriendo el panel, no ejecutando tests.
+
+**Así que hay seis tests con Playwright, y son deliberadamente romos.** Abren cada pantalla de la demostración y comprueban que hay contenido y no un indicador de carga; recorren las dos cosas que un ayuntamiento hace de verdad —aprobar el evento de una asociación, y preparar un directo hasta que sale el código y empieza a emitir—; descargan el informe; y dan de alta una asociación y la marcan como de confianza. No revisan diseño ni comparan píxeles: una captura de referencia se rompe cada vez que alguien toca un margen, y entonces se deja de mirar.
+
+**Cualquier excepción del navegador tumba el test que la provocó.** Una pantalla que revienta por dentro pero sigue pintando algo parece correcta en una captura; esto es lo único que se daría cuenta.
+
+**Y los he verificado rompiendo el código a propósito.** Quitando el botón de «Preparar» falla el test del directo; quitando la carga de la semilla falla el de las pantallas. Un test que no falla cuando debería es decoración cara de mantener.
+
+Corre contra `next dev`, que es lo que ejecuta una persona; del export estático se encarga la compilación de la CI. Va en su propio trabajo, porque instalar Chromium tarda un minuto y no tiene por qué ponerse delante de los tests que no lo necesitan, y sube el informe de Playwright como artefacto cuando falla.
+
+Lo que sigue sin probarse en navegador es la app móvil: ahí no hay un `next dev` al que apuntar y montar un simulador en la CI cuesta más de lo que ahorraría hoy.

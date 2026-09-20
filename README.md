@@ -188,6 +188,9 @@ No hace falta tocar ninguna pantalla.
   commit y nombres de tablas.
 - **Interfaz en español**, con la estructura preparada para inglés desde el principio.
 - **TypeScript estricto** en todo el repositorio.
+- El panel se prueba también **en un navegador**: `pnpm --filter @agora/web test:e2e` abre cada
+  pantalla de la demostración y recorre aprobar un evento, preparar un directo y descargar el
+  informe. La CI lo ejecuta en su propio trabajo.
 - Ninguna pantalla accede a un origen de datos directamente: todo pasa por `@agora/data`.
 - Todo dato pertenece a un municipio. Ninguna consulta ni pantalla asume un municipio único.
 - Las fechas se calculan siempre en la zona horaria del municipio, nunca en la del dispositivo.

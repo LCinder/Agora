@@ -60,6 +60,41 @@ jobs:
       - name: Build
         run: pnpm run build
 
+  panel:
+    name: The panel in a browser
+    runs-on: ubuntu-latest
+
+    # Its own job because it needs a browser, and because a suite that takes a
+    # minute to install Chromium should not sit in front of the tests that do not.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm --filter @agora/web exec playwright install --with-deps chromium
+
+      # Runs against `next dev`, started by Playwright itself. The demo path is
+      # what this checks: no API, no accounts, the seed in the browser — which is
+      # what gets shown in a meeting and what a broken screen would ruin.
+      - name: Drive the panel
+        run: pnpm --filter @agora/web run test:e2e
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
+
   infra:
     name: Terraform format and validate
     runs-on: ubuntu-latest
