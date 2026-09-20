@@ -22,6 +22,7 @@ import {
 } from '../lib/http';
 import type { Identities } from '../lib/identities';
 import { createCognitoIdentities } from '../lib/identities';
+import { scopedStoreClient } from '../lib/panel-credentials';
 import { definedOnly } from '../lib/json';
 import { type PanelContext, buildContext, callerSubject } from '../lib/panel-context';
 import { type Route, matchRoute, pathExists, routedPath } from '../lib/router';
@@ -518,6 +519,12 @@ export async function route(
   client: StoreClient,
   table: string,
   identities: Identities | null = null,
+  /**
+   * Credentials narrowed to one municipality, when the environment has a role to
+   * assume (D-057). Absent in the tests and against DynamoDB Local, where there is
+   * no IAM to narrow and the function's own client is used.
+   */
+  scopedClient: ((municipalityId: string) => Promise<StoreClient | null>) | null = null,
 ): Promise<ApiResult> {
   const subject = callerSubject(event);
 
@@ -551,9 +558,18 @@ export async function route(
   }
 
   try {
-    const panel = await buildContext(client, table, subject, municipalityId);
+    // From here on the request runs as somebody who cannot leave this
+    // municipality, and it is AWS that enforces it rather than the code below.
+    const scoped = (await scopedClient?.(municipalityId)) ?? client;
+    const panel = await buildContext(scoped, table, subject, municipalityId);
 
-    return await match.route.run(match.parameters, { event, panel, identities, client, table });
+    return await match.route.run(match.parameters, {
+      event,
+      panel,
+      identities,
+      client: scoped,
+      table,
+    });
   } catch (thrown) {
     if (thrown instanceof BadBody) return badRequest(thrown.message);
 
@@ -580,5 +596,6 @@ export const handler = async (event: ApiEvent): Promise<ApiResult> =>
       client,
       tableName(),
       userPoolId === undefined || userPoolId === '' ? null : createCognitoIdentities(userPoolId),
+      scopedStoreClient,
     );
   });

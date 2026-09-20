@@ -14,6 +14,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { ApiEvent } from '../lib/http';
+import { scopedStoreClient } from '../lib/panel-credentials';
 import { route } from './panel-api';
 
 /**
@@ -122,6 +123,46 @@ describe.skipIf(local === null)('the panel API', () => {
   afterAll(async () => {
     await dropTable(client, TABLE);
     await local?.stop();
+  });
+
+  describe('the credentials a request runs with', () => {
+    it('asks for a client scoped to the municipality in the path', async () => {
+      const asked: string[] = [];
+
+      const result = await route(
+        request('GET', `municipalities/${ZUBIA}/events`, { subject: EDITOR }),
+        client,
+        TABLE,
+        identities,
+        async (municipalityId) => {
+          asked.push(municipalityId);
+
+          // The same client: what is being checked is that the request goes
+          // through whatever this returns, not what AWS does with it.
+          return client;
+        },
+      );
+
+      expect(statusOf(result)).toBe(200);
+      expect(asked).toEqual([ZUBIA]);
+    });
+
+    it('falls back to the function\u2019s own client where there is no role to assume', async () => {
+      // Which is every test here, and any run against DynamoDB Local: there is no
+      // IAM to narrow, and a panel that refused to work without one would be a
+      // panel nobody could develop against.
+      expect(await scopedStoreClient(ZUBIA)).toBeNull();
+
+      const result = await route(
+        request('GET', `municipalities/${ZUBIA}/events`, { subject: EDITOR }),
+        client,
+        TABLE,
+        identities,
+        scopedStoreClient,
+      );
+
+      expect(statusOf(result)).toBe(200);
+    });
   });
 
   describe('inviting somebody', () => {

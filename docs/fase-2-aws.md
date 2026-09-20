@@ -160,6 +160,13 @@ Cada índice se pasa a cada módulo por su nombre, no dentro de una lista llamad
 | página pública de evento | no | denegado | denegado |
 | notificaciones | sí | no | sí |
 
+### Las credenciales con las que corre una petición del panel
+
+Además de los permisos del rol de la función, cada petición del panel **asume un rol con una
+política de sesión** acotada a la partición de su municipio con `dynamodb:LeadingKeys` (D-057). Pedir
+las filas de otro pueblo lo rechaza AWS, no el código. Lo que no cuelga del municipio por clave
+—las filas de un evento, de un usuario o de un código de voluntario— sigue guardándolo el código.
+
 ### El índice que el panel no puede leer
 
 `gsi3` permite ir de un evento a los dispositivos interesados. Lo necesita la tarea de

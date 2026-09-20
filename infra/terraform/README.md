@@ -234,12 +234,10 @@ arriesgado que cambiar de tabla.
       página pública de evento se comparte con una URL de CloudFront, que en un WhatsApp queda mal.
       Con dominio conviene además una distribución por nombre de host, y entonces el panel puede
       volver a tener su propia página de error.
-- [ ] **Políticas de sesión con `dynamodb:LeadingKeys`**, para que sea AWS y no el código quien
-      rechace el acceso a otro municipio. El diseño: la Lambda del panel asume un rol por petición
-      con una política de sesión que limita `LeadingKeys` a `MUN#<municipio>`, cacheando las
-      credenciales mientras dure el contenedor. Es la cuarta capa sobre tres que ya existen y están
-      probadas, así que va detrás de lo que sí falta; la pediría el primer piloto que haga revisión
-      de seguridad.
+- [x] **Políticas de sesión con `dynamodb:LeadingKeys`.** Hechas (D-057): cada petición del panel
+      asume un rol con una política de sesión acotada a `MUN#<municipio>`, así que es AWS quien
+      rechaza leer otro pueblo. Queda fuera lo que no cuelga del municipio por clave —`EVT#`,
+      `USER#`, `CODE#`—, que sigue guardando el código; cerrarlo del todo es rediseñar esas claves.
 - [x] **Cola de mensajes fallidos.** Hecha (D-051): los horarios tienen cola SQS y política de
       reintentos, un envío que no llega a nadie devuelve la marca del recordatorio para que el
       reintento lo mande, y una ejecución que no entrega nada se registra como error, que es lo que

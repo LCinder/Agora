@@ -982,3 +982,23 @@ La replicación entre tres zonas de disponibilidad es automática y no protege d
 **Restaurar crea una tabla nueva y deja la dañada donde está**, que es lo que hay que querer: se comparan antes de tirar nada. El procedimiento, con las órdenes exactas, está en `infra/terraform/README.md`; el rol con el que corre la restauración es una salida de Terraform para que la orden se pueda copiar y pegar.
 
 Y de paso, dos comentarios que se habían quedado viejos: las alarmas de producción ya no son nueve sino **exactamente diez** —ocho funciones, la API y la tabla—, que es justo lo que es gratis por cuenta. Por eso un fallo de envío de notificaciones se registra como error de la función (D-051) en lugar de gastar una alarma nueva.
+
+---
+
+## D-057 — Que sea AWS quien diga que no
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+El aislamiento entre municipios ya estaba tres veces: la clave de partición de todo nombra un municipio, así que una consulta que no lo nombre **no se puede escribir** (D-026); los almacenes se construyen alrededor de un actor y no aceptan un municipio como argumento; y hay tests contra un DynamoDB de verdad que intentan cruzar la línea y fallan. Esta es la cuarta, y la única que no depende de que nuestro código sea correcto.
+
+**Cada petición del panel corre con credenciales que AWS no deja salir de un municipio.** La función asume un rol con una **política de sesión** —una política que solo puede quitar permisos, nunca añadirlos— que lleva `dynamodb:LeadingKeys` con las particiones de ese municipio. Pedir las filas de otro pueblo vuelve como un acceso denegado de DynamoDB, no como una decisión nuestra.
+
+**Lo que no cubre, dicho claramente.** Las filas con clave de evento (`EVT#`), de usuario (`USER#`) y de código de voluntario (`CODE#`) no nombran un municipio en su partición, así que ninguna condición sobre esa clave puede acotarlas: esas siguen protegidas por el código, que lee el evento a través de su municipio antes de tocarlas. Cerrarlas del todo es rediseñar esas claves para que cuelguen del municipio, que es un cambio del modelo de datos y no de los permisos; queda escrito para cuando toque.
+
+**Lo que sí añade para ellas es un techo.** `DEV#` y `PLATFORM` no aparecen en la política: no están denegados, están **ausentes**, así que el panel no puede tocar la fila de un dispositivo por mucho que se tuerza el código. Y el `Deny` sobre gsi3 se repite en el rol asumido además de estar en el de la función, porque un `Deny` que solo vive en uno de los dos es un `Deny` que un refactor se lleva por delante.
+
+**Una llamada a STS por municipio y arranque en frío, no por petición.** Las credenciales duran una hora y se cachean mientras viva el contenedor, renovándose cinco minutos antes de caducar en vez de después de que falle algo. El nombre de sesión lleva el municipio, así que CloudTrail dice para qué pueblo se hizo cada llamada sin tener que cruzar nada.
+
+**Y sin rol que asumir, se usa el cliente de la función.** Es el caso local: los tests y una ejecución contra DynamoDB Local no tienen IAM que estrechar, y un panel que se negara a funcionar sin ella sería un panel contra el que nadie puede desarrollar. En la nube Terraform pone siempre las dos variables.
+
+Lo que se prueba aquí es **el documento**, no lo que AWS hace con él: seis tests sobre la política —que acota la tabla, que acota los dos índices, que no nombra otro municipio, que no lleva un comodín en la clave propia, que no menciona dispositivos ni el índice de la plataforma, y que no pide permiso para recorrer la tabla— más uno que comprueba que la ruta pide de verdad el cliente acotado para el municipio de la URL. Lo demás lo contesta IAM, y eso solo se ve en una cuenta.

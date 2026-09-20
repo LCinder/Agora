@@ -164,6 +164,77 @@ data "aws_iam_policy_document" "panel_api" {
     ]
     resources = [var.user_pool_arn]
   }
+
+  # Becoming somebody narrower for the length of one request: the role below,
+  # with a session policy naming the municipality of the request (D-057). The ARN
+  # is written out rather than referenced, because referencing it here and the
+  # function's role there is a cycle Terraform cannot plan.
+  statement {
+    effect    = "Allow"
+    actions   = ["sts:AssumeRole"]
+    resources = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${local.prefix}-panel-session"]
+  }
+}
+
+data "aws_caller_identity" "current" {}
+
+# ---------------------------------------------------------------------------
+# The role a panel request actually runs as.
+#
+# Same table permissions as the function itself and not one more — what narrows
+# it is the session policy the function attaches when it assumes this, which
+# carries `dynamodb:LeadingKeys` for the municipality in the path. A session
+# policy can only take permissions away, so this role is the ceiling and the
+# request is always somewhere under it.
+#
+# The Deny on gsi3 is repeated here on purpose. It is the index that says which
+# devices marked an event, no municipal role may read it (D-032), and a Deny that
+# only exists in one of the two roles is a Deny that a refactor can drop.
+# ---------------------------------------------------------------------------
+data "aws_iam_policy_document" "panel_session_assume" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "AWS"
+      identifiers = [module.panel_api.role_arn]
+    }
+  }
+}
+
+resource "aws_iam_role" "panel_session" {
+  name               = "${local.prefix}-panel-session"
+  assume_role_policy = data.aws_iam_policy_document.panel_session_assume.json
+}
+
+data "aws_iam_policy_document" "panel_session" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:BatchGetItem",
+      "dynamodb:Query",
+      "dynamodb:PutItem",
+      "dynamodb:UpdateItem",
+      "dynamodb:DeleteItem",
+      "dynamodb:BatchWriteItem",
+      "dynamodb:ConditionCheckItem",
+    ]
+    resources = [var.table_arn, var.calendar_index_arn, var.review_index_arn]
+  }
+
+  statement {
+    effect    = "Deny"
+    actions   = ["dynamodb:*"]
+    resources = [var.reminders_index_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "panel_session" {
+  name   = "table"
+  role   = aws_iam_role.panel_session.id
+  policy = data.aws_iam_policy_document.panel_session.json
 }
 
 module "panel_api" {
@@ -177,6 +248,12 @@ module "panel_api" {
   environment_variables = merge(local.common_env, {
     MEDIA_BUCKET = var.media_bucket_name
     USER_POOL_ID = var.user_pool_id
+
+    # What to assume, and what the session policy is written against. Both, or
+    # the function falls back to its own credentials and the fourth layer of
+    # isolation quietly is not there.
+    PANEL_SESSION_ROLE_ARN = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${local.prefix}-panel-session"
+    TABLE_ARN              = var.table_arn
   })
 }
 

@@ -16,7 +16,18 @@ export interface StoreClientOptions {
   region?: string;
   /** Only for DynamoDB Local, e.g. http://127.0.0.1:8000. */
   endpoint?: string;
-  credentials?: { accessKeyId: string; secretAccessKey: string };
+  /**
+   * Temporary credentials, when a request runs as somebody narrower than the
+   * function's own role — the panel assumes one per municipality (D-057). The
+   * session token is part of them: without it the SDK signs with a key that AWS
+   * will refuse.
+   */
+  credentials?: {
+    accessKeyId: string;
+    secretAccessKey: string;
+    sessionToken?: string;
+    expiration?: Date;
+  };
 }
 
 export function createStoreClient(options: StoreClientOptions = {}): DynamoDBDocumentClient {
