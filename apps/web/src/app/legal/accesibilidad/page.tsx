@@ -62,10 +62,23 @@ export default function AccessibilityPage() {
           tercero independiente, que se hará antes de la primera implantación en un ayuntamiento.
         </p>
         <p>
-          Lo que sí se ha tenido en cuenta desde el principio: contraste suficiente en los dos
-          temas, textos que escalan con el tamaño de letra del sistema, foco visible, botones
-          grandes, etiquetas en todos los campos, y ninguna información que dependa solo del color
-          —las gráficas del panel tienen su vista en tabla al lado.
+          La autoevaluación es en parte <strong>automática y continua</strong>: cada pantalla del
+          panel y estas tres páginas legales se analizan con la herramienta <em>axe</em> contra las
+          WCAG 2.1 nivel AA en cada cambio del código, y un incumplimiento detiene la publicación.
+          Eso cubre el contraste, el orden de los encabezados, los nombres de los campos y los
+          atributos de los elementos, que es lo que una máquina puede comprobar.
+        </p>
+        <p>
+          Lo que <strong>no</strong> cubre, y por tanto sigue pendiente de la evaluación con
+          personas: que lo que lee un lector de pantalla se entienda, que el orden de tabulación
+          tenga sentido, y que la aplicación móvil funcione con VoiceOver y con TalkBack. La
+          aplicación del vecino no está incluida en el análisis automático.
+        </p>
+        <p>
+          Lo que se ha tenido en cuenta desde el principio: contraste suficiente en los dos temas,
+          textos que escalan con el tamaño de letra del sistema, foco visible, botones grandes,
+          etiquetas en todos los campos, y ninguna información que dependa solo del color —las
+          gráficas del panel tienen su vista en tabla al lado.
         </p>
       </Article>
 

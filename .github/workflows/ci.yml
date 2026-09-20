@@ -88,9 +88,11 @@ jobs:
       - name: Install Chromium
         run: pnpm --filter @agora/web exec playwright install --with-deps chromium
 
-      # Runs against `next dev`, started by Playwright itself. The demo path is
-      # what this checks: no API, no accounts, the seed in the browser — which is
-      # what gets shown in a meeting and what a broken screen would ruin.
+      # Runs against `next dev`, started by Playwright itself. Two suites: the demo
+      # path — no API, no accounts, the seed in the browser, which is what gets
+      # shown in a meeting and what a broken screen would ruin — and an axe audit
+      # of every screen against WCAG 2.1 AA, which is what the accessibility
+      # declaration promises and what would otherwise rot in silence.
       - name: Drive the panel
         run: pnpm --filter @agora/web run test:e2e
 

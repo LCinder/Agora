@@ -1143,3 +1143,25 @@ Queda en el registro de auditoría como `event.featured`, que es la acción por 
 **Un dato mal escrito se lee.** Zod nombra el campo y la regla y entierra las dos en JSON; la orden traduce eso a la opción que hay que arreglar: «`--ine`: Expected a five digit INE code». Son valores que se teclean a mano en una consola, y por eso se validan.
 
 Queda pendiente lo de siempre: esto no se ha ejecutado nunca contra una cuenta de AWS de verdad, solo contra DynamoDB Local. La parte de Cognito es la única que no puedo probar aquí.
+
+---
+
+## D-064 — Medirla, no declararla
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+La declaración de accesibilidad decía «parcialmente conforme» y nombraba tres huecos, que es lo correcto: el Real Decreto 1112/2018 pide la declaración, no la perfección. Lo que no hacía era **demostrar nada**. Hasta hoy, nada en este repositorio había comprobado un solo ratio de contraste.
+
+**Ahora axe recorre las doce pantallas y las tres páginas legales en cada cambio**, contra WCAG 2.1 nivel AA —la norma a la que apunta la ley a través de la UNE-EN 301549— y un incumplimiento tumba la CI.
+
+**Y encontró un fallo de verdad**, que es la única razón de escribir esto: el campo de fichero del lector de carteles estaba oculto visualmente y **sin nombre**. Un `input` con `sr-only` sigue leyéndose, así que quien usa un lector de pantalla se encontraba dos controles para un solo trabajo: un campo de subida sin nombre y luego el botón «Subir cartel». Ahora el campo tiene nombre y está fuera del orden de tabulación, y el control es el botón, que es lo que siempre fue.
+
+**Un fallo entre trece pantallas no es motivo para presumir.** Es lo que cabía esperar de un panel escrito con etiquetas en todos los campos y contraste comprobado a ojo, y es exactamente por eso que había que medirlo: lo que estaba bien ya estaba bien, y lo único que estaba mal era invisible.
+
+**No hay nada excluido del análisis.** El día que haya que excluir algo, la exclusión va en el propio fichero de tests con el motivo al lado y la misma línea copiada en la declaración, porque una excepción que esconde una máquina es una excepción que nadie ha declarado.
+
+**El test de contraste se ha verificado rompiéndolo**: bajar un texto gris a `neutral-300` hace que falle con `color-contrast (serious)`. Un test de accesibilidad que nunca ha fallado es un sello de goma.
+
+**Y hay un test que a mí me parece el más útil de los catorce**: que algo coja el foco al primer tabulador. Si no lo coge nada, el panel entero está cerrado para quien no puede usar el ratón, y ninguna comprobación de contraste lo habría dicho nunca.
+
+**La declaración ahora distingue las dos mitades**, que es la parte honesta: dice que la autoevaluación es automática y continua para lo que una máquina puede comprobar —contraste, encabezados, nombres, atributos—, y dice explícitamente que **no** cubre que lo que lee un lector de pantalla se entienda, que el orden de tabulación tenga sentido, ni la app del vecino con VoiceOver y TalkBack. Eso sigue debiéndose, y ahora está escrito como lo que se debe en vez de quedar tapado por una herramienta en verde.
