@@ -1191,3 +1191,31 @@ Cuatro cosas aprendidas escribiéndolo, y las cuatro están en el fichero:
 **Y el idioma es el del dispositivo.** Un navegador sin cabeza pide `en-US`, así que la primera versión probó cada pantalla en inglés —la app le hace caso, correctamente— con lo que casi ningún usuario ve. Ahora se fija `es-ES`, y hay un test aparte con un dispositivo en inglés, que es lo único que demuestra que el segundo idioma está conectado al teléfono y no solo escrito.
 
 El test de «Me interesa» se ha verificado rompiendo la persistencia: si el marcado no se guarda en el teléfono, falla. Y eso importa más de lo que parece, porque un marcado que no sobrevive a cerrar la aplicación es un recordatorio que nunca llega.
+
+---
+
+## D-066 — Desplegar sin que exista ninguna clave
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+Hasta aquí desplegar significaba que alguien tuviera unas credenciales de AWS en su portátil. Funciona, y es lo que hay que hacer la primera vez, pero no escala a dos socios y no es lo que se le cuenta a la secretaría de un ayuntamiento cuando pregunta quién tiene las llaves de la infraestructura.
+
+**AWS confía en GitHub como proveedor de identidad.** El workflow pide un testigo a GitHub, STS lo cambia por credenciales que duran el trabajo, y **no hay nada guardado**: ninguna clave en un secreto del repositorio, ninguna en un portátil, ninguna en un contenedor. La respuesta a «quién tiene las llaves» pasa a ser «nadie, se emiten para cada despliegue y caducan en una hora», que es una respuesta mucho mejor.
+
+**La confianza nombra el repositorio y la rama.** Sin la rama, cualquiera que pueda abrir una pull request desde un fork podría ejecutar un workflow que asume el rol. Eso es toda la vulnerabilidad y está a una línea de distancia, así que la condición es `repo:<owner>/<nombre>:ref:refs/heads/main` y la rama es una variable con la rama principal por defecto.
+
+**Cuatro valores en el repositorio, y ninguno es un secreto**: el ARN del rol, el número de cuenta, el bucket del estado y la tabla de bloqueo. Van en *Variables* y no en *Secrets* a propósito: verlos en el log de un workflow que ha fallado ayuda, y ninguno abre nada por sí solo.
+
+**La CI ejecuta `infra/deploy.sh`, el mismo script que ejecutas tú.** Dos formas de desplegar significan que una de las dos está mal y nadie sabe cuál. Para eso el script aprendió dos cosas: `DEPLOY_YES` para no preguntar —lo que sustituye a la pregunta es un revisor del entorno `prod` de GitHub, que es la misma pregunta hecha antes y por escrito— y `TF_BACKEND_BUCKET`, porque Terraform no acepta variables en un bloque `backend` y la CI no tiene un fichero que editar ni por qué commitearlo.
+
+**Y el límite, dicho en voz alta, porque una política que se vende mejor de lo que es resulta peor que una amplia:** este rol es **transitivamente administrador de la cuenta**. Tiene que crear los roles de IAM de las Lambdas y cedérselos (`iam:PassRole`), y cualquier cosa que pueda escribir la política de un rol y engancharla a una función que también escribe llega a todo. Ninguna condición de IAM cierra eso, porque no existe una clave de condición que inspeccione una política en línea.
+
+Así que la lista honesta de lo que protege esta cuenta es corta y **nada de ella está en el `Allow`**: solo una rama de un repositorio puede asumir el rol, las credenciales duran una hora, cada cambio llega por un commit revisado, y CloudTrail guarda el nombre de sesión de la ejecución que lo hizo.
+
+Lo que sí está en el `Deny`, que es donde hay que mirar al revisarlo: no puede crear usuarios ni claves de acceso —la única forma de convertir una credencial de una hora en una permanente—, no puede tocar el proveedor OIDC, **no puede editarse a sí mismo** (y eso hace trabajo de verdad: el `Allow` sobre `role/agora-*` incluye su propio rol), no puede enganchar `AdministratorAccess` ni sus primas, no puede borrar el bucket del estado, y no toca la organización, la facturación ni CloudTrail.
+
+**Cerrarlo de verdad es un límite de permisos**: denegar `iam:CreateRole` salvo que el rol nuevo lleve una frontera que definamos nosotros. Eso obliga a poner la frontera en todos los roles de Lambda del stack, y una frontera un poco demasiado estrecha rompe una función **en ejecución**, no al aplicar. En un sistema que todavía no tiene ni un test contra AWS de verdad, eso es un cambio que hay que hacer a propósito y no de pasada. Queda escrito, no hecho.
+
+**Verificado renderizando la política, no solo validándola.** `allowed_account_ids` obliga a una llamada a STS, así que un `plan` necesita credenciales de verdad; para leer el JSON exacto que va a recibir AWS hice el plan en una copia con los ARN puestos a mano. Las nueve sentencias salen como se pretendía y la condición `iam:PolicyARN` está donde debe. Lo que no se ha ejecutado nunca, y hay que decirlo, es un `apply` en una cuenta real.
+
+La guía de todo esto, paso a paso y para una persona, está en [`docs/primer-despliegue.md`](primer-despliegue.md).

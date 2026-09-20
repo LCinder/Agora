@@ -26,8 +26,12 @@ terraform {
 }
 
 provider "aws" {
-  region  = var.region
-  profile = var.aws_profile
+  region = var.region
+
+  # Empty when the credentials are already in the environment, which is how this
+  # is planned in a check and how it would run from CI if it ever did. Null rather
+  # than "", because the provider looks for a profile literally called "".
+  profile = var.aws_profile == "" ? null : var.aws_profile
 
   # The machine that runs this has profiles for several unrelated AWS accounts.
   # Naming the account here turns "applied against the wrong one" from a

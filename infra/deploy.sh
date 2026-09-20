@@ -46,9 +46,20 @@ step() {
   bold "▸ $1"
 }
 
+# Set by the GitHub Actions workflow, and only there. What it replaces is a person
+# reading a plan and saying yes — so on prod the repository asks a reviewer to
+# approve the job instead, which is the same question asked earlier and in writing.
+readonly UNATTENDED="${DEPLOY_YES:-}"
+
 confirm() {
   local question="$1"
   local answer
+
+  if [[ -n "${UNATTENDED}" ]]; then
+    info "${question} → sí (DEPLOY_YES)"
+
+    return 0
+  fi
 
   read -r -p "  ${question} [s/N] " answer
   [[ "${answer}" == "s" || "${answer}" == "S" ]]
@@ -70,14 +81,18 @@ output_of() {
 
 # The profile and the region come from the environment's own tfvars, so there is
 # one place that names the account and it is the one Terraform already reads.
-read_tfvar() {
-  local name="$1"
-  local file
-  file="$(environment_dir "${ENVIRONMENT}")/terraform.tfvars"
+read_tfvar_from() {
+  local file="$1"
+  local name="$2"
 
   [[ -f "${file}" ]] || return 0
 
-  sed -n "s/^[[:space:]]*${name}[[:space:]]*=[[:space:]]*\"\([^\"]*\)\".*/\1/p" "${file}" | head -1
+  sed -nE "s/^[[:space:]]*${name}[[:space:]]*=[[:space:]]*\"?([^\"]*)\"?[[:space:]]*$/\\1/p" \
+    "${file}" | head -n1
+}
+
+read_tfvar() {
+  read_tfvar_from "$(environment_dir "${ENVIRONMENT}")/terraform.tfvars" "$1"
 }
 
 aws_profile() { read_tfvar aws_profile; }
@@ -148,8 +163,20 @@ check_credentials() {
 
   actual="$(aws_cli sts get-caller-identity --query Account --output text 2>/dev/null || true)"
 
-  [[ -n "${actual}" ]] || fail "AWS no reconoce tus credenciales.
-  Si usas un perfil con SSO: aws sso login --profile $(aws_profile)"
+  if [[ -z "${actual}" ]]; then
+    local profile
+    profile="$(aws_profile)"
+
+    if [[ -n "${profile}" ]]; then
+      fail "AWS no reconoce el perfil '${profile}'.
+  Si es un perfil con SSO: aws sso login --profile ${profile}"
+    fi
+
+    fail "AWS no reconoce las credenciales del entorno.
+  El tfvars de ${ENVIRONMENT} no nombra ningún perfil, así que se usan las
+  variables AWS_* que haya exportadas. En la CI eso lo hace el rol de despliegue;
+  en local, pon 'aws_profile' en el tfvars o exporta unas credenciales válidas."
+  fi
 
   [[ "${actual}" == "${expected}" ]] ||
     fail "Estás apuntando a la cuenta ${actual} y el entorno ${ENVIRONMENT} es de la ${expected}."
@@ -168,9 +195,29 @@ check_backend() {
   local file
   file="$(environment_dir "${ENVIRONMENT}")/main.tf"
 
+  # Terraform does not allow variables in a backend block, so the bucket is
+  # either written into the file once by hand — which is what a laptop does — or
+  # passed on the command line, which is what the CI does because it has no file
+  # to edit and no business committing one.
+  [[ -n "${TF_BACKEND_BUCKET:-}" ]] && return 0
+
   grep -qE '^\s*bucket\s*=' "${file}" || fail "El backend de ${ENVIRONMENT} todavía no tiene bucket.
   Ejecuta primero 'infra/deploy.sh bootstrap' y escribe el nombre que imprime en
-  el bloque backend de ${file}."
+  el bloque backend de ${file}, o exporta TF_BACKEND_BUCKET."
+}
+
+# `terraform init`, with the backend named on the command line when it is not in
+# the file. Same state either way: it is the same bucket and the same key.
+tf_init() {
+  local arguments=(-input=false)
+
+  if [[ -n "${TF_BACKEND_BUCKET:-}" ]]; then
+    arguments+=(-backend-config="bucket=${TF_BACKEND_BUCKET}")
+    [[ -n "${TF_BACKEND_TABLE:-}" ]] &&
+      arguments+=(-backend-config="dynamodb_table=${TF_BACKEND_TABLE}")
+  fi
+
+  tf init "${arguments[@]}"
 }
 
 # --- the steps --------------------------------------------------------------
@@ -198,6 +245,14 @@ do_bootstrap() {
   info "Escribe estos dos valores en el bloque backend de envs/dev/main.tf y envs/prod/main.tf:"
   info "  bucket         = \"$(terraform -chdir="${dir}" output -raw state_bucket)\""
   info "  dynamodb_table = \"$(terraform -chdir="${dir}" output -raw lock_table)\""
+
+  printf '\n'
+  info "Y esto, en Settings → Secrets and variables → Actions → Variables del repositorio:"
+  info "  AWS_DEPLOY_ROLE = $(terraform -chdir="${dir}" output -raw github_deploy_role_arn)"
+  info "  AWS_ACCOUNT_ID  = $(read_tfvar_from "${dir}/terraform.tfvars" aws_account_id)"
+  info "  TF_STATE_BUCKET = $(terraform -chdir="${dir}" output -raw state_bucket)"
+  info "  TF_LOCK_TABLE   = $(terraform -chdir="${dir}" output -raw lock_table)"
+  info "Ninguno de los cuatro es un secreto: son nombres, no llaves."
 }
 
 do_infra() {
@@ -208,7 +263,7 @@ do_infra() {
 
   step "Aplicando ${ENVIRONMENT}"
 
-  tf init -input=false
+  tf_init
 
   if [[ "${ENVIRONMENT}" == "prod" ]]; then
     local typed
@@ -377,7 +432,9 @@ do_status() {
     warn "tfvars: falta (cópialo del .example)"
   fi
 
-  if grep -qE '^\s*bucket\s*=' "$(environment_dir "${ENVIRONMENT}")/main.tf"; then
+  if [[ -n "${TF_BACKEND_BUCKET:-}" ]]; then
+    info "backend: ${TF_BACKEND_BUCKET} (por TF_BACKEND_BUCKET)"
+  elif grep -qE '^\s*bucket\s*=' "$(environment_dir "${ENVIRONMENT}")/main.tf"; then
     info "backend: configurado"
   else
     warn "backend: sin bucket (ejecuta 'bootstrap' y escríbelo en main.tf)"

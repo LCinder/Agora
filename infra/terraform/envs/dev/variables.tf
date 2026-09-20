@@ -30,8 +30,17 @@ variable "region" {
 }
 
 variable "aws_profile" {
-  description = "No default on purpose: this machine has profiles for unrelated accounts."
+  description = <<-EOT
+    Local AWS profile to apply with. Empty in CI.
+
+    Empty means "use whatever credentials are in the environment", which is what
+    a GitHub Actions job has after assuming the deploy role. On a laptop it must
+    be named: that machine has profiles for unrelated accounts, and
+    `allowed_account_ids` is what turns a mistake there into an immediate error
+    rather than into an afternoon.
+  EOT
   type        = string
+  default     = ""
 }
 
 variable "aws_account_id" {

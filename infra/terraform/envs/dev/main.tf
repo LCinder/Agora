@@ -28,8 +28,12 @@ terraform {
 }
 
 provider "aws" {
-  region  = var.region
-  profile = var.aws_profile
+  region = var.region
+
+  # Empty in CI, where the identity is the assumed role and there is no profile
+  # to name. Null rather than "" because the provider treats an empty profile as
+  # a profile called "" and fails looking for it.
+  profile = var.aws_profile == "" ? null : var.aws_profile
 
   # This machine has profiles for several unrelated AWS accounts. Naming the
   # account turns "applied against the wrong one" into an immediate error

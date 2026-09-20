@@ -32,3 +32,28 @@ variable "aws_account_id" {
     error_message = "An AWS account id is exactly twelve digits."
   }
 }
+
+variable "github_repository" {
+  description = "Owner and name of the repository allowed to deploy, as `owner/name`."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", var.github_repository))
+    error_message = "Expected owner/name, for example LCinder/Agora."
+  }
+}
+
+variable "github_deploy_refs" {
+  description = <<-EOT
+    Which refs of that repository may assume the deploy role.
+
+    The default is the default branch and nothing else. A pull request from a
+    fork runs with `pull_request` as its ref, so leaving this as it is means a
+    fork cannot deploy — which is the entire point of naming the ref at all.
+
+    Add `environment:prod` here if you set up a GitHub environment with reviewers,
+    which is how you make production wait for a human.
+  EOT
+  type        = list(string)
+  default     = ["ref:refs/heads/main"]
+}

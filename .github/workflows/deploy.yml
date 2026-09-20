@@ -1,0 +1,132 @@
+name: Deploy
+
+# Deploying without a key anywhere.
+#
+# AWS trusts GitHub as an identity provider, so this job asks GitHub for a token,
+# STS exchanges it for credentials that last the job, and nothing is stored: no
+# access key in a repository secret, none on a laptop, none in a container. The
+# role, the trust and the permissions are in infra/terraform/bootstrap/github.tf,
+# applied once by a person (D-066).
+#
+# It runs infra/deploy.sh — the same script a person runs — rather than its own
+# copy of the steps, because two ways to deploy means one of them is wrong and
+# nobody knows which.
+#
+# Never automatic. A deploy happens because somebody pressed the button, and prod
+# additionally waits for whoever reviews the `prod` environment. That review is
+# what replaces the "type prod to continue" prompt the script asks for locally.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Which environment to deploy
+        type: choice
+        options: [dev, prod]
+        default: dev
+        required: true
+      what:
+        description: What to deploy
+        type: choice
+        options: [all, infra, panel, seed]
+        default: all
+        required: true
+
+concurrency:
+  # One deploy at a time per environment. Two applies against one state is how a
+  # lock times out and somebody starts reading about force-unlock at midnight.
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+permissions:
+  # The whole point: a token to exchange, and read access to our own code.
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: ${{ inputs.what }} → ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+
+    # The gate. Configure reviewers on the `prod` environment in the repository's
+    # settings and this job waits for one before it touches anything.
+    environment: ${{ inputs.environment }}
+
+    env:
+      DEPLOY_YES: '1'
+      TF_BACKEND_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+      TF_BACKEND_TABLE: ${{ vars.TF_LOCK_TABLE }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          # The last MPL release, which is the version the configuration is
+          # written for and pinned to in the CI checks as well.
+          terraform_version: 1.5.7
+          terraform_wrapper: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Assume the deploy role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE }}
+          aws-region: ${{ vars.AWS_REGION || 'eu-central-1' }}
+          # Named after the run, so CloudTrail says which deploy did what without
+          # anybody cross-referencing timestamps.
+          role-session-name: github-${{ github.run_id }}
+
+      - name: Check we are in the right account
+        run: |
+          actual="$(aws sts get-caller-identity --query Account --output text)"
+
+          if [ "$actual" != "${{ vars.AWS_ACCOUNT_ID }}" ]; then
+            echo "::error::Assumed a role in $actual, and AWS_ACCOUNT_ID says ${{ vars.AWS_ACCOUNT_ID }}."
+            exit 1
+          fi
+
+          echo "Account $actual."
+
+      # The script reads the account, the region and the profile from the
+      # environment's own tfvars, so there is one place that names the account. It
+      # is not committed — it names an account and a person's local profile — so it
+      # is written here from the repository's variables. The profile is empty: the
+      # identity is the assumed role.
+      - name: Write the tfvars from the repository's variables
+        run: |
+          set -euo pipefail
+          file="infra/terraform/envs/${{ inputs.environment }}/terraform.tfvars"
+
+          {
+            echo "aws_profile    = \"\""
+            echo "aws_account_id = \"${{ vars.AWS_ACCOUNT_ID }}\""
+            echo "region         = \"${{ vars.AWS_REGION || 'eu-central-1' }}\""
+            echo "site_url       = \"${{ vars.SITE_URL }}\""
+            echo "alert_email    = \"${{ vars.ALERT_EMAIL }}\""
+            # A JSON array is valid HCL, which saves quoting a list in a shell
+            # inside a YAML string. ALLOWED_ORIGINS holds it verbatim.
+            echo "allowed_origins = ${{ vars.ALLOWED_ORIGINS || '[]' }}"
+            echo "metric_alarms   = ${{ inputs.environment == 'prod' && 'true' || 'false' }}"
+          } > "$file"
+
+          # Printed so a failed run can be read without guessing what it applied.
+          # None of these five is a secret; the four that are live in Parameter
+          # Store and this job never reads them.
+          cat "$file"
+
+      - name: Deploy
+        run: infra/deploy.sh ${{ inputs.what }} ${{ inputs.environment }}
+
+      - name: What exists now
+        if: always()
+        run: infra/deploy.sh status ${{ inputs.environment }}
