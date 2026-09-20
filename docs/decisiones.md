@@ -902,3 +902,27 @@ Lo que hay detrás de «Me interesa» comercialmente: el técnico de cultura tie
 Lo demás es oficio: banda con el color del municipio, las cuatro cifras grandes, la tabla de eventos ordenada por interesados con los títulos partidos a lo ancho de su columna, el interés por tipo de actividad, y en cada página el pie que dice que ningún dato identifica a un vecino. Las fechas van en la zona horaria del municipio, como en todo el producto: un informe que dice que la cabalgata fue el 5 en Madrid y el 4 en el servidor es un informe que nadie vuelve a creer.
 
 Verificado renderizándolo de verdad, no solo compilándolo: 60 eventos, un título largo, un dato retenido y el sello de demostración salen en cuatro páginas, con los acentos, las comillas latinas y el pie en todas.
+
+---
+
+## D-053 — Un script de despliegue, porque los seis pasos no caben en la cabeza
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+Desplegar esto son seis pasos en un orden concreto —estado remoto, backend, compilar las funciones, aplicar, rellenar los secretos, subir el panel— y la mitad de los fallos posibles son de despiste: aplicar contra la cuenta equivocada, comprimir un `dist/` de ayer, subir el panel apuntando a la API de otro entorno. `infra/deploy.sh` los encadena con las comprobaciones que uno olvida a las once de la noche.
+
+**Lo que no hace, y es la parte importante:**
+
+- **No aplica sin enseñar el plan y preguntar.** No hay ningún `-auto-approve` en el fichero. Producción, además, pide escribir `prod` a mano.
+- **No imprime un secreto.** Comprueba si los parámetros están rellenos, nunca su valor: lo que sale por pantalla acaba en el historial del terminal y en la captura que alguien manda por WhatsApp.
+- **No destruye nada.** Para eso está `terraform destroy`, escrito a propósito por alguien que sabe lo que hace.
+
+**Comprueba la cuenta antes del plan**, no después de dos minutos: compara lo que dice `sts get-caller-identity` con el `aws_account_id` del `terraform.tfvars` del entorno, que es el mismo valor que Terraform usa para negarse. Así el error llega en un segundo y dice cuál es cuál.
+
+**Compila siempre las funciones antes de aplicar**, porque Terraform comprime lo que encuentra y no compila nada: un `dist/` viejo es un despliegue del código de ayer con la confianza de hoy.
+
+**Y el panel se compila con las salidas del propio entorno** —la URL de la API, el pool y el cliente de Cognito—, que es justo donde estaba el error fácil: subir un panel que apunta a otro sitio.
+
+Los mensajes están en español porque los lee una persona; el código y los comentarios, en inglés como todo lo demás. La CI lo pasa por `bash -n` y `shellcheck`, porque es el único fichero del repositorio que se ejecuta contra una cuenta de verdad y merece revisarse como código y no creerse como un documento.
+
+Los pasos a mano siguen en `infra/terraform/README.md`, y conviene leerlos la primera vez: el script es para la segunda.

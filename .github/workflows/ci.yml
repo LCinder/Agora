@@ -87,3 +87,10 @@ jobs:
             terraform -chdir="infra/terraform/$stack" validate
             echo "::endgroup::"
           done
+
+      # The deploy script is the one thing here that runs against a real account,
+      # so it gets checked like code rather than trusted like a document.
+      - name: Check the deploy script
+        run: |
+          bash -n infra/deploy.sh
+          shellcheck infra/deploy.sh

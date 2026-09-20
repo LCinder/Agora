@@ -26,6 +26,10 @@ output "cognito_client_id" {
   value = module.stack.cognito_client_id
 }
 
+output "failed_jobs_queue_url" {
+  value = module.stack.failed_jobs_queue_url
+}
+
 output "secret_parameters" {
   value = module.stack.secret_parameters
 }

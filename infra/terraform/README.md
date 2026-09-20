@@ -48,6 +48,25 @@ infra/terraform/
 
 ## Puesta en marcha
 
+Hay un script que encadena todo esto con las comprobaciones que a las once de la noche se olvidan
+—que estás en la cuenta correcta, que las funciones están compiladas, que los secretos no siguen en
+`PENDIENTE`— y que **nunca aplica sin enseñarte antes el plan y preguntarte**:
+
+```bash
+infra/deploy.sh status            # qué hay y qué falta
+infra/deploy.sh bootstrap         # el bucket de estado, una vez por cuenta
+infra/deploy.sh infra dev         # compila las funciones y aplica
+infra/deploy.sh panel dev         # compila el panel y lo sube
+infra/deploy.sh seed dev          # carga los municipios de content/
+```
+
+`all` hace `infra` y `panel` seguidos. Producción pide escribir `prod` a mano. Nada de lo que hay
+ahí destruye: para eso está `terraform destroy`, escrito a propósito por alguien que sabe lo que
+hace.
+
+Lo que sigue son los mismos pasos a mano, que es lo que el script ejecuta y lo que conviene leer la
+primera vez.
+
 ### 1. Estado remoto
 
 ```bash
