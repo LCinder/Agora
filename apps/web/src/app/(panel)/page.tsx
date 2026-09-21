@@ -14,21 +14,28 @@ import { usePanel } from '../../lib/panel-store';
  * this working. Everything else is one click away.
  */
 export default function PanelHome() {
-  const { events, loading, municipality } = usePanel();
+  const { events, loading, municipality, organizationId, role, stats } = usePanel();
 
   if (loading || !municipality) {
     return <p className="text-sm text-neutral-500">Cargando…</p>;
   }
 
+  const municipal = role === 'municipal_editor' || role === 'municipal_admin';
   const context = { now: new Date(), timeZone: municipality.timeZone, locale: 'es' as const };
-  const pending = events.filter(isAwaitingReview);
-  const published = residentVisibleEvents(events);
+
+  // An association's home is about its own events; the town hall's is about the
+  // whole calendar and what is waiting for them.
+  const ours = municipal
+    ? events
+    : events.filter((event) => event.organizationId === organizationId);
+
+  const pending = ours.filter(isAwaitingReview);
+  const published = residentVisibleEvents(municipal ? events : ours);
   const groups = groupEvents(published, context);
 
-  const totalInterest = published.reduce(
-    (sum, event) => sum + demoInterestCount(event.id, event.isFeatured),
-    0,
-  );
+  const totalInterest =
+    stats?.interests.total ??
+    published.reduce((sum, event) => sum + demoInterestCount(event.id, event.isFeatured), 0);
 
   return (
     <>
@@ -52,18 +59,32 @@ export default function PanelHome() {
           label="Hoy y este finde"
           value={groups.today.length + groups.thisWeekend.length}
         />
-        <StatTile label="Pendientes de revisión" value={pending.length} hint="De asociaciones" />
         <StatTile
-          label="Dispositivos activos"
-          value={DEMO_ACTIVE_DEVICES.toLocaleString('es-ES')}
-          hint="Vecinos con la app"
+          label={municipal ? 'Pendientes de revisión' : 'Esperando aprobación'}
+          value={pending.length}
+          hint={municipal ? 'De asociaciones' : 'Del ayuntamiento'}
         />
+        {municipal ? (
+          <StatTile
+            label="Dispositivos activos"
+            value={(stats?.devices.following ?? DEMO_ACTIVE_DEVICES).toLocaleString('es-ES')}
+            hint="Vecinos con la app, sin registrarse"
+          />
+        ) : (
+          <StatTile label="Mis eventos" value={ours.length} />
+        )}
       </div>
 
       <section className="mt-8">
-        <h2 className="mb-3 text-lg font-semibold">Pendiente de revisión</h2>
+        <h2 className="mb-3 text-lg font-semibold">
+          {municipal ? 'Pendiente de revisión' : 'Esperando aprobación del ayuntamiento'}
+        </h2>
         {pending.length === 0 ? (
-          <Empty>No hay eventos de asociaciones esperando aprobación.</Empty>
+          <Empty>
+            {municipal
+              ? 'No hay eventos de asociaciones esperando aprobación.'
+              : 'No tienes nada esperando aprobación.'}
+          </Empty>
         ) : (
           <div className="grid gap-3">
             {pending.map((event) => (
@@ -75,9 +96,13 @@ export default function PanelHome() {
                       {formatWhen(event, context)} · {event.location.name}
                     </p>
                   </div>
-                  <Link href="/revision" className="text-sm font-semibold underline">
-                    Revisar
-                  </Link>
+                  {municipal ? (
+                    <Link href="/revision" className="text-sm font-semibold underline">
+                      Revisar
+                    </Link>
+                  ) : (
+                    <StatusBadge status={event.status} />
+                  )}
                 </div>
               </Card>
             ))}
@@ -87,7 +112,9 @@ export default function PanelHome() {
 
       <section className="mt-8">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Próximos eventos</h2>
+          <h2 className="text-lg font-semibold">
+            {municipal ? 'Próximos eventos' : 'Mis próximos eventos'}
+          </h2>
           <p className="text-sm text-neutral-600 dark:text-neutral-400">
             {totalInterest.toLocaleString('es-ES')} marcas de «Me interesa» en total
           </p>
@@ -111,7 +138,7 @@ export default function PanelHome() {
                     <div className="flex items-center gap-3">
                       <StatusBadge status={event.status} />
                       <Link
-                        href={`/eventos/${event.id}`}
+                        href={`/eventos/editar?id=${event.id}`}
                         className="text-sm font-semibold underline"
                       >
                         Editar

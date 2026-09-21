@@ -2,8 +2,8 @@
 
 import { useRef, useState } from 'react';
 
-import type { PosterReading } from '../app/api/poster/route';
 import { usePanel } from '../lib/panel-store';
+import { type PosterReading, imagePayload, posterEndpoint } from '../lib/poster-contract';
 import { Button } from './ui';
 
 /**
@@ -29,11 +29,12 @@ export function PosterImport({ onRead }: { onRead: (reading: PosterReading) => v
   async function read(file: File) {
     setState({ status: 'reading' });
 
-    const body = new FormData();
-    body.append('poster', file);
-
     try {
-      const response = await fetch('/api/poster', { method: 'POST', body });
+      const response = await fetch(posterEndpoint('read'), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(await imagePayload(file)),
+      });
       const payload: unknown = await response.json();
 
       if (!response.ok) {
@@ -60,11 +61,20 @@ export function PosterImport({ onRead }: { onRead: (reading: PosterReading) => v
         Sube la foto del cartel y rellenamos el formulario. Revísalo antes de publicar.
       </p>
 
+      {/*
+        The button below is the control; this is how it reaches the file picker.
+        It needs a name because a hidden input is still read out, and it is out of
+        the tab order because otherwise somebody using a screen reader meets two
+        controls that do one job — an unnamed file field and then the button. axe
+        found this one (D-064).
+      */}
       <input
         ref={input}
         type="file"
         accept="image/jpeg,image/png,image/webp,image/gif"
         className="sr-only"
+        aria-label="Foto del cartel"
+        tabIndex={-1}
         onChange={(event) => {
           const file = event.target.files?.[0];
           if (file) void read(file);

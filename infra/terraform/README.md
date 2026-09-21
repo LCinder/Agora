@@ -15,6 +15,15 @@ Esta máquina tiene perfiles de AWS de varias cuentas ajenas al proyecto (`publi
   credenciales apuntan a otra cuenta, Terraform falla al instante en vez de empezar a crear cosas
   donde no debe.
 
+## Los dos nombres
+
+- **`infra_name`** es el prefijo de todos los nombres físicos y vale `agora`. **No es el nombre
+  comercial y no cambia cuando este cambie:** una tabla de DynamoDB no se renombra, Terraform la
+  destruye y crea otra vacía. Ver [`docs/renombrar-la-app.md`](../../docs/renombrar-la-app.md).
+- **`app_name`** es el nombre que se lee en el correo de invitación al panel, en el comentario de la
+  distribución y en las alarmas. Si no se define, sale de `packages/core/src/brand.json`, que es el
+  fichero que hay que editar el día que haya nombre.
+
 ## Estructura
 
 ```
@@ -27,16 +36,36 @@ infra/terraform/
 │  ├─ api/         HTTP API, Lambdas y autorizadores
 │  ├─ web/         CloudFront, panel estático y página pública de evento
 │  ├─ storage/     bucket de carteles
-│  ├─ jobs/        recordatorios programados
+│  ├─ jobs/        notificaciones programadas (recordatorios y buzón de avisos)
 │  ├─ observability/  presupuesto y alarmas
 │  └─ lambda/      una función con su rol, su política y su grupo de logs
 ├─ envs/
 │  ├─ dev/
 │  └─ prod/
-└─ lambda-src/     manejadores (ahora mismo, esqueletos)
+└─ (los manejadores ya no están aquí: son apps/functions, en TypeScript, y esta
+    configuración comprime su dist/ — ver D-035)
 ```
 
 ## Puesta en marcha
+
+Hay un script que encadena todo esto con las comprobaciones que a las once de la noche se olvidan
+—que estás en la cuenta correcta, que las funciones están compiladas, que los secretos no siguen en
+`PENDIENTE`— y que **nunca aplica sin enseñarte antes el plan y preguntarte**:
+
+```bash
+infra/deploy.sh status            # qué hay y qué falta
+infra/deploy.sh bootstrap         # el bucket de estado, una vez por cuenta
+infra/deploy.sh infra dev         # compila las funciones y aplica
+infra/deploy.sh panel dev         # compila el panel y lo sube
+infra/deploy.sh seed dev          # carga los municipios de content/
+```
+
+`all` hace `infra` y `panel` seguidos. Producción pide escribir `prod` a mano. Nada de lo que hay
+ahí destruye: para eso está `terraform destroy`, escrito a propósito por alguien que sabe lo que
+hace.
+
+Lo que sigue son los mismos pasos a mano, que es lo que el script ejecuta y lo que conviene leer la
+primera vez.
 
 ### 1. Estado remoto
 
@@ -67,7 +96,10 @@ backend "s3" {
 
 ### 3. Aplicar
 
+Las funciones se compilan antes, porque Terraform comprime lo que encuentre y no compila nada:
+
 ```bash
+pnpm --filter @agora/functions build
 cd infra/terraform/envs/dev
 cp terraform.tfvars.example terraform.tfvars      # rellena perfil, cuenta y correo
 terraform init
@@ -75,7 +107,22 @@ terraform plan        # míralo antes de aplicar
 terraform apply
 ```
 
-### 4. Los secretos
+### 4. Cargar los municipios
+
+La tabla se crea vacía. Los municipios de `content/` se cargan con:
+
+```bash
+pnpm --filter @agora/tools migrate-seed -- --table "$(terraform output -raw table_name)"
+```
+
+Con `--dry-run` cuenta sin escribir, y con `--municipality <slug>` carga uno solo. Volver a
+ejecutarlo es seguro: es una actualización que **conserva los contadores de «Me interesa»**.
+
+Ojo con una cosa: los eventos de la semilla están anclados al día en que se ejecuta, porque la demo
+mantiene su calendario alrededor de hoy. Para un piloto de verdad, los eventos los mete el
+ayuntamiento por el panel; esto es para tener algo que mirar mientras.
+
+### 5. Los secretos
 
 Terraform los crea vacíos y tiene orden de ignorar su valor, para que **el secreto real nunca entre
 en el fichero de estado**. Se escriben una vez con la CLI:
@@ -86,38 +133,132 @@ aws ssm put-parameter --profile <perfil> --region eu-central-1 \
   --name /agora-dev/device-token-key --type SecureString --overwrite \
   --value "$(openssl rand -base64 48)"
 
-# Clave de la API de Claude, para el lector de carteles
+# Gemini: lee el cartel y escribe la instrucción para dibujarlo
 aws ssm put-parameter --profile <perfil> --region eu-central-1 \
-  --name /agora-dev/anthropic-api-key --type SecureString --overwrite \
-  --value "sk-ant-..."
+  --name /agora-dev/gemini-api-key --type SecureString --overwrite \
+  --value "AIza..."
+
+# Cloudflare Workers AI: dibuja el cartel. El identificador de cuenta no es un
+# secreto; el testigo sí, y solo necesita permiso de Workers AI.
+aws ssm put-parameter --profile <perfil> --region eu-central-1 \
+  --name /agora-dev/cloudflare-account-id --type String --overwrite \
+  --value "..."
+aws ssm put-parameter --profile <perfil> --region eu-central-1 \
+  --name /agora-dev/cloudflare-api-token --type SecureString --overwrite \
+  --value "..."
 ```
 
-### 5. Confirmar el correo de alertas
+`terraform output secret_parameters` los lista con su nombre exacto.
+
+### 6. Confirmar el correo de alertas
 
 AWS manda un correo de confirmación para la suscripción de SNS. Hasta que se acepte, las alarmas
 no avisan a nadie.
 
 ## Desplegar el panel
 
-El panel es un export estático. Tras compilarlo:
+El panel es un export estático, y se compila con el script que excluye las partes que necesitan
+servidor (D-031). La URL de la API se inyecta al compilar, porque los botones de cartel llaman a la
+Lambda de carteles y no al propio panel:
 
 ```bash
-aws s3 sync apps/web/out "s3://$(terraform output -raw panel_bucket)" --delete --profile <perfil>
+cd ../..                                   # raíz del repositorio
+export NEXT_PUBLIC_POSTER_API_BASE="$(terraform -chdir=infra/terraform/envs/dev output -raw api_endpoint)"
+pnpm --filter @agora/web build:static       # deja el resultado en apps/web/out
+
+cd infra/terraform/envs/dev
+aws s3 sync ../../../../apps/web/out "s3://$(terraform output -raw panel_bucket)" --delete --profile <perfil>
 aws cloudfront create-invalidation --distribution-id "$(terraform output -raw distribution_id)" \
   --paths "/*" --profile <perfil>
 ```
 
+Las URLs limpias (`/eventos/editar`) las resuelve una función de CloudFront, porque S3 leído por
+origin access control no añade `.html` por su cuenta. Está en `modules/web/functions/`.
+
+## Recuperar la tabla
+
+En producción hay una copia diaria de la tabla, guardada treinta días (D-056). No está en dev: lo
+que hay ahí es la semilla.
+
+Restaurar **crea una tabla nueva** y deja la dañada donde está, que es lo que hay que querer: se
+compara antes de tirar nada.
+
+```bash
+# Qué copias hay
+aws backup list-recovery-points-by-backup-vault --profile <perfil> --region eu-central-1 \
+  --backup-vault-name agora-prod
+
+# Restaurar una, a una tabla nueva
+aws backup start-restore-job --profile <perfil> --region eu-central-1 \
+  --recovery-point-arn <arn-de-la-copia> \
+  --iam-role-arn "$(terraform output -raw backup_role_arn)" \
+  --metadata '{"targetTableName":"agora-prod-restaurada"}'
+```
+
+Después se compara, y si hay que quedarse con ella se renombra el destino en Terraform —o se
+copian las filas que falten con la CLI, que para un puñado de eventos es más rápido y menos
+arriesgado que cambiar de tabla.
+
 ## Qué falta
 
-- [ ] **Los manejadores de verdad.** `lambda-src/` son esqueletos que responden 501. El autorizador
-      de dispositivos deniega todo, que es lo único seguro que puede hacer un esqueleto.
-- [ ] **Portar los 23 tests de aislamiento** a DynamoDB Local y engancharlos a la CI.
-- [ ] **Migrar los datos semilla** de `content/` a la tabla.
+- [x] **La API pública y la de dispositivos.** Hechas y probadas contra DynamoDB Local: calendario,
+      municipios, evento visible, alta de dispositivo con testigo firmado, «Me interesa» y el
+      autorizador. En `apps/functions/src/handlers/`.
+- [x] **El panel.** Hecho y probado contra DynamoDB Local: eventos, bandeja de revisión con cambios
+      pendientes, avisos, asociaciones, altas de personal, estadísticas y auditoría (D-040).
+- [x] **Invitar a una persona.** Hecho: `POST /panel/.../invitations` crea la cuenta en Cognito y la
+      membresía en la tabla en la misma petición, con permiso de IAM solo para crear y leer un
+      usuario (D-048), y el panel tiene la pantalla de usuarios, la de asociaciones y la de directos
+      (D-050).
+- [x] **La página pública de evento y los carteles.** Hechos (D-041). La página se sirve desde la
+      Lambda con sus etiquetas Open Graph, y los carteles comparten implementación con el panel.
+- [ ] **`site_url` en el segundo apply.** La página de evento necesita su dirección absoluta para las
+      etiquetas Open Graph, y no se puede leer de la distribución porque la propia página es uno de
+      sus orígenes. Tras el primer `apply`, copia la salida `site_url` a `terraform.tfvars` y vuelve a
+      aplicar. Sin ella la página funciona, pero comparte peor.
+- [x] **Reducir la foto antes de subirla.** Hecho: el cartel viaja en base64 y el cuerpo de una
+      petición no puede pasar de 10 MB, así que el límite está en 6 MB. El panel escala la foto a
+      1.500 píxeles y la manda en JPEG, que son unos 400 kB.
+- [x] **El directo.** Hecho (D-043): sesiones, código de un solo uso, emisión del voluntario con el
+      evento dentro del testigo, lectura cacheada para el vecino y borrado del rastro al terminar.
+- [x] **Portar los tests de aislamiento** a DynamoDB Local y engancharlos a la CI. Hechos:
+      `packages/store`, 29 tests, y la CI levanta un DynamoDB Local en cada cambio.
+- [x] **Empaquetado de las Lambdas.** Hecho: `apps/functions` con esbuild, un directorio por función
+      (D-035). Hay que compilar antes de aplicar, y el Terraform falla diciéndolo si no se ha hecho.
+- [x] **Migrar los datos semilla** de `content/` a la tabla. Hecho: `apps/tools` (D-038).
+- [x] **Emisión del directo.** Hecho: `POST /volunteer/redeem` y `POST /volunteer/positions`, con el
+      evento dentro del testigo (D-043), y `GET /live/{eventId}` para el mapa del vecino.
+- [x] **Notificaciones push.** Expo Push, en la Lambda de notificaciones: recordatorio cada hora
+      según los ajustes del municipio y buzón de avisos cada minuto (D-046).
+- [x] **Dar de alta un ayuntamiento.** Hecho (D-063). La orden
+      `pnpm --filter @agora/tools create-municipality` crea el municipio, sus categorías y su primer
+      responsable, con la cuenta de Cognito incluida. Pruébalo siempre antes con `--dry-run`.
+- [ ] **Los dos ficheros que hacen que el enlace abra la app.** El código está (D-060) y las claves
+      no: `ANDROID_CERT_FINGERPRINT` —la huella SHA-256 del certificado de firma, que da
+      `eas credentials`— y `APPLE_TEAM_ID` —los diez caracteres de App Store Connect—. Con ellas
+      puestas, el build del panel escribe `/.well-known/assetlinks.json` y
+      `/.well-known/apple-app-site-association`; sin ellas no escribe nada y el enlace abre la web,
+      que es el comportamiento correcto mientras no haya cuentas en las tiendas. Comprueba después
+      con `adb shell pm get-app-links com.hoyq.app` y con el validador de Apple que la verificación
+      pasa: es silenciosa cuando falla.
 - [ ] **Dominio propio**, cuando haya nombre comercial (decisión pendiente nº 1). Hasta entonces la
       página pública de evento se comparte con una URL de CloudFront, que en un WhatsApp queda mal.
-- [ ] **Políticas de sesión con `dynamodb:LeadingKeys`**, para que sea AWS y no el código quien
-      rechace el acceso a otro municipio. Media tarde, y la pediría el primer piloto que haga
-      revisión de seguridad.
+      Con dominio conviene además una distribución por nombre de host, y entonces el panel puede
+      volver a tener su propia página de error.
+- [x] **Políticas de sesión con `dynamodb:LeadingKeys`.** Hechas (D-057): cada petición del panel
+      asume un rol con una política de sesión acotada a `MUN#<municipio>`, así que es AWS quien
+      rechaza leer otro pueblo. Queda fuera lo que no cuelga del municipio por clave —`EVT#`,
+      `USER#`, `CODE#`—, que sigue guardando el código; cerrarlo del todo es rediseñar esas claves.
+- [x] **Cola de mensajes fallidos.** Hecha (D-051): los horarios tienen cola SQS y política de
+      reintentos, un envío que no llega a nadie devuelve la marca del recordatorio para que el
+      reintento lo mande, y una ejecución que no entrega nada se registra como error, que es lo que
+      mira la alarma. La cola se lee con `aws sqs receive-message --queue-url "$(terraform output -raw failed_jobs_queue_url)"`.
+
+## Lo que comprueba la CI
+
+`.github/workflows/ci.yml` ejecuta `terraform fmt -check` y `terraform validate` de los tres stacks
+en cada cambio, con `-backend=false`: sin credenciales y sin estado, así que comprueba la
+configuración, no la cuenta. La versión está fijada a 1.5.7.
 
 ## Nota sobre la versión de Terraform
 

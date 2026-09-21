@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import type { PosterReading } from '../app/api/poster/route';
+import type { PosterReading } from '../lib/poster-contract';
 import { PosterCreate, type PosterSubject } from './poster-create';
 import { PosterImport } from './poster-import';
 import { Card } from './ui';

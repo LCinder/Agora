@@ -28,8 +28,12 @@ terraform {
 }
 
 provider "aws" {
-  region  = var.region
-  profile = var.aws_profile
+  region = var.region
+
+  # Empty in CI, where the identity is the assumed role and there is no profile
+  # to name. Null rather than "" because the provider treats an empty profile as
+  # a profile called "" and fails looking for it.
+  profile = var.aws_profile == "" ? null : var.aws_profile
 
   # This machine has profiles for several unrelated AWS accounts. Naming the
   # account turns "applied against the wrong one" into an immediate error
@@ -38,7 +42,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Project     = var.project
+      Project     = var.infra_name
       Environment = "dev"
       ManagedBy   = "terraform"
     }
@@ -48,10 +52,15 @@ provider "aws" {
 module "stack" {
   source = "../../modules/stack"
 
-  project            = var.project
-  environment        = "dev"
-  region             = var.region
-  allowed_origins    = var.allowed_origins
-  alert_email        = var.alert_email
-  monthly_budget_eur = var.monthly_budget_eur
+  infra_name            = var.infra_name
+  app_name              = var.app_name
+  site_url              = var.site_url
+  environment           = "dev"
+  region                = var.region
+  allowed_origins       = var.allowed_origins
+  alert_email           = var.alert_email
+  monthly_budget_amount = var.monthly_budget_amount
+  budget_currency       = var.budget_currency
+  metric_alarms         = var.metric_alarms
+  backups               = var.backups
 }

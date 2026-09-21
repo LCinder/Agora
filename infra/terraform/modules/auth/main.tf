@@ -12,7 +12,7 @@
  */
 
 resource "aws_cognito_user_pool" "staff" {
-  name = "${var.project}-${var.environment}-staff"
+  name = "${var.infra_name}-${var.environment}-staff"
 
   # Nobody signs themselves up. The town hall invites its own people and its
   # associations, which is also how the association ends up attached to the
@@ -21,8 +21,8 @@ resource "aws_cognito_user_pool" "staff" {
     allow_admin_create_user_only = true
 
     invite_message_template {
-      email_subject = "Acceso al panel municipal"
-      email_message = "Hola. Ya puedes entrar en el panel con el usuario {username} y la contraseña temporal {####}."
+      email_subject = "Acceso al panel de ${var.app_name}"
+      email_message = "Hola. Ya puedes entrar en el panel de ${var.app_name} con el usuario {username} y la contraseña temporal {####}."
       sms_message   = "Usuario {username}, contraseña temporal {####}"
     }
   }
@@ -71,7 +71,7 @@ resource "aws_cognito_user_pool" "staff" {
 }
 
 resource "aws_cognito_user_pool_client" "panel" {
-  name         = "${var.project}-${var.environment}-panel"
+  name         = "${var.infra_name}-${var.environment}-panel"
   user_pool_id = aws_cognito_user_pool.staff.id
 
   # A browser cannot keep a secret, so it is not given one.

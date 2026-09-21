@@ -7,3 +7,16 @@ alert_email    = "tu@correo.es"
 # While there is no domain, the panel is served from CloudFront. Add the real
 # origin here once there is one.
 allowed_origins = ["http://localhost:3000"]
+
+# The commercial name comes from packages/core/src/brand.json, which is the one
+# file to edit when it changes. Set it here only if this environment has to
+# show a different one.
+# app_name = "Agora (pruebas)"
+
+# Las alarmas de CloudWatch están apagadas en dev: diez son gratuitas por cuenta
+# y un entorno gasta nueve, así que las tiene producción. El aviso de presupuesto
+# sí se crea aquí, porque un gasto que se desmadra en dev es el que nadie mira.
+# metric_alarms = true
+
+# infra_name is deliberately absent: the physical names must not follow the
+# brand. Renaming it recreates the DynamoDB table and loses its data.

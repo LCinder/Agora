@@ -1,0 +1,341 @@
+import type { Push, PushMessage, PushOutcome } from '@agora/push';
+import {
+  type NotificationStore,
+  type StoreClient,
+  createDeviceStore,
+  createLiveStore,
+  createNoticeStore,
+  createNotificationStore,
+  createStoreClient,
+} from '@agora/store';
+import {
+  DEVICE_ONE,
+  DEVICE_TWO,
+  EVENTS,
+  LOCAL_CREDENTIALS,
+  type LocalDynamo,
+  ZUBIA,
+  createTable,
+  dropTable,
+  seed,
+  startDynamoLocal,
+} from '@agora/store/testing';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+
+import { deliveredNothing, run } from './notifications';
+
+/**
+ * The notification job over a real table.
+ *
+ * These are the tests that stand between a neighbour and a phone that buzzes six
+ * times on a Thursday, so they are about the guarantees rather than the plumbing:
+ * once per event, in the language of each phone, never past the daily cap — and a
+ * cancellation always, cap or no cap.
+ */
+const local: LocalDynamo | null = await startDynamoLocal();
+const TABLE = `agora-notifications-handler-${process.pid}`;
+
+/** 19:00 in Madrid on the last day of February, which is La Zubia's hour. */
+const EVENING = new Date('2027-02-28T18:00:00.000Z');
+
+const EDITOR = {
+  authUserId: 'auth-editor',
+  municipalityId: ZUBIA,
+  role: 'municipal_editor' as const,
+  organizationId: null,
+};
+
+/** A push that records instead of sending, and can be told to refuse. */
+function fakePush(behaviour: { unregistered?: string[]; deadNetwork?: boolean } = {}) {
+  const messages: PushMessage[][] = [];
+
+  const push: Push = {
+    async send(batch) {
+      messages.push([...batch]);
+
+      if (behaviour.deadNetwork === true) {
+        return { sent: 0, failed: batch.length, unregistered: [] } satisfies PushOutcome;
+      }
+
+      const unregistered = (behaviour.unregistered ?? []).filter((token) =>
+        batch.some((message) => message.to === token),
+      );
+
+      return {
+        sent: batch.length - unregistered.length,
+        failed: unregistered.length,
+        unregistered,
+      } satisfies PushOutcome;
+    },
+  };
+
+  return { push, messages, flat: () => messages.flat() };
+}
+
+describe.skipIf(local === null)('the notification job', () => {
+  let client: StoreClient;
+  let store: NotificationStore;
+
+  beforeAll(async () => {
+    client = createStoreClient({
+      region: 'eu-central-1',
+      endpoint: local?.endpoint ?? '',
+      credentials: LOCAL_CREDENTIALS,
+    });
+
+    store = createNotificationStore(client, TABLE);
+  });
+
+  afterAll(async () => {
+    await dropTable(client, TABLE);
+    await local?.stop();
+  });
+
+  // A table per test: a reminder is claimed once for ever, which is exactly what
+  // makes a shared table between these tests misleading.
+  beforeEach(async () => {
+    await dropTable(client, TABLE);
+    await createTable(client, TABLE);
+    await seed(client, TABLE);
+
+    const one = createDeviceStore(client, TABLE, DEVICE_ONE);
+    const two = createDeviceStore(client, TABLE, DEVICE_TWO);
+
+    await one.register({ platform: 'android', locale: 'es' });
+    await two.register({ platform: 'ios', locale: 'en-GB' });
+    await one.setPushToken('ExponentPushToken[one]');
+    await two.setPushToken('ExponentPushToken[two]');
+    await one.markInterest(ZUBIA, EVENTS.zubiaPublished);
+    await two.markInterest(ZUBIA, EVENTS.zubiaPublished);
+  });
+
+  it('reminds tomorrow, in the language of each phone', async () => {
+    const { push, flat } = fakePush();
+
+    const result = await run('reminders', { store, push, now: EVENING });
+
+    expect(result).toMatchObject({ job: 'reminders', sent: 2, capped: 0, failed: 0 });
+
+    const sent = flat();
+    const spanish = sent.find((message) => message.to === 'ExponentPushToken[one]');
+    const english = sent.find((message) => message.to === 'ExponentPushToken[two]');
+
+    // 19:00 UTC is 20:00 on a clock in La Zubia, which is the time on the poster.
+    expect(spanish?.body).toBe('Mañana a las 20:00');
+    expect(english?.body).toBe('Tomorrow at 20:00');
+    expect(spanish?.data).toEqual({ eventId: EVENTS.zubiaPublished, municipalityId: ZUBIA });
+  });
+
+  it('gives the claim back when the reminder reached nobody, so a retry sends it', async () => {
+    const dead = fakePush({ deadNetwork: true });
+    const first = await run('reminders', { store, push: dead.push, now: EVENING });
+
+    expect(first).toMatchObject({ sent: 0, failed: 2 });
+
+    // What the schedule's retry finds minutes later: still to be sent, not marked
+    // as sent. Losing an evening's reminders to a provider being down for a minute
+    // is the failure this exists to stop.
+    const recovered = fakePush();
+    const second = await run('reminders', { store, push: recovered.push, now: EVENING });
+
+    expect(second.sent).toBe(2);
+    expect(recovered.flat()).toHaveLength(2);
+  });
+
+  it('calls a run that delivered nothing what it is', () => {
+    expect(
+      deliveredNothing({ job: 'reminders', considered: 1, sent: 0, capped: 0, failed: 4 }),
+    ).toBe(true);
+
+    // One phone that uninstalled the app among ten is not an incident.
+    expect(deliveredNothing({ job: 'outbox', considered: 1, sent: 9, capped: 0, failed: 1 })).toBe(
+      false,
+    );
+
+    // And a quiet evening with nothing to send is not one either.
+    expect(
+      deliveredNothing({ job: 'reminders', considered: 0, sent: 0, capped: 0, failed: 0 }),
+    ).toBe(false);
+  });
+
+  it('sends the reminder once, however many times it runs', async () => {
+    const first = fakePush();
+    await run('reminders', { store, push: first.push, now: EVENING });
+
+    const second = fakePush();
+    const result = await run('reminders', { store, push: second.push, now: EVENING });
+
+    expect(result.sent).toBe(0);
+    expect(second.flat()).toEqual([]);
+  });
+
+  it('does nothing at an hour that is not the municipality’s', async () => {
+    const { push, flat } = fakePush();
+
+    // Noon in Madrid. La Zubia asked for seven in the evening.
+    const result = await run('reminders', {
+      store,
+      push,
+      now: new Date('2027-02-28T11:00:00.000Z'),
+    });
+
+    expect(result.considered).toBe(0);
+    expect(flat()).toEqual([]);
+  });
+
+  it('forgets the token of a phone that uninstalled the app', async () => {
+    const { push } = fakePush({ unregistered: ['ExponentPushToken[two]'] });
+
+    await run('reminders', { store, push, now: EVENING });
+
+    expect(
+      (await store.pushTargets([DEVICE_ONE, DEVICE_TWO])).map((target) => target.deviceId),
+    ).toEqual([DEVICE_ONE]);
+  });
+
+  it('delivers a change of time to the devices that marked the event', async () => {
+    await createNoticeStore(client, TABLE, EDITOR).send({
+      eventId: EVENTS.zubiaPublished,
+      type: 'time_change',
+      message: 'Empieza una hora más tarde.',
+    });
+
+    const { push, flat } = fakePush();
+    const result = await run('outbox', { store, push, now: EVENING });
+
+    expect(result).toMatchObject({ job: 'outbox', considered: 1, sent: 2 });
+    expect(flat()[0]?.title).toMatch(/^Cambio de hora: /);
+    expect(flat()[0]?.body).toBe('Empieza una hora más tarde.');
+
+    // Dealt with: the order is gone and the notice knows when it went out.
+    expect(await store.pendingPushes(10)).toEqual([]);
+
+    const second = fakePush();
+    await run('outbox', { store, push: second.push, now: EVENING });
+
+    expect(second.flat()).toEqual([]);
+  });
+
+  it('keeps the order when nothing could be sent, so the next minute tries again', async () => {
+    await createNoticeStore(client, TABLE, EDITOR).send({
+      eventId: EVENTS.zubiaPublished,
+      type: 'notice',
+      message: 'Se corta la calle Real.',
+    });
+
+    const dead = fakePush({ deadNetwork: true });
+    const result = await run('outbox', { store, push: dead.push, now: EVENING });
+
+    expect(result.failed).toBe(2);
+    expect(await store.pendingPushes(10)).toHaveLength(1);
+  });
+
+  it('stops at the daily cap, and never stops a cancellation', async () => {
+    const notices = createNoticeStore(client, TABLE, EDITOR);
+
+    // Three messages is what La Zubia allows per device per day.
+    for (const message of ['Uno', 'Dos', 'Tres']) {
+      await notices.send({ eventId: EVENTS.zubiaPublished, type: 'notice', message });
+    }
+
+    const spending = fakePush();
+    const spent = await run('outbox', { store, push: spending.push, now: EVENING });
+
+    expect(spent.sent).toBe(6);
+
+    await notices.send({
+      eventId: EVENTS.zubiaPublished,
+      type: 'notice',
+      message: 'Y una cuarta cosa.',
+    });
+
+    const capped = fakePush();
+    const overCap = await run('outbox', { store, push: capped.push, now: EVENING });
+
+    expect(overCap).toMatchObject({ sent: 0, capped: 2 });
+    expect(capped.flat()).toEqual([]);
+
+    await notices.send({
+      eventId: EVENTS.zubiaPublished,
+      type: 'cancelled',
+      message: 'Se cancela por lluvia.',
+    });
+
+    const cancellation = fakePush();
+    const anyway = await run('outbox', { store, push: cancellation.push, now: EVENING });
+
+    expect(anyway.sent).toBe(2);
+    expect(cancellation.flat()[0]?.title).toMatch(/^Se cancela: /);
+  });
+
+  it('sends a featured event to the town, not only to whoever marked it', async () => {
+    const notices = createNoticeStore(client, TABLE, EDITOR);
+    const three = createDeviceStore(client, TABLE, 'device-three');
+
+    // A phone that follows La Zubia and has never marked anything. It is the whole
+    // point of this notification, and the one the other three never reach.
+    await three.register({ platform: 'android', locale: 'es' });
+    await three.setPushToken('ExponentPushToken[three]');
+    await three.follow(ZUBIA);
+
+    await notices.feature({
+      eventId: EVENTS.zubiaPublished,
+      message: 'Ma\u00f1ana empieza la feria.',
+    });
+
+    const { push, flat } = fakePush();
+    const result = await run('outbox', { store, push, now: EVENING });
+
+    expect(result.sent).toBe(1);
+    expect(flat().map((message) => message.to)).toEqual(['ExponentPushToken[three]']);
+    // The town hall's own sentence, unedited: this one goes to everybody, so no
+    // wording of ours would suit it better than theirs.
+    expect(flat()[0]?.body).toBe('Ma\u00f1ana empieza la feria.');
+  });
+
+  it('leaves the last notification of the day for the reminder the resident asked for', async () => {
+    const notices = createNoticeStore(client, TABLE, EDITOR);
+    const one = createDeviceStore(client, TABLE, DEVICE_ONE);
+
+    await one.follow(ZUBIA);
+
+    // Three broadcasts, which is what La Zubia allows per phone per day in total.
+    for (const message of ['Empieza la feria.', 'Hoy hay fuegos.', 'Y ma\u00f1ana la traca.']) {
+      await notices.feature({ eventId: EVENTS.zubiaPublished, message });
+    }
+
+    const broadcasts = fakePush();
+
+    // Only two get through: a broadcast may spend at most two of the three.
+    expect(await run('outbox', { store, push: broadcasts.push, now: EVENING })).toMatchObject({
+      sent: 2,
+      capped: 1,
+    });
+
+    // The third was refused with a slot still free, and that slot is the evening
+    // reminder: a town hall pushing announcements must not be able to eat the one
+    // message the resident actually asked for.
+    const reminder = fakePush();
+
+    await run('reminders', { store, push: reminder.push, now: EVENING });
+
+    // The phone that already had two announcements today still gets it. The other
+    // one is in there because it marked the event and spent nothing: what matters
+    // is that the first is not missing.
+    expect(reminder.flat().map((message) => message.to)).toContain('ExponentPushToken[one]');
+  });
+
+  it('tells the interested devices when the live tracking starts', async () => {
+    const sessions = createLiveStore(client, TABLE, EDITOR);
+
+    await sessions.schedule(EVENTS.zubiaPublished);
+    await sessions.start(EVENTS.zubiaPublished);
+
+    const { push, flat } = fakePush();
+    const result = await run('outbox', { store, push, now: EVENING });
+
+    expect(result.sent).toBe(2);
+    expect(flat()[0]?.title).toMatch(/^Ya está en directo: /);
+    expect(flat()[0]?.data?.['live']).toBe('true');
+  });
+});

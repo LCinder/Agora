@@ -75,6 +75,39 @@ export interface Messages {
   'live.finished': string;
   'live.plannedRoute': string;
 
+  'volunteer.title': string;
+  'volunteer.intro': string;
+  'volunteer.settingsBody': string;
+  'volunteer.codeLabel': string;
+  'volunteer.codePlaceholder': string;
+  'volunteer.enter': string;
+  'volunteer.checking': string;
+  'volunteer.badCode': string;
+  'volunteer.ready': string;
+  'volunteer.start': string;
+  'volunteer.pause': string;
+  'volunteer.resume': string;
+  'volunteer.finish': string;
+  'volunteer.broadcasting': string;
+  'volunteer.paused': string;
+  'volunteer.lastSent': string;
+  'volunteer.noneSent': string;
+  'volunteer.keepOpen': string;
+  'volunteer.permissionDenied': string;
+  'volunteer.offline': string;
+  'volunteer.expired': string;
+  'volunteer.notActive': string;
+  'volunteer.privacy': string;
+  'volunteer.demoNotice': string;
+
+  'push.reminderBody': string;
+  'push.reminderBodyAllDay': string;
+  'push.titleTimeChange': string;
+  'push.titleLocationChange': string;
+  'push.titleCancelled': string;
+  'push.liveTitle': string;
+  'push.liveBody': string;
+
   'settings.title': string;
   'settings.municipality': string;
   'settings.language': string;
@@ -83,10 +116,24 @@ export interface Messages {
   'settings.appearanceLight': string;
   'settings.appearanceSystem': string;
   'settings.appearanceBody': string;
+  'settings.notifications': string;
+  'settings.notificationsBody': string;
+  'settings.notificationsOn': string;
+  'settings.notificationsOff': string;
+  'settings.notificationsEnable': string;
+  'settings.notificationsDisable': string;
+  'settings.notificationsDenied': string;
+  'settings.notificationsUnsupported': string;
   'settings.privacy': string;
   'settings.deleteData': string;
   'settings.deleteDataBody': string;
+  'settings.privacyPolicy': string;
+  'settings.legalNotice': string;
+  'settings.accessibility': string;
   'settings.demoNotice': string;
+
+  'shared.unknownMunicipality': string;
+  'shared.openInBrowser': string;
 }
 
 const es: Messages = {
@@ -160,6 +207,43 @@ const es: Messages = {
   'live.finished': 'El directo ha terminado.',
   'live.plannedRoute': 'Recorrido previsto',
 
+  'volunteer.title': 'Modo voluntario',
+  'volunteer.intro':
+    'Con el código que te ha dado el ayuntamiento, tu móvil comparte por dónde va el recorrido.',
+  'volunteer.settingsBody':
+    'Para quien lleva el móvil en una procesión, una cabalgata o una romería.',
+  'volunteer.codeLabel': 'Código del directo',
+  'volunteer.codePlaceholder': 'Por ejemplo, 4F7K2M',
+  'volunteer.enter': 'Entrar',
+  'volunteer.checking': 'Comprobando el código…',
+  'volunteer.badCode': 'Ese código no vale. Pide otro al ayuntamiento.',
+  'volunteer.ready': 'Listo para empezar',
+  'volunteer.start': 'Empezar a emitir',
+  'volunteer.pause': 'Pausar',
+  'volunteer.resume': 'Seguir emitiendo',
+  'volunteer.finish': 'Terminar',
+  'volunteer.broadcasting': 'Estás emitiendo',
+  'volunteer.paused': 'En pausa',
+  'volunteer.lastSent': 'Última posición enviada a las {time}',
+  'volunteer.noneSent': 'Todavía no se ha enviado ninguna posición.',
+  'volunteer.keepOpen': 'Deja la app abierta y la pantalla encendida durante todo el recorrido.',
+  'volunteer.permissionDenied':
+    'Necesitamos tu ubicación para compartir por dónde vas. Actívala en los ajustes del móvil.',
+  'volunteer.offline': 'Sin conexión. Lo seguimos intentando.',
+  'volunteer.expired': 'La sesión ha caducado. Vuelve a introducir el código.',
+  'volunteer.notActive': 'El directo no está activo. El ayuntamiento tiene que activarlo.',
+  'volunteer.privacy':
+    'Tu ubicación solo se comparte mientras emites y se borra al terminar el evento.',
+  'volunteer.demoNotice': 'Demostración: no se envía nada fuera de este móvil.',
+
+  'push.reminderBody': 'Mañana a las {time}',
+  'push.reminderBodyAllDay': 'Mañana en tu pueblo',
+  'push.titleTimeChange': 'Cambio de hora: {title}',
+  'push.titleLocationChange': 'Cambio de lugar: {title}',
+  'push.titleCancelled': 'Se cancela: {title}',
+  'push.liveTitle': 'Ya está en directo: {title}',
+  'push.liveBody': 'Mira por dónde va en el mapa.',
+
   'settings.title': 'Ajustes',
   'settings.municipality': 'Municipio',
   'settings.language': 'Idioma',
@@ -168,8 +252,23 @@ const es: Messages = {
   'settings.appearanceLight': 'Claro',
   'settings.appearanceSystem': 'Automático',
   'settings.appearanceBody': 'El claro se lee mejor a pleno sol.',
+  'settings.notifications': 'Avisos',
+  'settings.notificationsBody':
+    'Te recordamos por la tarde los eventos que te interesan y te avisamos si cambia la hora, el lugar o se cancelan.',
+  'settings.notificationsOn': 'Activados',
+  'settings.notificationsOff': 'Desactivados',
+  'settings.notificationsEnable': 'Activar avisos',
+  'settings.notificationsDisable': 'Desactivar avisos',
+  'settings.notificationsDenied':
+    'Los has bloqueado en los ajustes del móvil. Se activan desde ahí.',
+  'settings.notificationsUnsupported': 'En esta versión de demostración no se envían avisos.',
   'settings.privacy': 'Privacidad',
   'settings.deleteData': 'Borrar mis datos',
+  'settings.privacyPolicy': 'Política de privacidad',
+  'settings.legalNotice': 'Aviso legal',
+  'settings.accessibility': 'Accesibilidad',
+  'shared.unknownMunicipality': 'Ese municipio todavía no está en la aplicación',
+  'shared.openInBrowser': 'Abre el enlace en el navegador para ver el evento.',
   'settings.deleteDataBody':
     'Se borrarán los eventos que te interesan y el municipio elegido. No guardamos nada más.',
   'settings.demoNotice': 'Versión de demostración con datos de ejemplo.',
@@ -245,6 +344,43 @@ const en: Messages = {
   'live.finished': 'The live tracking has finished.',
   'live.plannedRoute': 'Planned route',
 
+  'volunteer.title': 'Volunteer mode',
+  'volunteer.intro':
+    'With the code the town hall gave you, your phone shares where the route is going.',
+  'volunteer.settingsBody':
+    'For whoever carries the phone in a procession, a parade or a pilgrimage.',
+  'volunteer.codeLabel': 'Live tracking code',
+  'volunteer.codePlaceholder': 'For example, 4F7K2M',
+  'volunteer.enter': 'Enter',
+  'volunteer.checking': 'Checking the code…',
+  'volunteer.badCode': 'That code is not valid. Ask the town hall for another one.',
+  'volunteer.ready': 'Ready to start',
+  'volunteer.start': 'Start broadcasting',
+  'volunteer.pause': 'Pause',
+  'volunteer.resume': 'Keep broadcasting',
+  'volunteer.finish': 'Finish',
+  'volunteer.broadcasting': 'You are broadcasting',
+  'volunteer.paused': 'Paused',
+  'volunteer.lastSent': 'Last position sent at {time}',
+  'volunteer.noneSent': 'No position has been sent yet.',
+  'volunteer.keepOpen': 'Keep the app open and the screen on for the whole route.',
+  'volunteer.permissionDenied':
+    'We need your location to share where you are. Turn it on in your phone settings.',
+  'volunteer.offline': 'No connection. We keep trying.',
+  'volunteer.expired': 'The session has expired. Enter the code again.',
+  'volunteer.notActive': 'The live tracking is not active. The town hall has to turn it on.',
+  'volunteer.privacy':
+    'Your location is only shared while you broadcast and is deleted when the event ends.',
+  'volunteer.demoNotice': 'Demo: nothing leaves this phone.',
+
+  'push.reminderBody': 'Tomorrow at {time}',
+  'push.reminderBodyAllDay': 'Tomorrow in your town',
+  'push.titleTimeChange': 'New time: {title}',
+  'push.titleLocationChange': 'New place: {title}',
+  'push.titleCancelled': 'Called off: {title}',
+  'push.liveTitle': 'Live now: {title}',
+  'push.liveBody': 'See where it is on the map.',
+
   'settings.title': 'Settings',
   'settings.municipality': 'Town',
   'settings.language': 'Language',
@@ -253,10 +389,24 @@ const en: Messages = {
   'settings.appearanceLight': 'Light',
   'settings.appearanceSystem': 'Automatic',
   'settings.appearanceBody': 'Light reads better in bright sunshine.',
+  'settings.notifications': 'Notifications',
+  'settings.notificationsBody':
+    'We remind you in the evening about the events you marked, and tell you if the time or the place changes, or they are called off.',
+  'settings.notificationsOn': 'On',
+  'settings.notificationsOff': 'Off',
+  'settings.notificationsEnable': 'Turn notifications on',
+  'settings.notificationsDisable': 'Turn notifications off',
+  'settings.notificationsDenied': 'You blocked them in your phone settings. Turn them on there.',
+  'settings.notificationsUnsupported': 'This demo build does not send notifications.',
   'settings.privacy': 'Privacy',
   'settings.deleteData': 'Delete my data',
   'settings.deleteDataBody':
     'This removes the events you marked and the town you chose. We store nothing else.',
+  'settings.privacyPolicy': 'Privacy policy',
+  'settings.legalNotice': 'Legal notice',
+  'settings.accessibility': 'Accessibility',
+  'shared.unknownMunicipality': 'That town is not in the app yet',
+  'shared.openInBrowser': 'Open the link in your browser to see the event.',
   'settings.demoNotice': 'Demo version with example data.',
 };
 

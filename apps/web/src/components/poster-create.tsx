@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 import { usePanel } from '../lib/panel-store';
 import { composePoster } from '../lib/poster-canvas';
-import type { PosterDrawing } from '../app/api/poster/generate/route';
+import { type PosterDrawing, posterEndpoint } from '../lib/poster-contract';
 import { Button, Field, Select, TextArea } from './ui';
 
 /**
@@ -67,7 +67,7 @@ export function PosterCreate({ subject }: { subject: PosterSubject }) {
     const { dateLabel, timeLabel } = labels();
 
     try {
-      const response = await fetch('/api/poster/generate', {
+      const response = await fetch(posterEndpoint('draw'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({

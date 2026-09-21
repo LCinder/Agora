@@ -1,4 +1,5 @@
-import { minutesSince, type Event, type Route } from '@agora/core';
+import { isPositionStale, minutesSince, type Event, type Route } from '@agora/core';
+import type { LiveView } from '@agora/data';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -8,19 +9,93 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Map } from '../../components/map';
 import { Body, Caption, Loading, Screen } from '../../components/ui';
 import { dataSource } from '../../lib/data';
+import { liveClient } from '../../lib/live';
 import { useApp } from '../../providers/app-provider';
 import { FONTS } from '../../theme/theme';
 
 /**
  * Live tracking of a procession or parade.
  *
- * Phase 0 replays the planned route as if a volunteer were walking it. The
- * real version, with a volunteer broadcasting from their phone, lands in phase
- * 2; the screen a resident sees is meant to be the same one.
+ * One screen, two sources. Against a real API it polls the last position the
+ * volunteer sent; in the demo it replays the planned route as if somebody were
+ * walking it. What a resident sees is the same either way, which is the point:
+ * the version shown in a town hall meeting is the version that ships.
  */
 
-/** How often the simulated position advances. The real one targets 5-10 s. */
-const TICK_MS = 1500;
+/** How often the simulated position advances. */
+const SIMULATION_TICK_MS = 1500;
+
+/**
+ * How often the real position is asked for. The API caches it for five seconds,
+ * so asking faster would only return the same answer.
+ */
+const POLL_MS = 5000;
+
+/** Replays the recorded route. Does nothing when there is an API to ask. */
+function useSimulatedLive(route: Route | null): { point: [number, number]; at: Date } | null {
+  const [index, setIndex] = useState(0);
+  const [at, setAt] = useState(() => new Date());
+
+  useEffect(() => {
+    if (liveClient !== null || route === null) return;
+
+    const timer = setInterval(() => {
+      setIndex((current) => (current + 1) % route.coordinates.length);
+      setAt(new Date());
+    }, SIMULATION_TICK_MS);
+
+    return () => clearInterval(timer);
+  }, [route]);
+
+  if (liveClient === null && route !== null) {
+    const point = route.coordinates[index];
+
+    if (point !== undefined) return { point, at };
+  }
+
+  return null;
+}
+
+/**
+ * The live session as the API tells it, refreshed every few seconds.
+ *
+ * A poll that fails changes nothing on purpose: the previous position stays on
+ * the map and its own timestamp ages, which is exactly what the screen says out
+ * loud. Coverage dies in a street full of people, and that is not an error state.
+ */
+function useRemoteLive(eventId: string | undefined): LiveView | null {
+  const [view, setView] = useState<LiveView | null>(null);
+
+  useEffect(() => {
+    const client = liveClient;
+
+    if (client === null || eventId === undefined) return;
+
+    let active = true;
+
+    // An arrow rather than a declaration so `client` stays narrowed inside it.
+    const poll = async (id: string) => {
+      try {
+        const fresh = await client.view(id);
+
+        if (active && fresh !== null) setView(fresh);
+      } catch {
+        // Keep whatever is on the map and let the timestamp speak.
+      }
+    };
+
+    void poll(eventId);
+
+    const timer = setInterval(() => void poll(eventId), POLL_MS);
+
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [eventId]);
+
+  return view;
+}
 
 export default function LiveScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -28,11 +103,11 @@ export default function LiveScreen() {
   const router = useRouter();
 
   const [event, setEvent] = useState<Event | null>(null);
-  const [route, setRoute] = useState<Route | null>(null);
-  const [index, setIndex] = useState(0);
-  const [updatedAt, setUpdatedAt] = useState(() => new Date());
+  const [seedRoute, setSeedRoute] = useState<Route | null>(null);
   const [loading, setLoading] = useState(true);
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const now = useRef(new Date());
+
+  const remote = useRemoteLive(id);
 
   useEffect(() => {
     if (!municipality || !id) return;
@@ -47,7 +122,7 @@ export default function LiveScreen() {
       if (!active) return;
 
       setEvent(found);
-      setRoute(plannedRoute);
+      setSeedRoute(plannedRoute);
       setLoading(false);
     }
 
@@ -58,18 +133,10 @@ export default function LiveScreen() {
     };
   }, [id, municipality]);
 
-  useEffect(() => {
-    if (!route) return;
-
-    timer.current = setInterval(() => {
-      setIndex((current) => (current + 1) % route.coordinates.length);
-      setUpdatedAt(new Date());
-    }, TICK_MS);
-
-    return () => {
-      if (timer.current) clearInterval(timer.current);
-    };
-  }, [route]);
+  // The route the map draws: what the town hall planned, what is left of the
+  // session once it ended, or the recorded one the demo replays.
+  const route = remote?.plannedRoute ?? remote?.simplifiedRoute ?? seedRoute;
+  const simulated = useSimulatedLive(route);
 
   if (loading || !municipality) {
     return (
@@ -79,12 +146,33 @@ export default function LiveScreen() {
     );
   }
 
-  const point = route?.coordinates[index];
-  const live = point ? { longitude: point[0], latitude: point[1] } : null;
+  const position = remote?.position ?? null;
+  const live =
+    position !== null
+      ? { latitude: position.latitude, longitude: position.longitude }
+      : simulated !== null
+        ? { longitude: simulated.point[0], latitude: simulated.point[1] }
+        : null;
+
   const centre = live ?? {
     latitude: municipality.latitude,
     longitude: municipality.longitude,
   };
+
+  // Recomputed on every render, which happens on every poll and every tick.
+  now.current = new Date();
+  const updatedAt = position?.recordedAt ?? simulated?.at ?? null;
+  const stale = position !== null && isPositionStale(position, now.current);
+
+  function statusLine(): string {
+    if (remote?.status === 'scheduled') return t('live.notStarted');
+    if (remote?.status === 'ended') return t('live.finished');
+    if (updatedAt === null) return t('live.notStarted');
+
+    const minutes = minutesSince(updatedAt, now.current);
+
+    return stale ? t('live.stale', { minutes }) : t('live.lastUpdate', { minutes });
+  }
 
   return (
     <Screen edges={[]}>
@@ -138,8 +226,21 @@ export default function LiveScreen() {
               },
             ]}
           >
-            <View style={[styles.dot, { backgroundColor: theme.colors.live }]} />
-            <Text style={[styles.badgeText, { color: theme.colors.live }]}>
+            {/* Grey when the dot on the map is older than the domain's threshold:
+                a four-minute-old position presented as live is worse than one
+                that admits it. */}
+            <View
+              style={[
+                styles.dot,
+                { backgroundColor: stale ? theme.colors.textMuted : theme.colors.live },
+              ]}
+            />
+            <Text
+              style={[
+                styles.badgeText,
+                { color: stale ? theme.colors.textMuted : theme.colors.live },
+              ]}
+            >
               {t('live.title').toUpperCase()}
             </Text>
           </View>
@@ -164,9 +265,7 @@ export default function LiveScreen() {
           <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={2}>
             {event?.title ?? ''}
           </Text>
-          <Caption>
-            {t('live.lastUpdate', { minutes: minutesSince(updatedAt, new Date()) })}
-          </Caption>
+          <Caption>{statusLine()}</Caption>
           <Caption>{t('live.plannedRoute')}</Caption>
         </View>
       </SafeAreaView>
@@ -180,7 +279,6 @@ const styles = StyleSheet.create({
   centre: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   dot: { borderRadius: 999, height: 9, width: 9 },
   grabber: { alignSelf: 'center', borderRadius: 999, height: 4, width: 42 },
-  grow: { flex: 1 },
   header: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   liveBadge: { alignItems: 'center', flexDirection: 'row', height: 36 },
   map: { borderRadius: 0, flex: 1 },

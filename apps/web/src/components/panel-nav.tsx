@@ -6,22 +6,38 @@ import { usePathname } from 'next/navigation';
 
 import { usePanel } from '../lib/panel-store';
 
-const LINKS = [
-  { href: '/', label: 'Inicio' },
-  { href: '/eventos', label: 'Eventos' },
-  { href: '/revision', label: 'Revisión' },
-  { href: '/datos', label: 'Datos' },
-] as const;
-
 /**
  * Panel navigation.
  *
  * The review queue carries a count: an association's event sitting unapproved
  * is the one thing in this panel that goes stale if nobody looks at it.
+ *
+ * What is on the bar depends on the role, which comes from the membership table.
+ * Not as a permission — the API checks that on every request and would refuse the
+ * same things — but because offering somebody a button that answers 403 is worse
+ * than not offering it. An association gets its own events and its own numbers;
+ * the review queue, the associations and the live sessions are the town hall's,
+ * and who has access is the administrator's.
  */
+const LINKS = [
+  { href: '/', label: 'Inicio', municipal: false, adminOnly: false },
+  { href: '/eventos', label: 'Eventos', municipal: false, adminOnly: false },
+  { href: '/revision', label: 'Revisión', municipal: true, adminOnly: false },
+  { href: '/directos', label: 'Directos', municipal: true, adminOnly: false },
+  { href: '/asociaciones', label: 'Asociaciones', municipal: true, adminOnly: false },
+  { href: '/datos', label: 'Datos', municipal: false, adminOnly: false },
+  { href: '/usuarios', label: 'Usuarios', municipal: true, adminOnly: true },
+  { href: '/actividad', label: 'Actividad', municipal: true, adminOnly: true },
+] as const;
+
 export function PanelNav() {
-  const { events, municipality, resetToSeed } = usePanel();
+  const { demo, events, identity, leave, municipality, resetToSeed, role } = usePanel();
   const pathname = usePathname();
+
+  const municipal = role === 'municipal_editor' || role === 'municipal_admin';
+  const links = LINKS.filter(
+    (link) => (!link.municipal || municipal) && (!link.adminOnly || role === 'municipal_admin'),
+  );
 
   const pending = events.filter(isAwaitingReview).length;
   const brand = municipality?.branding.primaryColor ?? '#4F46E5';
@@ -39,7 +55,7 @@ export function PanelNav() {
         </div>
 
         <nav aria-label="Secciones del panel" className="flex flex-wrap items-center gap-1">
-          {LINKS.map((link) => {
+          {links.map((link) => {
             const active = pathname === link.href;
 
             return (
@@ -67,18 +83,31 @@ export function PanelNav() {
           })}
         </nav>
 
-        {/*
-          Resets the panel to the seed. Not a product feature: it is there so
-          the same laptop can run the demo twice in an afternoon without
-          carrying over whatever the previous councillor typed.
-        */}
-        <button
-          type="button"
-          onClick={resetToSeed}
-          className="ml-auto text-xs text-neutral-500 underline hover:text-neutral-800 dark:hover:text-neutral-200"
-        >
-          Reiniciar demo
-        </button>
+        {demo ? (
+          /*
+            Resets the panel to the seed. Not a product feature: it is there so
+            the same laptop can run the demo twice in an afternoon without
+            carrying over whatever the previous councillor typed.
+          */
+          <button
+            type="button"
+            onClick={resetToSeed}
+            className="ml-auto text-xs text-neutral-500 underline hover:text-neutral-800 dark:hover:text-neutral-200"
+          >
+            Reiniciar demo
+          </button>
+        ) : (
+          <div className="ml-auto flex items-center gap-3">
+            <span className="hidden text-xs text-neutral-500 sm:inline">{identity?.email}</span>
+            <button
+              type="button"
+              onClick={leave}
+              className="text-xs text-neutral-500 underline hover:text-neutral-800 dark:hover:text-neutral-200"
+            >
+              Salir
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

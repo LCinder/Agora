@@ -21,7 +21,7 @@ terraform {
 }
 
 locals {
-  prefix = "${var.project}-${var.environment}"
+  prefix = "${var.infra_name}-${var.environment}"
 
   common_env = {
     TABLE_NAME  = var.table_name
@@ -35,20 +35,20 @@ locals {
 
 data "aws_iam_policy_document" "public_api" {
   statement {
-    effect  = "Allow"
-    actions = ["dynamodb:GetItem", "dynamodb:Query"]
-    resources = concat(
-      [var.table_arn],
-      var.public_index_arns,
-    )
+    effect    = "Allow"
+    actions   = ["dynamodb:GetItem", "dynamodb:Query"]
+    resources = [var.table_arn, var.calendar_index_arn]
   }
 
-  # Belt and braces. Nothing above grants gsi3, but saying so out loud means no
-  # later policy can quietly add it either.
+  # Belt and braces, and not only a formality. The review queue holds events
+  # the town hall has not approved, and the reminder index holds who is
+  # interested in what: neither is a resident's business, and neither is
+  # granted above. Denying them out loud means no later edit can add one back
+  # by widening a list.
   statement {
     effect    = "Deny"
     actions   = ["dynamodb:*"]
-    resources = [var.reminders_index_arn]
+    resources = [var.review_index_arn, var.reminders_index_arn]
   }
 }
 
@@ -82,7 +82,7 @@ data "aws_iam_policy_document" "device_api" {
   statement {
     effect    = "Deny"
     actions   = ["dynamodb:*"]
-    resources = [var.reminders_index_arn]
+    resources = [var.review_index_arn, var.reminders_index_arn]
   }
 
   statement {
@@ -137,10 +137,7 @@ data "aws_iam_policy_document" "panel_api" {
       "dynamodb:DeleteItem",
       "dynamodb:BatchWriteItem",
     ]
-    resources = concat(
-      [var.table_arn],
-      var.public_index_arns,
-    )
+    resources = [var.table_arn, var.calendar_index_arn, var.review_index_arn]
   }
 
   statement {
@@ -154,6 +151,90 @@ data "aws_iam_policy_document" "panel_api" {
     actions   = ["s3:PutObject", "s3:DeleteObject"]
     resources = ["${var.media_bucket_arn}/*"]
   }
+
+  # Inviting municipal staff and associations: the account in Cognito, and
+  # reading back the subject of one that already exists, because a technician who
+  # works for two neighbouring town halls signs in once. Creating the account is
+  # all it may do — no listing users, no changing passwords, no deleting anybody.
+  statement {
+    effect = "Allow"
+    actions = [
+      "cognito-idp:AdminCreateUser",
+      "cognito-idp:AdminGetUser",
+    ]
+    resources = [var.user_pool_arn]
+  }
+
+  # Becoming somebody narrower for the length of one request: the role below,
+  # with a session policy naming the municipality of the request (D-057). The ARN
+  # is written out rather than referenced, because referencing it here and the
+  # function's role there is a cycle Terraform cannot plan.
+  statement {
+    effect    = "Allow"
+    actions   = ["sts:AssumeRole"]
+    resources = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${local.prefix}-panel-session"]
+  }
+}
+
+data "aws_caller_identity" "current" {}
+
+# ---------------------------------------------------------------------------
+# The role a panel request actually runs as.
+#
+# Same table permissions as the function itself and not one more — what narrows
+# it is the session policy the function attaches when it assumes this, which
+# carries `dynamodb:LeadingKeys` for the municipality in the path. A session
+# policy can only take permissions away, so this role is the ceiling and the
+# request is always somewhere under it.
+#
+# The Deny on gsi3 is repeated here on purpose. It is the index that says which
+# devices marked an event, no municipal role may read it (D-032), and a Deny that
+# only exists in one of the two roles is a Deny that a refactor can drop.
+# ---------------------------------------------------------------------------
+data "aws_iam_policy_document" "panel_session_assume" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "AWS"
+      identifiers = [module.panel_api.role_arn]
+    }
+  }
+}
+
+resource "aws_iam_role" "panel_session" {
+  name               = "${local.prefix}-panel-session"
+  assume_role_policy = data.aws_iam_policy_document.panel_session_assume.json
+}
+
+data "aws_iam_policy_document" "panel_session" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:BatchGetItem",
+      "dynamodb:Query",
+      "dynamodb:PutItem",
+      "dynamodb:UpdateItem",
+      "dynamodb:DeleteItem",
+      "dynamodb:BatchWriteItem",
+      "dynamodb:ConditionCheckItem",
+    ]
+    resources = [var.table_arn, var.calendar_index_arn, var.review_index_arn]
+  }
+
+  statement {
+    effect    = "Deny"
+    actions   = ["dynamodb:*"]
+    resources = [var.reminders_index_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "panel_session" {
+  name   = "table"
+  role   = aws_iam_role.panel_session.id
+  policy = data.aws_iam_policy_document.panel_session.json
 }
 
 module "panel_api" {
@@ -166,22 +247,33 @@ module "panel_api" {
 
   environment_variables = merge(local.common_env, {
     MEDIA_BUCKET = var.media_bucket_name
+    USER_POOL_ID = var.user_pool_id
+
+    # What to assume, and what the session policy is written against. Both, or
+    # the function falls back to its own credentials and the fourth layer of
+    # isolation quietly is not there.
+    PANEL_SESSION_ROLE_ARN = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${local.prefix}-panel-session"
+    TABLE_ARN              = var.table_arn
   })
 }
 
 # ---------------------------------------------------------------------------
-# The poster reader.
+# The poster function, both ways round: reading a poster and drawing one.
 #
-# Touches no table: it reads an image, asks Claude what is on it and returns
-# the answer for a person to confirm. Thirty seconds because a large poster
-# takes a while, and nothing else.
+# Touches no table. It reads an image and asks a model what is on it, or takes
+# a description and has one drawn, and either way a person confirms the result
+# before anything is published.
+#
+# The providers are Gemini Flash for the text and Cloudflare Workers AI for the
+# image, both on free tiers (D-024). Their credentials are the reason this runs
+# in a Lambda at all rather than in the panel: a static site cannot keep a key.
 # ---------------------------------------------------------------------------
 
 data "aws_iam_policy_document" "poster" {
   statement {
     effect    = "Allow"
-    actions   = ["ssm:GetParameter"]
-    resources = [var.anthropic_key_secret_arn]
+    actions   = ["ssm:GetParameter", "ssm:GetParameters"]
+    resources = var.poster_parameter_arns
   }
 }
 
@@ -191,13 +283,69 @@ module "poster" {
   name        = "${local.prefix}-poster"
   source_dir  = "${var.lambda_source_root}/poster"
   policy_json = data.aws_iam_policy_document.poster.json
-  timeout     = 30
+  # Drawing is two calls to two providers, one of them a diffusion model, so
+  # this is the slowest thing the API does. 29 seconds and not more because an
+  # HTTP API cuts the integration off at 30: a longer timeout would only keep
+  # the function running after the panel has already given up.
+  timeout     = 29
   memory_size = 1024
 
-  environment_variables = {
-    ENVIRONMENT         = var.environment
-    ANTHROPIC_PARAMETER = var.anthropic_key_parameter_name
+  environment_variables = merge(
+    { ENVIRONMENT = var.environment },
+    var.poster_parameter_names,
+  )
+}
+
+# ---------------------------------------------------------------------------
+# The volunteer who carries the phone in the procession.
+#
+# Writes positions and reads the session they belong to, and that is the whole of
+# it: no index, no other municipality, nothing about who marked an event. The
+# event a volunteer may write to is inside their token, so there is no request
+# that reaches another one.
+#
+# No authorizer in front of it, on purpose: an authorizer earns its keep by
+# caching an answer across requests, and a position arrives every few seconds and
+# is a write that has to happen anyway. Verifying inside the function costs the
+# same and saves a moving part.
+# ---------------------------------------------------------------------------
+
+data "aws_iam_policy_document" "volunteer" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:Query",
+      "dynamodb:PutItem",
+      "dynamodb:UpdateItem",
+      "dynamodb:DeleteItem",
+    ]
+    resources = [var.table_arn]
   }
+
+  statement {
+    effect    = "Deny"
+    actions   = ["dynamodb:*"]
+    resources = [var.calendar_index_arn, var.review_index_arn, var.reminders_index_arn]
+  }
+
+  statement {
+    effect    = "Allow"
+    actions   = ["ssm:GetParameter"]
+    resources = [var.device_token_secret_arn]
+  }
+}
+
+module "volunteer" {
+  source = "../lambda"
+
+  name        = "${local.prefix}-volunteer"
+  source_dir  = "${var.lambda_source_root}/volunteer"
+  policy_json = data.aws_iam_policy_document.volunteer.json
+
+  environment_variables = merge(local.common_env, {
+    DEVICE_TOKEN_PARAMETER = var.device_token_parameter_name
+  })
 }
 
 # ---------------------------------------------------------------------------
@@ -282,7 +430,11 @@ locals {
     "GET /municipalities/{municipalityId}/events",
     "GET /municipalities/{municipalityId}/categories",
     "GET /municipalities/{municipalityId}/organizations",
-    "GET /events/{eventId}",
+    # Under the municipality, and not a bare `/events/{eventId}`: the partition
+    # key of an event names its municipality, so a lookup that does not name one
+    # would need an index or a scan of the whole table. Every link the product
+    # produces already carries the town — `/e/<slug>/<id>` — so nothing is lost.
+    "GET /municipalities/{municipalityId}/events/{eventId}",
     # Under its own prefix so CloudFront can give it a 5 second cache rule
     # without touching anything else.
     "GET /live/{eventId}",
@@ -292,6 +444,15 @@ locals {
     "GET /me/interests",
     "PUT /me/interests/{eventId}",
     "DELETE /me/interests/{eventId}",
+    # Following a municipality: what the town hall's "dispositivos activos" is
+    # counted from. One row per phone per town, and no name anywhere in it.
+    "PUT /me/municipalities/{municipalityId}",
+    # Where the notification job sends. Behind the device authorizer like the
+    # rest: a token nobody signed cannot leave an address on somebody's phone.
+    "PUT /me/push-token",
+    "DELETE /me/push-token",
+    # "Borrar mis datos": the device, its marks and its counters.
+    "DELETE /me",
   ]
 }
 
@@ -316,6 +477,13 @@ resource "aws_apigatewayv2_integration" "panel_api" {
   payload_format_version = "2.0"
 }
 
+resource "aws_apigatewayv2_integration" "volunteer" {
+  api_id                 = aws_apigatewayv2_api.main.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.volunteer.invoke_arn
+  payload_format_version = "2.0"
+}
+
 resource "aws_apigatewayv2_integration" "poster" {
   api_id                 = aws_apigatewayv2_api.main.id
   integration_type       = "AWS_PROXY"
@@ -329,6 +497,17 @@ resource "aws_apigatewayv2_route" "public" {
   api_id    = aws_apigatewayv2_api.main.id
   route_key = each.value
   target    = "integrations/${aws_apigatewayv2_integration.public_api.id}"
+}
+
+# Redeeming a code is public because the code is the credential, and emitting is
+# authorised by the token the redemption returned, which the function checks
+# itself.
+resource "aws_apigatewayv2_route" "volunteer" {
+  for_each = toset(["POST /volunteer/redeem", "POST /volunteer/positions"])
+
+  api_id    = aws_apigatewayv2_api.main.id
+  route_key = each.value
+  target    = "integrations/${aws_apigatewayv2_integration.volunteer.id}"
 }
 
 # Registering a device is public: it is how a resident gets the token every
@@ -357,9 +536,14 @@ resource "aws_apigatewayv2_route" "panel" {
   authorizer_id      = aws_apigatewayv2_authorizer.staff.id
 }
 
+# `/poster` reads one, `/poster/generate` draws one. The panel calls both at
+# these exact paths, so they are also what `next.config.ts` points at through
+# NEXT_PUBLIC_POSTER_API_BASE.
 resource "aws_apigatewayv2_route" "poster" {
+  for_each = toset(["POST /poster", "POST /poster/generate"])
+
   api_id             = aws_apigatewayv2_api.main.id
-  route_key          = "POST /poster"
+  route_key          = each.value
   target             = "integrations/${aws_apigatewayv2_integration.poster.id}"
   authorization_type = "JWT"
   authorizer_id      = aws_apigatewayv2_authorizer.staff.id
@@ -375,6 +559,7 @@ locals {
     device_api        = module.device_api.function_name
     panel_api         = module.panel_api.function_name
     poster            = module.poster.function_name
+    volunteer         = module.volunteer.function_name
     device_authorizer = module.device_authorizer.function_name
   }
 }

@@ -30,6 +30,12 @@ El panel son componentes de cliente de principio a fin: no renderiza nada en ser
 como export estático desde S3 y CloudFront, cuesta cero y su Terraform son un bucket y una
 distribución.
 
+Que el panel *pudiera* exportarse fue lo último en llegar, y no era gratis: hay dos compilaciones
+de la misma aplicación, el identificador del evento viaja por la query en vez de por la ruta, y las
+URLs limpias las resuelve una función de CloudFront. Está explicado en D-031, y el resumen es que
+`pnpm --filter @agora/web build:static` deja en `apps/web/out` exactamente lo que se sincroniza con
+S3.
+
 Lo único que necesita servidor es la **página pública de evento**, y por una sola razón: las
 etiquetas Open Graph de la previsualización de WhatsApp. Eso es una Lambda pequeña, no un servidor
 de Next.
@@ -73,10 +79,20 @@ municipio** y los grupos de Cognito no saben de eso.
               DynamoDB (tabla única, TTL)
 
    Cognito ──► personal municipal y asociaciones
-   EventBridge Scheduler ──► recordatorios y avisos
+   EventBridge Scheduler ──► notificaciones (recordatorios y avisos) ──► Expo Push
+                          └─► SQS: ejecuciones que no llegaron a pasar
 ```
 
 Ninguna pieza está dentro de una VPC. Todo vive en tu cuenta de AWS, en `eu-central-1`.
+
+El panel es un export estático en CloudFront que inicia sesión contra Cognito y llama a la API con
+ese testigo (D-048); sin las variables de entorno de la nube arranca en modo demostración, sobre la
+semilla y sin cuentas.
+
+Los manejadores están en `apps/functions`, en TypeScript, y se empaquetan con esbuild antes de
+aplicar (D-035). Están **todos escritos y probados contra DynamoDB Local**: la API pública, la de
+dispositivos, el panel, la página de evento, los carteles, el voluntario del directo y las
+notificaciones (recordatorio de la tarde anterior y avisos, por Expo Push, D-046).
 
 ---
 
@@ -93,9 +109,17 @@ Una sola tabla, `agora-<entorno>`, con clave de partición `pk` y de ordenación
 | Aviso de evento | `EVT#<eventId>` | `UPD#<createdAt>#<id>` |
 | Sesión de directo | `EVT#<eventId>` | `LIVE` |
 | Posición del directo | `EVT#<eventId>` | `POS#<recordedAt>` |
-| Estadística diaria | `EVT#<eventId>` | `STAT#<fecha>` |
+| Código de voluntario | `CODE#<código>` | `LIVE` |
+| Cambio pendiente | `EVT#<eventId>` | `CHG#<changeId>` |
+| Marcas nuevas de un mes | `MUN#<id>` | `MONTH#<aaaa-mm>` |
+| Dispositivo | `DEV#<deviceId>` | `META` |
 | Interés de un vecino | `DEV#<deviceId>` | `INT#<municipalityId>#<eventId>` |
+| Municipio que sigue un vecino | `DEV#<deviceId>` | `FOL#<municipalityId>` |
+| Tope de avisos del día | `DEV#<deviceId>` | `NOTIF#<municipio>#<fecha>` |
+| Vecinos que siguen un municipio | `MUN#<id>` | `STAT#DEVICES` |
+| Buzón de salida de avisos | `OUTBOX` | `<createdAt>#<id>` |
 | Pertenencia de un usuario | `USER#<cognitoSub>` | `MEM#<municipalityId>` |
+| Registro de auditoría | `MUN#<id>` | `AUD#<createdAt>#<id>` |
 | Índice de municipios | `PLATFORM` | `MUN#<slug>` |
 
 **La clave de partición empieza siempre por el municipio.** No es que esté prohibido leer otro: es
@@ -111,6 +135,9 @@ que no existe la consulta que lo haría sin nombrarlo.
 
 ### El truco que sustituye a la seguridad por fila
 
+En `gsi2` no solo hay eventos: un cambio que una asociación pide sobre un evento ya publicado entra
+en el mismo índice, así que el ayuntamiento tiene **una bandeja y no dos** (D-039).
+
 `gsi1` y `gsi2` son **índices dispersos**: un evento solo aparece en ellos si tiene el atributo
 correspondiente, y ese atributo solo se escribe cuando el evento pasa a `published` o a
 `pending_review`.
@@ -120,21 +147,82 @@ aprobar**, porque ese evento no está en el índice que la consulta lee. No es u
 el código pueda olvidarse de hacer; es una propiedad de dónde vive el dato. Es lo mismo que nos
 daba `events_public_read` en Postgres, conseguido de otra manera.
 
+### Qué índice puede leer cada función
+
+Cada índice se pasa a cada módulo por su nombre, no dentro de una lista llamada «los públicos»
+(D-032). El reparto es este, y las denegaciones son explícitas además de no estar concedidas:
+
+| Función | `gsi1` calendario | `gsi2` revisión | `gsi3` interesados |
+| --- | --- | --- | --- |
+| pública | sí | denegado | denegado |
+| dispositivos | no | denegado | denegado |
+| panel | sí | sí | **denegado** |
+| página pública de evento | no | denegado | denegado |
+| notificaciones | sí | no | sí |
+
+### Las credenciales con las que corre una petición del panel
+
+Además de los permisos del rol de la función, cada petición del panel **asume un rol con una
+política de sesión** acotada a la partición de su municipio con `dynamodb:LeadingKeys` (D-057). Pedir
+las filas de otro pueblo lo rechaza AWS, no el código. Lo que no cuelga del municipio por clave
+—las filas de un evento, de un usuario o de un código de voluntario— sigue guardándolo el código.
+
 ### El índice que el panel no puede leer
 
 `gsi3` permite ir de un evento a los dispositivos interesados. Lo necesita la tarea de
-recordatorios, y **no puede leerlo nadie más**: el rol de IAM de la Lambda del panel no tiene
-permiso sobre ese índice.
+notificaciones, y **no puede leerlo nadie más**: el rol de IAM de la Lambda del panel no tiene
+permiso sobre ese índice. Por eso el panel no envía el aviso él mismo: escribe la orden en el buzón
+de salida (`pk = OUTBOX`) y la tarea, que se ejecuta cada minuto, la reparte (D-046).
 
-Esa es la promesa de la política de privacidad — el ayuntamiento ve cuántos, nunca quiénes — puesta
+Esa es la promesa de la [política de privacidad](../apps/web/src/app/legal/privacidad/page.tsx) — el
+ayuntamiento ve cuántos, nunca quiénes — puesta
 donde el código no puede saltársela. Los números que ve el panel salen de un contador atómico en el
 propio evento, que se incrementa al marcar y se decrementa al desmarcar.
+
+### El directo
+
+El voluntario canjea un código de un solo uso por un testigo, y **el evento va dentro del testigo**:
+no hay forma de pedir escribir en otra sesión, porque el evento no viaja en la petición. Cada posición
+lleva TTL, y al terminar el directo **se borra el rastro detallado** — un borrado, no una espera a que
+el TTL pase — y se conserva un recorrido simplificado, que es lo que promete la sección 7.4 del
+documento de proyecto.
+
+La lectura que hace el vecino devuelve solo la última posición, nunca el rastro, y con la hora a la que
+se registró: un mapa que muestra un punto de hace cuatro minutos como si fuera en directo es peor que
+uno que lo dice.
 
 ### El TTL
 
 Las posiciones del directo llevan atributo `expiresAt`. DynamoDB las borra solo. La purga del
 detalle que exige el RGPD deja de ser una tarea programada que hay que escribir, probar y vigilar,
 y pasa a ser una línea de configuración.
+
+---
+
+## 3.b La API del panel
+
+Una sola ruta en API Gateway, `ANY /panel/{proxy+}`, y el reparto por dentro (D-040). Así son
+cuarenta rutas menos que mantener en el Terraform a mano.
+
+| Método | Ruta (bajo `/panel/`) | Quién |
+| --- | --- | --- |
+| GET | `me` | Cualquiera con testigo: en qué municipios trabaja y con qué rol |
+| GET/POST | `municipalities/{m}/events` | Técnico y asociación (la asociación, lo suyo) |
+| GET/PATCH | `municipalities/{m}/events/{e}` | Igual. Una asociación sin confianza sobre un evento publicado deja el cambio en revisión |
+| POST | `.../events/{e}/approve` · `/reject` · `/cancel` | Ayuntamiento (cancelar, también la asociación dueña) |
+| GET | `municipalities/{m}/review` | Ayuntamiento: eventos pendientes **y** cambios pendientes |
+| GET | `.../events/{e}/changes` | El dueño del evento |
+| POST | `.../changes/{c}/approve` · `/reject` | Ayuntamiento |
+| GET/POST | `.../events/{e}/notices` | Leer, el dueño; enviar, solo el ayuntamiento |
+| GET/POST | `municipalities/{m}/organizations` | Listar, todos (la asociación se ve a sí misma); crear, `municipal_admin` |
+| PATCH | `.../organizations/{o}` | `municipal_admin`: confianza y estado |
+| POST/DELETE | `municipalities/{m}/staff[/{sub}]` | `municipal_admin` |
+| GET | `municipalities/{m}/stats` | Técnico y asociación (lo suyo) |
+| GET | `municipalities/{m}/audit` | `municipal_admin` |
+
+El municipio va siempre en la ruta, y de ahí sale el actor: se busca la pertenencia de ese `sub` en
+ese municipio y, si no hay fila, la respuesta es 403 — la misma tanto si el municipio no existe como
+si es de otro, porque cuál de las dos cosas es no es asunto de quien pregunta.
 
 ---
 
@@ -185,8 +273,11 @@ Cuando un piloto pida revisión de seguridad, se añade el quinto nivel: **polí
 con `dynamodb:LeadingKeys`**, que hacen que sea AWS y no tu código quien rechace el acceso a otro
 municipio. Es el patrón que documenta AWS para SaaS multi-inquilino y es media tarde de trabajo.
 
-Los 23 tests de aislamiento se portan a DynamoDB Local y siguen corriendo en la CI. Eso no se
-negocia: es el requisito que el documento de proyecto marca como prioridad máxima.
+Los tests de aislamiento **ya están portados**: `packages/store` los ejecuta contra DynamoDB Local y
+la CI levanta uno en cada cambio (D-034). Son 29 y cubren lo mismo que los 23 de PostgreSQL, más lo
+que aquí es nuevo: que aprobar mueve el evento de un índice al otro y que rechazar lo deja fuera de
+los dos. Eso no se negocia: es el requisito que el documento de proyecto marca como prioridad
+máxima.
 
 ---
 
@@ -213,6 +304,15 @@ segundos** contra el origen.
 Lo primero que crea el Terraform es una **alarma de presupuesto**. Un proyecto autofinanciado no
 puede enterarse del gasto a fin de mes.
 
+La tabla no lleva recuperación a un instante: se paga por gigabyte y la restricción es que nada cueste
+por existir (D-032). A cambio, un error propio sobre datos de producción no se puede deshacer, y eso
+hay que resolverlo antes del primer piloto de verdad — son céntimos al mes y la línea está escrita en
+`modules/data`. Lo que sí está puesto, por gratis, es la protección contra el borrado de la tabla.
+
+Y una cuenta de CloudWatch tiene **diez alarmas gratuitas**, que es justo lo que cabe: el conjunto de
+un entorno son nueve, así que las tiene producción y dev no (D-032). Con eso la factura de AWS de
+`dev` y `prod` juntos se queda en céntimos.
+
 ---
 
 ## 7. Lo que falta por decidir
@@ -220,7 +320,9 @@ puede enterarse del gasto a fin de mes.
 - **Nombre comercial y dominio** (decisión pendiente nº 1). Sin dominio propio, la página pública de
   evento se comparte con una URL de CloudFront, que en un WhatsApp queda mal. No bloquea nada
   técnico; se añade el día que haya nombre.
-- **Notificaciones push.** Expo Push es gratis y ya usáis Expo; SNS sería más «AWS puro» y bastante
-  más trabajo. Propuesta: Expo.
-- **Migración de los datos semilla** de `content/` a DynamoDB, para que un municipio nuevo se dé de
-  alta cargando su carpeta.
+- ~~Notificaciones push~~. Decidido y montado: **Expo Push** (D-046). El planificador dispara la
+  misma Lambda dos veces — cada hora para el recordatorio de la tarde anterior, cada minuto para el
+  buzón de avisos — y el tope diario por dispositivo y municipio sale de los ajustes del municipio
+  (3 por defecto). Una cancelación se salta el tope, a propósito.
+- ~~Migración de los datos semilla~~. Hecha: `pnpm --filter @agora/tools migrate-seed` carga la
+  carpeta de un municipio en la tabla, y volver a ejecutarlo conserva los contadores (D-038).

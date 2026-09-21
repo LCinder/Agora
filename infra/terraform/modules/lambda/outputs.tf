@@ -13,3 +13,8 @@ output "invoke_arn" {
 output "role_name" {
   value = aws_iam_role.this.name
 }
+
+output "role_arn" {
+  description = "Who this function is, for anything that has to trust it."
+  value       = aws_iam_role.this.arn
+}

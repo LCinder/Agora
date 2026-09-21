@@ -15,7 +15,7 @@
  */
 
 resource "aws_dynamodb_table" "main" {
-  name         = "${var.project}-${var.environment}"
+  name         = "${var.infra_name}-${var.environment}"
   billing_mode = "PAY_PER_REQUEST" # No capacity to reserve, nothing to pay when idle.
   hash_key     = "pk"
   range_key    = "sk"
@@ -95,13 +95,122 @@ resource "aws_dynamodb_table" "main" {
     enabled        = true
   }
 
-  # Point-in-time recovery costs money per GB, so it is on where the data
-  # matters and off where it does not.
-  point_in_time_recovery {
-    enabled = var.environment == "prod"
-  }
+  # There is deliberately no `point_in_time_recovery` block: nothing here costs
+  # money for existing, and that is the constraint the whole architecture is
+  # built on (D-026).
+  #
+  # What it buys over the daily backup below: a continuous log of changes for 35
+  # days, so a migration that overwrites a municipality's programme can be
+  # restored to the second before it ran rather than to four in the morning. It is
+  # the more expensive of the two by a wide margin, and the daily copy covers the
+  # mistake that actually happens.
+  #
+  #     point_in_time_recovery { enabled = true }
+  #
+  # Worth reconsidering the day losing an afternoon of a town hall's edits is a
+  # phone call rather than a shrug.
+
+  # Deletion protection stays, because it is free and stops a different mistake:
+  # AWS refuses to delete the table at all, whoever asks and however — a
+  # `terraform destroy`, a console click, a script. Off in dev, where throwing the
+  # environment away is a normal afternoon.
+  deletion_protection_enabled = var.environment == "prod"
 
   lifecycle {
-    prevent_destroy = false # Flip to true once a real municipality is live.
+    # And this one stops Terraform from planning a replacement — which is what
+    # renaming the table would be, or adding an attribute to a key. `false`
+    # while there is no real municipality in it; `true` the day there is.
+    prevent_destroy = false
   }
+}
+
+# ---------------------------------------------------------------------------
+# Copies of it, for the mistakes that are ours.
+#
+# Replication across three availability zones is automatic and protects against
+# none of the things that actually happen: a migration that overwrites a
+# municipality's programme, a delete with the wrong key, a bug that empties a
+# partition. There is no free version of that in DynamoDB — but there is a very
+# cheap one, and the difference between "cheap" and "free" stops mattering the
+# day a real town hall's calendar is in here.
+#
+# A daily on-demand backup, kept for thirty days, priced per gigabyte of what is
+# actually stored: a 50 MB table is half a céntimo a month. Point-in-time
+# recovery is the other option and was turned down on purpose (D-036): it keeps
+# a continuous log rather than a daily snapshot, and it is the one that costs
+# real money.
+#
+# Restoring makes a **new table**, which is the safe thing: the damaged one is
+# still there to look at. The procedure is in infra/terraform/README.md.
+# ---------------------------------------------------------------------------
+resource "aws_backup_vault" "main" {
+  count = var.backups ? 1 : 0
+
+  name = "${var.infra_name}-${var.environment}"
+}
+
+data "aws_iam_policy_document" "backup_assume" {
+  count = var.backups ? 1 : 0
+
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["backup.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "backup" {
+  count = var.backups ? 1 : 0
+
+  name               = "${var.infra_name}-${var.environment}-backup"
+  assume_role_policy = data.aws_iam_policy_document.backup_assume[0].json
+}
+
+# AWS's own managed policy for this, rather than a hand-written one: it is the
+# list of permissions AWS Backup needs to back up and restore, and keeping our
+# own copy of it in step with their service is work with no upside.
+resource "aws_iam_role_policy_attachment" "backup" {
+  count = var.backups ? 1 : 0
+
+  role       = aws_iam_role.backup[0].name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup"
+}
+
+resource "aws_backup_plan" "daily" {
+  count = var.backups ? 1 : 0
+
+  name = "${var.infra_name}-${var.environment}-daily"
+
+  rule {
+    rule_name         = "daily"
+    target_vault_name = aws_backup_vault.main[0].name
+
+    # Four in the morning in Madrid, which is both the quietest hour and after
+    # the evening's reminders have gone out.
+    schedule                     = "cron(0 3 * * ? *)"
+    schedule_expression_timezone = "Europe/Madrid"
+
+    # An hour to start and four to finish: generous for a table this size, and
+    # what stops a backup window from being the reason one is skipped.
+    start_window      = 60
+    completion_window = 240
+
+    lifecycle {
+      delete_after = 30
+    }
+  }
+}
+
+resource "aws_backup_selection" "table" {
+  count = var.backups ? 1 : 0
+
+  name         = "${var.infra_name}-${var.environment}-table"
+  iam_role_arn = aws_iam_role.backup[0].arn
+  plan_id      = aws_backup_plan.daily[0].id
+
+  resources = [aws_dynamodb_table.main.arn]
 }

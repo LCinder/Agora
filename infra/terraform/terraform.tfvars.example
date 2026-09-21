@@ -1,7 +1,18 @@
-# Copy to terraform.tfvars and fill in. The real file is gitignored: it names
-# your account, and that does not belong in a public repository.
+# Variables of the bootstrap stack. Copy to bootstrap/terraform.tfvars and fill
+# in. The real file is gitignored: it names your AWS account, and that does not
+# belong in a public repository.
 aws_profile    = "agora"
 aws_account_id = "000000000000"
 
-# Where the monthly budget alarm sends its warning.
-budget_alert_email = "tu@correo.es"
+# The repository allowed to deploy, as owner/name. This is what the trust between
+# AWS and GitHub is scoped to, so it has to be exact (D-066).
+github_repository = "LCinder/Agora"
+
+# Which of its refs may deploy. The default is the default branch and nothing
+# else, which is what stops a pull request from a fork from deploying.
+# github_deploy_refs = ["ref:refs/heads/main"]
+
+# infra_name is the prefix of every physical resource name and defaults to
+# "agora". It is not the commercial name and it does not change when the
+# product gets one: see docs/renombrar-la-app.md.
+# infra_name = "agora"

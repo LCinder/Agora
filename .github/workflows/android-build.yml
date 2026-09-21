@@ -92,7 +92,11 @@ jobs:
           fi
           source="apps/mobile/android/app/build/outputs/apk/$variant/app-$variant.apk"
           version="$(node -p "require('./apps/mobile/app.json').expo.version")"
-          name="agora-$PROFILE-$version-${GITHUB_SHA:0:7}.apk"
+          # The commercial name is still pending, so the APK is named after
+          # brand.json rather than after a string written here.
+          brand="$(node -p "require('./packages/core/src/brand.json').name")"
+          slug="$(node -p "require('./packages/core/src/brand.json').slug")"
+          name="$slug-$PROFILE-$version-${GITHUB_SHA:0:7}.apk"
           mkdir -p build-output
           cp "$source" "build-output/$name"
           {
@@ -100,6 +104,7 @@ jobs:
             echo "path=build-output/$name"
             echo "size=$(du -h "build-output/$name" | cut -f1)"
             echo "version=$version"
+            echo "brand=$brand"
           } >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v4
@@ -125,7 +130,7 @@ jobs:
           gh release create android-latest '${{ steps.apk.outputs.path }}' \
             --target "$GITHUB_SHA" \
             --prerelease \
-            --title 'Agora Android — última build' \
+            --title '${{ steps.apk.outputs.brand }} Android — última build' \
             --notes "$(printf '%s\n' \
               'APK autónomo de la última fusión en `main`. No necesita ordenador.' \
               '' \

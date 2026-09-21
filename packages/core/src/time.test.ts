@@ -3,9 +3,13 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_TIME_ZONE } from './municipality';
 import {
   atLocalTime,
+  dayKeyInZone,
   dayRange,
+  hourInZone,
   isSameDayInZone,
   minutesSince,
+  monthKeyInZone,
+  nextDayRange,
   parseLocalDateTime,
   toLocalParts,
   weekendRange,
@@ -150,5 +154,43 @@ describe('parseLocalDateTime and toLocalParts', () => {
 
   it('rejects a malformed date', () => {
     expect(() => parseLocalDateTime('12/09/2026', '20:30', MADRID)).toThrow();
+  });
+});
+
+describe('nextDayRange', () => {
+  it('is the whole of tomorrow in the municipality time zone', () => {
+    const range = nextDayRange(new Date('2026-09-11T21:30:00Z'), 'Europe/Madrid');
+
+    expect(range.start.toISOString()).toBe('2026-09-11T22:00:00.000Z');
+    expect(range.end.toISOString()).toBe('2026-09-12T21:59:59.999Z');
+  });
+
+  it('does not land on the same day when the clocks change', () => {
+    // 25 October 2026, the night Spain goes back to winter time: adding 24 hours
+    // to the evening of the 24th would still be the 25th.
+    const range = nextDayRange(new Date('2026-10-24T18:00:00Z'), 'Europe/Madrid');
+
+    expect(range.start.toISOString()).toBe('2026-10-24T22:00:00.000Z');
+    expect(range.end.toISOString()).toBe('2026-10-25T22:59:59.999Z');
+  });
+});
+
+describe('monthKeyInZone', () => {
+  it('buckets by the clock of the municipality', () => {
+    // Half past midnight on the first of October in Madrid is still September in
+    // UTC, and the series is the town's, not the server's.
+    expect(monthKeyInZone(new Date('2026-09-30T22:30:00Z'), 'Europe/Madrid')).toBe('2026-10');
+    expect(monthKeyInZone(new Date('2026-09-30T22:30:00Z'), 'UTC')).toBe('2026-09');
+    expect(monthKeyInZone(new Date('2026-01-15T12:00:00Z'), 'Europe/Madrid')).toBe('2026-01');
+  });
+});
+
+describe('hourInZone and dayKeyInZone', () => {
+  it('read the clock of the municipality, not the clock of the server', () => {
+    const instant = new Date('2026-09-11T23:30:00Z');
+
+    expect(hourInZone(instant, 'Europe/Madrid')).toBe(1);
+    expect(dayKeyInZone(instant, 'Europe/Madrid')).toBe('2026-09-12');
+    expect(dayKeyInZone(instant, 'UTC')).toBe('2026-09-11');
   });
 });

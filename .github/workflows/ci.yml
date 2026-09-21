@@ -13,6 +13,22 @@ jobs:
   check:
     name: Format, lint, typecheck and test
     runs-on: ubuntu-latest
+
+    # The tenant isolation tests run against a real DynamoDB, because half of
+    # what they prove is how DynamoDB itself answers a query on a sparse index.
+    # They are the highest priority tests in the product (CLAUDE.md, section 10),
+    # so they run in the same job as everything else rather than in one that
+    # could be forgotten. Without this endpoint they would skip, and a skipped
+    # suite that looks green is how a guarantee rots.
+    services:
+      dynamodb:
+        image: amazon/dynamodb-local:3.3.1
+        ports:
+          - 8000:8000
+
+    env:
+      DYNAMODB_ENDPOINT: http://127.0.0.1:8000
+
     steps:
       - uses: actions/checkout@v4
 
@@ -37,3 +53,123 @@ jobs:
 
       - name: Test
         run: pnpm run test
+
+      # The panel and the Lambda bundles are compiled here because both can break
+      # without a test failing: a route that cannot be statically exported, or a
+      # handler that does not bundle.
+      - name: Build
+        run: pnpm run build
+
+      # Runs the real Expo resolver and compares the permissions the app declares
+      # with the ones its code asks for. This is the only check that looks at the
+      # iOS side of the app, which is the side no build in this repository covers.
+      - name: Check what the app declares natively
+        run: pnpm --filter @agora/mobile check:native
+
+  panel:
+    name: The panel in a browser
+    runs-on: ubuntu-latest
+
+    # Its own job because it needs a browser, and because a suite that takes a
+    # minute to install Chromium should not sit in front of the tests that do not.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm --filter @agora/web exec playwright install --with-deps chromium
+
+      # Runs against `next dev`, started by Playwright itself. Two suites: the demo
+      # path — no API, no accounts, the seed in the browser, which is what gets
+      # shown in a meeting and what a broken screen would ruin — and an axe audit
+      # of every screen against WCAG 2.1 AA, which is what the accessibility
+      # declaration promises and what would otherwise rot in silence.
+      - name: Drive the panel
+        run: pnpm --filter @agora/web run test:e2e
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
+
+  app:
+    name: The resident's app in a browser
+    runs-on: ubuntu-latest
+
+    # Separate from the panel's job because it builds the app for web first, which
+    # is 5.6MB of JavaScript bundled from scratch and slower than everything else
+    # in this workflow put together.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm --filter @agora/mobile exec playwright install --with-deps chromium
+
+      # The four paths a neighbour takes: choose a town, read the calendar, mark an
+      # event and find it again, arrive from a shared link. Everything outside the
+      # app is blocked, which is the coverage this app was designed for.
+      - name: Drive the app
+        run: pnpm --filter @agora/mobile run test:e2e
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-app
+          path: apps/mobile/playwright-report/
+          retention-days: 7
+
+  infra:
+    name: Terraform format and validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1.5.7 is the last MPL release and matches the version the project is
+      # written for. Pinned rather than "latest" so a Terraform release cannot
+      # turn a green pull request red on its own.
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.7
+          terraform_wrapper: false
+
+      - name: Check formatting
+        run: terraform fmt -check -recursive infra/terraform
+
+      # -backend=false: no credentials and no state, so this runs on a pull
+      # request from anywhere. It checks the configuration, not the account.
+      - name: Validate every stack
+        run: |
+          for stack in bootstrap envs/dev envs/prod; do
+            echo "::group::$stack"
+            terraform -chdir="infra/terraform/$stack" init -backend=false -input=false
+            terraform -chdir="infra/terraform/$stack" validate
+            echo "::endgroup::"
+          done
+
+      # The deploy script is the one thing here that runs against a real account,
+      # so it gets checked like code rather than trusted like a document.
+      - name: Check the deploy script
+        run: |
+          bash -n infra/deploy.sh
+          shellcheck infra/deploy.sh

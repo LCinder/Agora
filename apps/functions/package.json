@@ -1,0 +1,29 @@
+{
+  "name": "@agora/functions",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@agora/core": "workspace:*",
+    "@agora/i18n": "workspace:*",
+    "@agora/poster": "workspace:*",
+    "@agora/push": "workspace:*",
+    "@agora/store": "workspace:*",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1135.0",
+    "@aws-sdk/client-ssm": "^3.700.0",
+    "@aws-sdk/client-sts": "^3.1136.0",
+    "zod": "^4.6.1"
+  },
+  "devDependencies": {
+    "@agora/data": "workspace:*",
+    "@types/aws-lambda": "^8.10.145",
+    "@types/node": "^22",
+    "esbuild": "^0.25.0"
+  }
+}

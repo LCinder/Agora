@@ -10,3 +10,15 @@ output "api_endpoint" {
 output "api_host" {
   value = replace(aws_apigatewayv2_api.main.api_endpoint, "https://", "")
 }
+
+output "function_names" {
+  description = "Every function behind the API, for the error alarms."
+  value = [
+    module.public_api.function_name,
+    module.device_api.function_name,
+    module.device_authorizer.function_name,
+    module.panel_api.function_name,
+    module.poster.function_name,
+    module.volunteer.function_name,
+  ]
+}

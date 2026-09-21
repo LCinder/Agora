@@ -6,8 +6,20 @@ node_modules/
 dist/
 build/
 .next/
+# Static export of the panel, produced by `pnpm --filter @agora/web build:static`
+out/
 .turbo/
 *.tsbuildinfo
+
+# Playwright: the browser's own reports and traces of a failed run
+apps/web/test-results/
+apps/web/playwright-report/
+apps/mobile/test-results/
+apps/mobile/playwright-report/
+# The app exported for web, which is what its browser tests run against.
+apps/mobile/.web-build/
+apps/web/blob-report/
+apps/web/.playwright/
 
 # Expo
 .expo/
@@ -61,3 +73,7 @@ coverage/
 terraform.tfvars
 *.auto.tfvars
 crash.log
+
+# Written from the store credentials at build time, never committed: the
+# fingerprint and the team id belong to accounts, not to the repository.
+apps/web/public/.well-known/

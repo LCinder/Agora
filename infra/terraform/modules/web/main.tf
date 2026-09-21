@@ -24,7 +24,7 @@ terraform {
 }
 
 locals {
-  prefix = "${var.project}-${var.environment}"
+  prefix = "${var.infra_name}-${var.environment}"
 }
 
 # ---------------------------------------------------------------------------
@@ -62,10 +62,13 @@ data "aws_iam_policy_document" "event_page" {
     resources = [var.table_arn]
   }
 
+  # A link shared on WhatsApp reaches this page, so it is the most exposed thing
+  # in the system. It gets the table and nothing else: not the review queue, not
+  # who is interested.
   statement {
     effect    = "Deny"
     actions   = ["dynamodb:*"]
-    resources = [var.reminders_index_arn]
+    resources = [var.review_index_arn, var.reminders_index_arn]
   }
 }
 
@@ -79,6 +82,13 @@ module "event_page" {
   environment_variables = {
     TABLE_NAME  = var.table_name
     ENVIRONMENT = var.environment
+    # Where the page is served from, for its canonical and Open Graph URLs. It
+    # cannot be read from the distribution below: this function is one of that
+    # distribution's origins, so Terraform would be chasing its own tail. Set it
+    # to the CloudFront domain after the first apply, or to the real domain the
+    # day there is one; until then the page leaves those two tags out rather than
+    # writing them wrong.
+    SITE_URL = var.site_url
   }
 }
 
@@ -156,10 +166,18 @@ resource "aws_cloudfront_cache_policy" "calendar" {
   }
 }
 
+resource "aws_cloudfront_function" "clean_urls" {
+  name    = "${local.prefix}-clean-urls"
+  runtime = "cloudfront-js-2.0"
+  publish = true
+  comment = "Maps /eventos/editar to eventos/editar.html for the exported panel."
+  code    = file("${path.module}/functions/clean-urls.js")
+}
+
 resource "aws_cloudfront_distribution" "main" {
   enabled             = true
   default_root_object = "index.html"
-  comment             = local.prefix
+  comment             = "${local.prefix} · ${var.app_name}"
   price_class         = "PriceClass_100" # Europe and North America. The audience is one Andalusian town.
 
   origin {
@@ -198,7 +216,7 @@ resource "aws_cloudfront_distribution" "main" {
     }
   }
 
-  # The panel: a static single page application.
+  # The panel: a static export, one file per page.
   default_cache_behavior {
     target_origin_id       = "panel"
     viewer_protocol_policy = "redirect-to-https"
@@ -206,6 +224,11 @@ resource "aws_cloudfront_distribution" "main" {
     cached_methods         = ["GET", "HEAD"]
     cache_policy_id        = data.aws_cloudfront_cache_policy.optimized.id
     compress               = true
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.clean_urls.arn
+    }
   }
 
   ordered_cache_behavior {
@@ -249,14 +272,19 @@ resource "aws_cloudfront_distribution" "main" {
     compress               = true
   }
 
-  # A single page application routes on the client, so a deep link must be
-  # answered with the shell rather than with a 404.
-  custom_error_response {
-    error_code            = 404
-    response_code         = 200
-    response_page_path    = "/index.html"
-    error_caching_min_ttl = 0
-  }
+  # There is deliberately no `custom_error_response` here.
+  #
+  # An earlier version turned every 404 into `/index.html` with a 200, to make
+  # deep links into the panel work. But that setting is not per behaviour: it
+  # applies to the whole distribution. A missing event on the public page — the
+  # page WhatsApp asks for a preview of — came back as the panel's HTML with a
+  # 200, and so did a 404 from the API.
+  #
+  # It is not needed either. Every page of the panel is a real file and the
+  # function above finds it, so deep links work without lying about the status
+  # code. The cost is that a mistyped panel URL shows S3's own error instead of
+  # a designed page; that is the right way round, and it goes away with a domain
+  # of our own and one distribution per hostname.
 
   restrictions {
     geo_restriction {

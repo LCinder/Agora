@@ -1,10 +1,11 @@
+import { BRAND } from '@agora/core';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Panel municipal',
+  title: `Panel municipal · ${BRAND.name}`,
   description: 'Agenda de eventos del municipio',
 };
 

@@ -26,8 +26,12 @@ terraform {
 }
 
 provider "aws" {
-  region  = var.region
-  profile = var.aws_profile
+  region = var.region
+
+  # Empty when the credentials are already in the environment, which is how this
+  # is planned in a check and how it would run from CI if it ever did. Null rather
+  # than "", because the provider looks for a profile literally called "".
+  profile = var.aws_profile == "" ? null : var.aws_profile
 
   # The machine that runs this has profiles for several unrelated AWS accounts.
   # Naming the account here turns "applied against the wrong one" from a
@@ -36,7 +40,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Project   = var.project
+      Project   = var.infra_name
       ManagedBy = "terraform"
       Stack     = "bootstrap"
     }
@@ -44,7 +48,7 @@ provider "aws" {
 }
 
 resource "aws_s3_bucket" "state" {
-  bucket = "${var.project}-tfstate-${var.aws_account_id}"
+  bucket = "${var.infra_name}-tfstate-${var.aws_account_id}"
 
   # Losing this bucket means losing track of every resource Terraform created.
   lifecycle {
@@ -96,7 +100,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "state" {
 }
 
 resource "aws_dynamodb_table" "lock" {
-  name         = "${var.project}-tfstate-lock"
+  name         = "${var.infra_name}-tfstate-lock"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "LockID"
 

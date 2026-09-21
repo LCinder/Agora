@@ -376,7 +376,7 @@ FLUX schnell está además bajo licencia Apache 2.0, lo que evita una conversaci
 
 ---
 
-## D-017 — Backend en AWS. D-001 cerrada
+## D-025 — Backend en AWS. D-001 cerrada
 **Fecha:** 2026-09-18 · **Estado:** aceptada
 
 La decisión de backend, que se dejó abierta a propósito en la Fase 0, se cierra a favor de **AWS**.
@@ -385,7 +385,7 @@ La decisión de backend, que se dejó abierta a propósito en la Fase 0, se cier
 
 ---
 
-## D-018 — DynamoDB, y por tanto sin VPC
+## D-026 — DynamoDB, y por tanto sin VPC
 **Fecha:** 2026-09-18 · **Estado:** aceptada
 
 La restricción que manda es **coste cero mientras no haya clientes**. Una base de datos relacional gestionada cuesta por existir; DynamoDB bajo demanda no cuesta nada cuando nadie la usa.
@@ -404,7 +404,7 @@ Los 23 tests de aislamiento se portan a DynamoDB Local. Eso no se negocia.
 
 ---
 
-## D-019 — Panel estático, no OpenNext ni Vercel
+## D-027 — Panel estático, no OpenNext ni Vercel
 **Fecha:** 2026-09-18 · **Estado:** aceptada
 
 El panel se despliega como export estático a S3 y CloudFront. La página pública de evento, que sí necesita servidor por las etiquetas Open Graph, es una Lambda aparte.
@@ -417,7 +417,7 @@ El panel se despliega como export estático a S3 y CloudFront. La página públi
 
 ---
 
-## D-020 — El directo se cachea, no se emite
+## D-028 — El directo se cachea, no se emite
 **Fecha:** 2026-09-18 · **Estado:** aceptada
 
 El seguimiento en directo no usa WebSockets. El móvil consulta `/live/{eventId}` cada cinco segundos y CloudFront lo sirve con un TTL de cinco segundos.
@@ -428,7 +428,7 @@ El desfase cabe dentro del criterio de aceptación, que pide una posición cada 
 
 ---
 
-## D-021 — Los vecinos no están en Cognito
+## D-029 — Los vecinos no están en Cognito
 **Fecha:** 2026-09-18 · **Estado:** aceptada
 
 Cognito es solo para el personal municipal y las asociaciones. Los vecinos se identifican con un testigo firmado que emite la propia plataforma.
@@ -436,3 +436,786 @@ Cognito es solo para el personal municipal y las asociaciones. Los vecinos se id
 **Por qué:** todo lo que hace un vecino es leer datos públicos, que salen de la caché sin tocar una Lambda. Lo único que necesita identidad es «Me interesa». Meter a los vecinos en un grupo de identidades de Cognito sería pagar complejidad por una identidad que no tienen.
 
 **Y los permisos no salen del testigo.** Cognito responde a «quién eres»; qué puede hacer sale de la tabla, porque un rol es por municipio y los grupos de Cognito no saben de municipios. La ventaja práctica: dar de baja a un técnico que se va del ayuntamiento es borrar una fila, no esperar a que caduque un JWT.
+
+---
+
+## D-030 — El nombre comercial vive en un solo fichero, y los nombres de AWS no lo siguen
+
+**Fecha:** 2026-09-18 · **Estado:** aceptada
+
+El nombre comercial está sin decidir (decisión 1 del documento de proyecto) y va a cambiar. Todo lo que un usuario lee sale de **`packages/core/src/brand.json`**: nombre, slug, esquema de enlaces profundos, identificador de Android y de iOS.
+
+Lo leen los tres sitios que lo necesitan sin pasar por el compilador de TypeScript: `apps/mobile/app.config.ts` (que inyecta esos valores en la configuración de Expo), el workflow de Android (que nombra el APK y la release) y el Terraform, con `jsondecode(file(...))`. El panel y la app lo leen como `BRAND` desde `@agora/core`.
+
+**Lo que NO sigue al nombre comercial:** los nombres físicos de AWS. Son `infra_name`, que se queda en `agora` para siempre. El motivo es que una tabla de DynamoDB no se renombra: Terraform la destruye y crea otra, y eso significa perder los datos de todos los municipios. Lo mismo vale para los buckets y el grupo de usuarios de Cognito. Así que hay dos nombres a propósito, y la variable que no se toca lo dice en su propia descripción.
+
+`app_name` en Terraform es el nombre que se lee en el correo de invitación al panel, en el comentario de la distribución de CloudFront y en las alarmas. Si no se define, sale de `brand.json`.
+
+**Cómo se renombra el producto:** [`docs/renombrar-la-app.md`](renombrar-la-app.md).
+
+---
+
+## D-031 — El panel se exporta estático de verdad: dos compilaciones de la misma aplicación
+
+**Fecha:** 2026-09-18 · **Estado:** aceptada
+
+D-027 decidió servir el panel como export estático desde S3, pero el código no podía exportarse: `next.config.ts` no tenía `output: 'export'` y el panel incluye dos endpoints de servidor (los de carteles) y la página pública de evento, que es `force-dynamic`. La decisión estaba tomada y el código la contradecía.
+
+**Cómo se resuelve, sin duplicar la aplicación:**
+
+1. **Dos compilaciones.** `next build` lo incluye todo, que es lo que hace falta en local y en la demo. `PANEL_STATIC_EXPORT=1 next build` (`pnpm --filter @agora/web build:static`) exporta solo el panel, a `apps/web/out`, que es lo que se sincroniza con S3.
+2. **El mecanismo es `pageExtensions`.** Los ficheros que necesitan servidor se llaman `route.dynamic.ts` y `page.dynamic.tsx`; la compilación de export no incluye esa extensión en la lista, así que dejan de ser rutas. Se descartó un segundo proyecto de Next (duplica la configuración) y un script que mueve carpetas antes de compilar (produce una compilación que no se puede reproducir a mano).
+3. **El identificador del evento viaja en la query**, `/eventos/editar?id=…`, no como segmento de ruta. Un export solo puede generar las páginas que se pueden enumerar al compilar, y los eventos de un municipio no se conocen entonces: el panel los crea en el navegador (D-013). Con la query funciona también un evento creado hace un minuto.
+4. **Las URLs limpias se resuelven en el borde.** S3 leído por origin access control es un almacén de objetos: no añade `.html` ni sirve `index.html` de una carpeta. Una función de CloudFront de 15 líneas lo hace en la petición del visitante, y solo en el comportamiento del panel.
+5. **Se quita la reescritura de 404 a `index.html`.** Era un `custom_error_response` que devolvía el panel con código 200 para cualquier ruta no encontrada, y esa opción es de toda la distribución: un evento inexistente en `/e/…` — la página de la que WhatsApp saca la previsualización — respondía el HTML del panel con un 200, igual que un 404 de la API. Ya no hace falta, porque cada página del panel es un fichero real.
+
+**Lo que cuesta:** una URL mal escrita del panel muestra el error de S3 en vez de una página con diseño. Es el lado correcto del intercambio, y desaparece cuando haya dominio propio y una distribución por nombre de host.
+
+**Y el lector de carteles:** las credenciales de Gemini y Cloudflare no pueden estar en un sitio estático. En local responden los dos `route.dynamic.ts`; en la nube responde la Lambda de carteles, y el panel apunta a ella con `NEXT_PUBLIC_POSTER_API_BASE`. Los tipos y las rutas están en `apps/web/src/lib/poster-contract.ts`, que es lo único que comparten.
+
+---
+
+## D-032 — Permisos por índice, no por «los índices públicos»
+
+**Fecha:** 2026-09-18 · **Estado:** aceptada
+
+La primera versión del Terraform daba a la Lambda pública una lista llamada `public_index_arns` que incluía `gsi1` **y `gsi2`**. `gsi2` es la bandeja de revisión: los eventos que una asociación ha enviado y el ayuntamiento todavía no ha aprobado. Con los manejadores sin escribir no era explotable, pero contradecía el modelo que documenta D-026 y era exactamente el tipo de error que una lista con nombre genérico facilita.
+
+Ahora cada índice se pasa por su nombre y cada rol recibe el que le corresponde:
+
+| Función | `gsi1` calendario | `gsi2` revisión | `gsi3` interesados |
+| --- | --- | --- | --- |
+| pública | sí | **denegado** | **denegado** |
+| dispositivos | no | **denegado** | **denegado** |
+| panel | sí | sí | **denegado** |
+| página pública de evento | no | **denegado** | **denegado** |
+| recordatorios | sí | no | sí |
+
+Las denegaciones son explícitas además de no estar concedidas: una denegación en IAM no la puede anular una concesión posterior, así que ampliar una lista por error no abre nada.
+
+**Y las alarmas dicen de quién es el error.** La alarma de errores de Lambda no tenía dimensión `FunctionName`, así que sumaba todas las funciones de la cuenta, incluidas las de proyectos ajenos: una alarma que avisa por código que no es tuyo se deja de leer. Ahora hay una por función, más una de 5xx de la API y una de throttling de la tabla, que es la señal de que la caché del directo no está haciendo su trabajo.
+
+El presupuesto tenía otro descuido: la variable se llamaba `monthly_budget_eur` y la unidad era `USD`. Ahora son `monthly_budget_amount` y `budget_currency`.
+
+**Corrección del 19 de septiembre (2):** la tabla **no tiene recuperación a un instante** (PITR). Cuesta 0,20 $ por GB y mes, y la restricción del proyecto es que nada cueste dinero por existir. La consecuencia hay que tenerla escrita, porque es lo que hay que contestar cuando un ayuntamiento pregunte qué pasa si se pierden sus datos: la replicación en tres zonas de disponibilidad es automática y no protege de un error propio, así que **un script de migración que sobreescriba la programación de un municipio no tiene vuelta atrás**. No hay versión gratuita: las copias bajo demanda también se facturan por gigabyte.
+
+A tamaño piloto la tabla son megas, así que serían céntimos al mes. Está apuntado en el módulo, con la línea que hay que descomentar, y **revisarlo entra en la Fase E**, antes de que haya dentro datos de un ayuntamiento de verdad en vez de datos semilla. Lo que sí se queda, porque es gratis, es `deletion_protection_enabled` en producción: impide que la tabla se borre, lo pida quien lo pida.
+
+**Corrección del 19 de septiembre:** las alarmas se crean **solo en producción**. CloudWatch regala diez alarmas por cuenta y un entorno gasta nueve (una por función, una de 5xx de la API, una de throttling de la tabla), así que tenerlas en los dos entornos costaba unos 0,80 $ al mes por avisar de un entorno en el que nadie está de guardia. En dev lo que avisa de que algo se ha roto es el test que acaba de fallar. El aviso de presupuesto y el tema de SNS siguen en los dos: un gasto que se desmadra en dev es precisamente el que nadie mira.
+
+---
+
+## D-033 — Los secretos del lector de carteles siguen al proveedor de verdad
+
+**Fecha:** 2026-09-18 · **Estado:** aceptada
+
+El Terraform creaba un parámetro `anthropic-api-key` y se lo pasaba a la Lambda de carteles, pero D-024 había movido los carteles a **Gemini** para leer y escribir y a **Cloudflare Workers AI** para dibujar. La infraestructura aprovisionaba una credencial que el producto ya no usa y ninguna de las que necesita.
+
+Ahora crea tres parámetros: `gemini-api-key` y `cloudflare-api-token` como `SecureString`, y `cloudflare-account-id` como texto plano, porque un identificador de cuenta no es un secreto. La Lambda los recibe como un mapa (`poster_parameter_names`), no como una variable por proveedor: este es el segundo cambio de proveedor del proyecto y no será el último.
+
+Faltaba además la ruta `POST /poster/generate`, así que dibujar un cartel no tenía endpoint en la API. Las dos rutas existen ya y son las mismas que llama el panel.
+
+---
+
+## D-034 — La tabla se toca desde un paquete aparte, con un almacén por rol
+
+**Fecha:** 2026-09-18 · **Estado:** aceptada
+
+El acceso a DynamoDB vive en **`packages/store`** y no en `@agora/data`. El motivo es concreto: la app y el panel importan `@agora/data`, y si el SDK de AWS entrara ahí acabaría en el bundle de una aplicación que habla con la API por HTTP y no tiene nada que hacer con DynamoDB. `@agora/data` se queda con la interfaz y los datos semilla; `@agora/store` es lo que responde al otro lado, desde las Lambdas.
+
+**Un almacén por rol, no un cliente genérico.** Son cuatro, y son exactamente los mismos cortes que hacen las políticas de IAM (D-032):
+
+| Almacén | Quién lo usa | Qué alcanza |
+| --- | --- | --- |
+| `createPublicStore` | Lambda pública | Calendario y evento visible. Nada más existe como método. |
+| `createStaffStore` | Lambda del panel | Un actor, en un municipio. El municipio no es parámetro de ningún método. |
+| `createDeviceStore` | Lambda de dispositivos | Las marcas del propio dispositivo. |
+| `createReminderStore` | Tarea de recordatorios | De un evento a los dispositivos interesados. El único sitio donde existe ese camino. |
+
+Que el municipio **no sea un parámetro** del almacén del panel es la parte que importa: no es que leer otro municipio esté prohibido, es que no se puede escribir la llamada. Es la misma idea que la clave de partición, una capa más arriba.
+
+**El aislamiento se prueba contra DynamoDB de verdad.** 29 tests en `packages/store/src/isolation.test.ts`, sobre DynamoDB Local en Docker, que cubren lo mismo que los 23 de PostgreSQL más lo que aquí es nuevo. Un cliente falso en memoria no probaría nada: la mitad de la garantía está en cómo responde DynamoDB a una consulta sobre un índice disperso. La CI levanta el contenedor en el mismo job que el resto de comprobaciones, para que no se pueda olvidar; en una máquina sin Docker los tests se saltan diciéndolo por consola.
+
+**Y hay un test contra la deriva.** `table-definition.test.ts` lee `infra/terraform/modules/data/main.tf` y falla si las claves, los índices o las proyecciones dejan de coincidir con lo que el paquete espera. Existe por lo que habría pillado: este mismo repositorio tenía la infraestructura describiendo una cosa y el código haciendo otra en cuatro sitios.
+
+**Lo que falta para que esto llegue a producción:** las Lambdas se empaquetan comprimiendo `.mjs` tal cual, así que todavía no pueden importar TypeScript de un paquete del monorepo. Hace falta un paso de compilación con esbuild antes del `archive_file`, y ese es el siguiente trabajo de infraestructura.
+
+---
+
+## D-035 — Las Lambdas se compilan antes de empaquetarse, y viven en `apps/functions`
+
+**Fecha:** 2026-09-18 · **Estado:** aceptada
+
+Los manejadores eran ficheros `.mjs` sueltos dentro de `infra/terraform/lambda-src/`, que Terraform comprimía tal cual. Eso valía mientras respondían 501 y dejó de valer en cuanto necesitaron `@agora/store`: una Lambda no puede importar TypeScript de un paquete del monorepo.
+
+**Ahora son un paquete del espacio de trabajo,** `apps/functions`, con los manejadores en TypeScript y un `build.mjs` que los empaqueta con esbuild en un directorio por función. Terraform apunta a `apps/functions/dist` y sigue haciendo lo único que hacía: comprimir.
+
+**Terraform no compila.** Podría hacerlo con un `local-exec`, pero `archive_file` es un origen de datos que se lee en la fase de plan, antes de que se ejecute cualquier recurso, así que la compilación tendría que pasar igualmente antes. En vez de esconderlo, el módulo tiene una precondición que falla diciendo qué comando falta:
+
+```
+pnpm --filter @agora/functions build
+```
+
+**No se marca nada como externo, ni el SDK de AWS.** El tiempo de ejecución de Node 22 lo trae, y excluirlo bajaría las funciones que lo usan de unos dos megas a unos kilos. Pero también significaría ejecutar contra la versión del SDK que AWS despliegue ese mes, y una comprobación `instanceof` entre dos copias del mismo cliente falla de formas que cuestan una tarde de entender. Dos megas son menos de medio comprimido.
+
+**Las funciones que no tocan la tabla siguen pesando ocho kilos,** y eso se cuida: `lib/http.ts` importa la clase de error desde `@agora/store/errors` y no desde la raíz del paquete, porque la raíz arrastra el cliente de DynamoDB. Es la diferencia entre un stub de 8 KB y uno de 6,5 MB.
+
+**Y la CI compila.** Antes solo pasaba lint, tipos y tests, así que ni el export estático del panel ni el empaquetado de las funciones se comprobaban en ningún sitio: las dos cosas se rompen sin que falle un test.
+
+---
+
+## D-036 — El evento se pide por municipio, no por su identificador a secas
+
+**Fecha:** 2026-09-18 · **Estado:** aceptada
+
+La API declaraba `GET /events/{eventId}`. No se puede servir: la clave de partición de un evento nombra su municipio, así que una búsqueda que no lo nombre necesita un índice nuevo o un recorrido de la tabla entera, y las dos cosas contradicen el diseño (D-026).
+
+La ruta pasa a ser `GET /municipalities/{municipalityId}/events/{eventId}`. No se pierde nada: todos los enlaces que genera el producto ya llevan el municipio — `/e/<slug>/<id>` —, y el selector de la app resuelve el slug a su identificador al entrar.
+
+Los intereses hacen lo mismo por el mismo motivo: `PUT /me/interests/{eventId}?municipalityId=…`. La marca se guarda bajo el dispositivo y tiene que decir a qué municipio pertenece el evento, porque un vecino puede seguir más de un pueblo.
+
+---
+
+## D-037 — El nombre comercial es HoyQ. Decisión pendiente nº 1, cerrada
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada, revisable antes de publicar en tiendas
+
+**HoyQ**, de «¿hoy qué hacemos?», que es la pregunta con la que un vecino abre la aplicación y exactamente lo que responde la pantalla de inicio con sus bloques de «Hoy» y «Este finde». El lema pasa a ser **«¿Hoy qué hacemos?»**, porque es lo que explica un nombre abreviado.
+
+Cambia en un fichero, `packages/core/src/brand.json` (D-030): nombre, slug, esquema de enlaces e identificadores de tienda. `infra_name` sigue siendo `agora` y no se toca.
+
+**Lo que se sopesó en contra, para que quede escrito:**
+
+1. **No se dicta bien.** «HoyQ» por teléfono es «hache, o, i griega, cu», y este producto se difunde de boca en boca en un pueblo, entre gente de todas las edades. La alternativa que resolvía justo eso era «HoyQué», con tilde. Queda apuntada por si el nombre se prueba en voz alta y no aguanta.
+2. **«Hoy» está poblado en la misma categoría:** existen «Hoy Madrid – Ocio y Cultura», «Hoy Barcelona – Ocio y Cultura», una app llamada «Hoy» y «HoyQuedas», que suena casi igual. Y HOY es un diario de Extremadura. A efectos de marca, «Hoy» no da exclusividad; lo registrable es el conjunto.
+3. **«Hoy» describe al vecino, no al cliente.** El ayuntamiento paga por el calendario completo — la Semana Santa entera, la feria, los recordatorios de la semana que viene, los datos de la memoria anual — y el nombre no lo dice.
+
+**Lo que queda abierto, y es de la Fase E:**
+
+- **Los identificadores de tienda son `com.hoyq.app`**, es decir, llevan la marca. Son **inmutables una vez publicada la app**, así que si el nombre cambia después de publicar, el identificador se queda con el viejo. Lo recomendable es que salgan de algo estable (la empresa o un dominio propio) y no del producto; no se ha hecho porque todavía no hay ni empresa ni dominio. Es un cambio de un minuto **mientras no se publique**.
+- **Marca y dominio sin confirmar.** `hoyq.es` y `hoyq.com` no tienen DNS, lo que no significa que estén libres. Hay que comprobarlo en un registrador y buscar en OEPM y EUIPO antes de imprimir nada o mandar una oferta a un ayuntamiento.
+- El icono no depende del nombre: es la celosía geométrica que dibuja `apps/mobile/scripts/make-icons.py`, no una letra.
+
+---
+
+## D-038 — Un municipio se da de alta cargando su carpeta, y cargarla dos veces no rompe nada
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+La tabla la crea Terraform vacía, y hasta que el panel sepa escribir no había forma de meter nada en ella. Ahora la hay: `pnpm --filter @agora/tools migrate-seed -- --table agora-dev` convierte la carpeta de un municipio en `content/` en filas.
+
+**La propiedad que importa es que se pueda repetir.** Todo son actualizaciones, no inserciones, y los eventos pasan por la misma expresión de escritura que usa el panel, que nunca toca `interestCount`. Un `Put` habría puesto los contadores a cero en cada carga, y eso no se nota: el panel seguiría mostrando un número, solo que el equivocado. Hay un test que marca un interés, vuelve a migrar y comprueba que sigue ahí.
+
+**Dónde vive cada parte y por qué:**
+
+- La lógica está en `@agora/store` y **recibe datos, no un origen de datos**. Los ficheros semilla son de `@agora/data`, y el store no puede depender de ellos: las Lambdas importan el store, y una Lambda no tiene por qué llevar dentro los eventos de un pueblo de demostración.
+- La herramienta está en `apps/tools`, que es la casa de los scripts de operación, y es la que junta las dos cosas. Se empaqueta con esbuild porque la semilla son importaciones de JSON, que Node no acepta sin empaquetador, y el paquete resultante es **CommonJS**: el SDK de AWS lo es, y meterlo dentro de un fichero ESM rompe sus propios `require` al cargar.
+- **No hay tabla por defecto en la herramienta.** Hay que nombrarla siempre, y eso es lo que evita que una carga de datos de demostración acabe en producción por inercia.
+
+**Lo que no hace:** no carga el recorrido de `route.json`, porque el almacén de sesiones de directo es de la Fase D. Y los eventos de la semilla se anclan al día en que se ejecuta, así que lo que queda en la tabla es una foto de ese día; para un piloto los eventos los mete el ayuntamiento por el panel.
+
+---
+
+## D-039 — Lo que el panel necesita además de los eventos
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+Seis piezas que faltaban en `@agora/store` para que el panel pueda existir. Cada una es un módulo aparte que recibe el mismo actor, porque son los mismos cortes que hacen las políticas de IAM.
+
+**Las pertenencias son la fuente de los permisos.** `USER#<sub>` / `MEM#<municipio>`. Cognito responde a «quién eres» y esta tabla a «qué puedes hacer», porque un rol es por municipio y un grupo de Cognito no sabe de municipios (D-029). Dar de alta a alguien es cosa de un `municipal_admin`, y **el municipio no se coge de la petición sino del actor**: no existe el campo por el que colar otro ayuntamiento. Tampoco puedes quitarte el acceso a ti mismo, que es la forma tonta de dejar un municipio sin administrador.
+
+**Un cambio sobre un evento publicado no toca el evento.** Es el criterio de aceptación de la sección 7.2 y ahora es literal: una asociación sin confianza edita un evento publicado y lo que se escribe es un `CHG#<id>` junto al evento, con los atributos de `gsi2`, así que **cae en la misma bandeja de revisión que los eventos pendientes**. La versión que ven los vecinos no se mueve. Al aprobar, el cambio se aplica y desaparece; al rechazar, se queda con su motivo y sale del índice, para que la asociación pueda leer por qué. Un evento en borrador, una asociación de confianza o el propio ayuntamiento escriben directo: no hay nada publicado que proteger.
+
+**Los avisos los envía el ayuntamiento.** Una asociación edita sus eventos y ve sus números, pero una notificación es lo único aquí que no se puede retirar, y el documento de proyecto la pone bajo el ayuntamiento. El aviso vive bajo `EVT#<id>`, una partición que no nombra municipio, así que antes de escribirlo se lee el evento **por el municipio del actor**: si no está ahí, no existe.
+
+**Las dos palancas sobre las asociaciones son del ayuntamiento.** Crear una y marcarla de confianza, las dos de `municipal_admin`. Una asociación nunca nace de confianza: eso se gana viendo lo que publica, y el valor por defecto contrario habría hecho la bandeja de revisión opcional por accidente. Y una asociación se ve a sí misma y a nadie más: quién más está en la plataforma es cosa del ayuntamiento, no de una peña.
+
+**Las estadísticas no bajan de cinco.** Un número menor que cinco en un pueblo no es una estadística anónima, son tres vecinos, así que se devuelve `null` y el panel dirá «menos de 5». Se aplica a los segmentos y a los eventos individuales, y el resumen cuenta cuántos números se han guardado. El total del municipio sí se da entero, porque no es un segmento. No hay tabla de agregados diarios: se calcula al leer, en una consulta, porque un municipio tiene decenas de eventos al mes y una tabla de totales precalculados es una segunda versión de la verdad que hay que mantener honesta.
+
+**El registro de auditoría solo añade.** `MUN#<id>` / `AUD#<fecha>#<id>`, se lee del revés y solo lo lee el responsable municipal. No hay método que edite ni borre una línea. Lo escribe la API después de que una operación salga bien, no cada almacén: los almacenes imponen permisos, esto registra peticiones, y las peticiones son lo que tiene la API.
+
+**Y un arreglo del arnés de tests:** cada fichero levantaba su propio DynamoDB y lo paraba al acabar, lo cual da igual en la CI —parar un endpoint ajeno no hace nada— y se rompe en la máquina de un desarrollador: con tres ficheros en paralelo, el primero que termina le quita el contenedor a los otros dos. Ahora lo levanta el `globalSetup` de vitest una vez por ejecución.
+
+---
+
+## D-040 — El panel es una ruta y un enrutador de cincuenta líneas
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+`panel-api` está escrito. Veinte operaciones detrás de **una sola ruta** de API Gateway, `ANY /panel/{proxy+}`, repartidas por un enrutador propio de unas cincuenta líneas.
+
+**Por qué no veinte rutas declaradas.** Serían veinte bloques de Terraform que hay que mantener en paso con el código a mano, y el día que se olvide uno el síntoma es un 404 que nadie entiende. Con una ruta, el Terraform no cambia cuando la API crece. El precio es el enrutador, y es un precio pequeño: patrones literales con `:nombre` para lo que varía, sin expresiones regulares, sin comodines. Distingue además una ruta que no existe (404) de un método que no vale para una que sí (405), porque lo segundo es un error de quien escribe el cliente y merece que se le diga.
+
+**Los permisos salen de la tabla en cada petición.** El municipio va en la ruta; se busca la pertenencia de ese `sub` en ese municipio y con ella se construyen los almacenes. Si no hay fila, 403 — **la misma respuesta tanto si el municipio no existe como si es de otro**, porque cuál de las dos cosas es no es asunto de quien pregunta. Ningún almacén recibe el municipio como argumento, así que una petición no puede salirse del suyo ni por error.
+
+**Un cambio de contrato que encontraron los tests.** Las seis primeras pruebas fallaron todas por lo mismo: una negativa esperada —«no tienes acceso», «solo el ayuntamiento aprueba»— salía de `route()` como excepción en vez de como respuesta, y solo se convertía en código HTTP en el envoltorio del punto de entrada de Lambda. Ahora **cada `route` mapea sus propias negativas**, así que su firma dice la verdad: devuelve una respuesta, no lanza. El envoltorio se queda como última línea de defensa para los fallos de verdad, que son un 500 con el detalle en el registro y no en la respuesta.
+
+**La línea de auditoría la escribe el manejador**, después de que la operación salga bien, con el verbo en forma de `event.approve` u `organization.trust`. Los almacenes imponen permisos; esto registra peticiones, y una petición es lo que tiene la API.
+
+**Y el cuerpo de la petición se valida con Zod**, con una frontera explícita: un campo opcional que no viene llega como `undefined` y los almacenes distinguen «ausente» de «presente y vacío», así que hay una función que quita los `undefined` y **deja pasar los `null`**, porque en un evento `null` es un valor — «no tiene hora de fin» — y no un hueco.
+
+**Lo que falta para invitar a una persona de verdad:** hoy `POST /panel/.../staff` recibe el `sub` de Cognito ya creado. Falta la llamada `AdminCreateUser`, el permiso de IAM para hacerla y el identificador del grupo de usuarios en el entorno. No lo he escrito porque no puedo ejecutarlo contra un Cognito real, y escribir autenticación sin poder probarla es la forma más fácil de dar por hecho algo que no lo está.
+
+---
+
+## D-041 — Los carteles y la página de evento, con una sola implementación de cada cosa
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+**La página pública de evento** ya la sirve su Lambda. Es la única cosa del sistema que devuelve HTML, y existe por las etiquetas Open Graph: sin ellas, un enlace pegado en un grupo de WhatsApp es una URL pelada en vez de una tarjeta con el título, la fecha y el pueblo. Esa tarjeta es el bucle de crecimiento del producto, no un adorno.
+
+Sin framework y con los estilos dentro: una sola petición, nada que cachear aparte y nada que pueda faltar. Va cacheada un minuto, así que el mismo enlace en un grupo de cuatrocientas personas llega a la función una vez. Un borrador responde **exactamente lo mismo** que un evento que no existe, porque si no, un enlace compartido se convierte en una forma de averiguar qué está preparando el ayuntamiento. Y todo lo que se escribe en la página pasa por un escapado: el texto lo teclea un técnico municipal y no un desconocido, pero «nuestros usuarios no harían eso» es como se escriben los fallos de inyección, y un título con un ampersand es un martes cualquiera.
+
+**Los carteles pasan a un paquete, `@agora/poster`.** Estaban en el panel, y la Lambda tenía un esqueleto: dos copias, una a punto de ser la verdad y la otra a punto de podrirse. Ahora hay una, sin framework, y **nada dentro lee el entorno**: las credenciales son argumentos, porque los dos llamantes las guardan en sitios distintos — un `.env.local` en desarrollo, Parameter Store en la nube. Las rutas del panel y el manejador de la Lambda son adaptadores de veinte líneas.
+
+La taxonomía de fallos también se comparte, y esa es la parte que se nota: una cuota agotada, una clave mal, un modelo que contesta algo inservible. Cada uno llega al técnico como una frase distinta y con su código HTTP, y los dos caminos dan la misma. Están probados con la red simulada, que es donde se puede provocar un 429 a voluntad.
+
+**Una incoherencia que encontré al juntarlos:** el panel enviaba el cartel como `multipart` y la Lambda esperaba JSON, así que en la nube habría fallado. Ahora los dos usan JSON con la imagen en base64 — una forma para los dos, y una Lambda que no tiene que interpretar multipart a mano. El límite baja a **6 MB** por el transporte y no por el modelo: base64 infla un tercio y el cuerpo de una petición no puede pasar de 10 MB. Una foto de móvil suele pasarse de ahí, así que el panel la reescala antes de subirla: 1.500 píxeles en el lado largo y JPEG al 85 %, que es la diferencia entre una petición de 400 kB y una de 8 MB que la API rechaza. Leer una fecha y un lugar de un cartel no necesita doce megapíxeles, y así también se puede subir desde una oficina con una línea lenta. Si el navegador no puede decodificar el fichero, o ya era pequeño, se envían los bytes originales.
+
+**Y una dependencia circular evitada:** la página necesita su dirección absoluta para las etiquetas Open Graph, y no se puede leer de la distribución de CloudFront porque la propia página es uno de sus orígenes — Terraform se perseguiría la cola. Es una variable, `site_url`, vacía en el primer `apply` y rellenada en el segundo con la salida. Con la variable vacía la página funciona igual: omite las dos etiquetas en vez de escribirlas mal.
+
+---
+
+## D-042 — La app habla con la API, y sigue funcionando sin ella
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+Existe la segunda implementación de `DataSource`, la que D-001 anticipaba: `createHttpDataSource`. Ninguna pantalla cambia — era para esto para lo que se escribió el interfaz.
+
+**Cuál se usa depende de una variable.** Con `EXPO_PUBLIC_API_BASE_URL` puesta, la app habla con el backend; sin ella, lee los ficheros de `content/`. Eso no es un apaño transitorio: la demo **tiene** que funcionar sin red, porque se enseña con el móvil encima de la mesa en una sala de juntas con mal wifi. Una build de demostración y una de piloto se diferencian en una variable de entorno y en nada más.
+
+**Una diferencia entre las dos implementaciones, que no es un fallo:** `listEvents` por HTTP devuelve solo lo que un vecino puede ver, porque es todo lo que da la API pública; la de semilla devuelve todo y deja filtrar a quien llama. Las dos son correctas para su llamante, y está escrito donde se pueda tropezar con ello.
+
+**Lo que el cliente se toma en serio es fallar bien.** Un vecino abre esto en una calle llena de gente durante la feria, con una barra de cobertura: una petición que se queda colgada es peor que una que se rinde, así que todo lleva tiempo límite. Y un fallo distingue tres cosas que para el usuario son distintas: **no hay cobertura**, **el servidor ha dicho que no** (con su código) y **la respuesta no se entiende**, que es lo que pasa cuando la app es más vieja que la API. Esa última no revienta la pantalla: se cuenta como un fallo normal.
+
+**El testigo del dispositivo se lee en cada llamada, no se captura**, porque la primera petición de un arranque es el propio registro y todavía no hay testigo. Dónde se guarda es cosa de la app: el cliente recibe un almacén con dos métodos, así que el mismo código vale con AsyncStorage en el móvil y con localStorage en la web.
+
+**Y hay un test de contrato,** que es el que de verdad importa: sustituye `fetch` por una función que reparte a los manejadores de verdad sobre un DynamoDB de verdad. Ninguno de los dos lados lo habría pillado por su cuenta — que el cliente construya una ruta que la API no declara, que un campo cambie de nombre, que una parte envíe una forma que la otra no lee. Esa clase de fallo ya me mordió una vez hoy, con los carteles y el `multipart`.
+
+Escribiéndolo salieron dos cosas pequeñas y reales: el cliente se comía la causa del error al envolverlo —así que «no hay conexión» era también lo que parecía un fallo mío— y el arnés del test convertía un 204 con cuerpo vacío en un `Response`, que la especificación prohíbe. Las dos arregladas.
+
+---
+
+## D-043 — El directo: el evento va dentro del testigo, y el rastro se borra
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+La funcionalidad que hace que media comarca abra la app una tarde, y la única del producto donde se registra la ubicación de alguien. Así que las reglas son estrechas y están en el almacén, no en un manejador.
+
+**El voluntario emite a una sesión y a ninguna otra.** El ayuntamiento programa el directo y obtiene un código de ocho caracteres de un alfabeto sin O ni 0 ni I ni 1 — se dicta por teléfono y se lee en una pantalla al sol. El voluntario lo canjea **una vez** por un testigo, y el identificador del evento **va dentro del testigo**. No es que esté prohibido escribir en otro directo: es que el evento no viaja en la petición, así que no hay forma de pedirlo. Hay un test que manda otro `eventId` en el cuerpo y comprueba que se ignora.
+
+**Dos clases de testigo que no se pueden confundir.** El del dispositivo y el del voluntario llevan prefijo de versión distinto y cada verificador solo acepta el suyo, aunque los firme la misma clave. Confundirlos sería confundir «quién marcó un evento» con «quién lleva el móvil en la procesión».
+
+**No hay autorizador delante.** Un autorizador de API Gateway se gana el sueldo cacheando una respuesta entre peticiones, y aquí no lo haría: una posición llega cada pocos segundos y es una escritura que hay que hacer igual. Comprobar dentro de la función cuesta lo mismo y ahorra una pieza y una Lambda.
+
+**Al terminar, el rastro se borra.** Un borrado explícito, no una espera a que el TTL pase: «estará borrado dentro de dos días» no es lo que dice la promesa. Lo que se queda es un recorrido simplificado — puntos a más de 25 metros, sin horas — que sirve para decir por dónde fue la procesión y no dice nada de quién llevaba el teléfono. El TTL sigue puesto como segunda línea: aunque nadie cierre una sesión, ninguna posición sobrevive a la tarde.
+
+**Y el vecino recibe solo la última posición**, nunca el rastro, con la hora a la que se registró. La app decide si fiarse: un mapa que muestra un punto de hace cuatro minutos como si fuera en directo es peor que uno que lo dice, y el dominio ya tenía escrito el umbral desde la Fase 0.
+
+La pantalla del voluntario, que es el otro extremo de esto, está en D-044.
+
+---
+
+## D-044 — La pantalla del voluntario: un botón, primer plano y nada guardado de la persona
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+El otro extremo de D-043. Quien lleva el móvil en la procesión es alguien de la hermandad al que le han dado un código, y va a tener esta pantalla abierta tres horas andando. Todo el diseño sale de ahí.
+
+**Un botón grande y un estado que se lee de un vistazo.** Doscientos píxeles de alto, icono y etiqueta, y el color del directo cuando está emitiendo. Nada más en la pantalla que se pueda tocar por error, y la ubicación no se pide hasta que se pulsa empezar.
+
+**Primer plano, como decidió el documento de producto.** La ubicación en segundo plano abre una conversación con las tiendas que no hace falta tener antes del primer piloto, así que se mantiene la pantalla encendida mientras se emite —y solo mientras se emite— y se dice en la propia pantalla. El voluntario emite cada cinco segundos o cada cinco metros, lo que ocurra antes, que para una procesión a paso de palio es lo mismo.
+
+**Pausar no avisa a la API.** Deja de enviar, y el mapa del vecino dice cuánto hace que llegó la última posición, que es la respuesta honesta. Añadir un estado «en pausa» que el voluntario pudiera cambiar sería darle un botón que afecta a lo que ven miles de personas.
+
+**Tres respuestas del servidor, tres comportamientos distintos:** sin cobertura se sigue intentando sin decir nada dramático; un 403 es que el ayuntamiento no ha activado el directo, y el testigo **se conserva** porque el mismo voluntario sigue cuando lo activen; un 401 es un testigo muerto, y el cliente lo tira él solo para que la pantalla vuelva a pedir código en lugar de reintentar para siempre.
+
+**La sesión se guarda en el móvil.** Un teléfono que se queda sin batería a mitad de la carrera vuelve al mismo directo en vez de mandar a alguien a buscar al técnico del ayuntamiento a las once de la noche. Lo que se guarda es un testigo atado a un evento; de la persona, nada. «Borrar mis datos» de Ajustes también lo borra.
+
+**En la demo funciona sin API**, porque el modo voluntario es una de las cosas que se enseñan en una reunión: acepta cualquier código, no envía nada y la pantalla lo dice.
+
+Y hay dos tests de contrato nuevos que recorren el camino entero contra los manejadores de verdad: el código que el ayuntamiento genera se convierte en testigo, la posición llega al mapa del vecino, y cuando el ayuntamiento pausa el directo la posición se rechaza sin que el voluntario pierda el código.
+
+---
+
+## D-045 — El mapa del vecino: la misma pantalla, dos fuentes
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+La pantalla del directo ya existía desde la Fase 0 replicando un recorrido grabado. Ahora, cuando hay API, pregunta por la última posición de verdad — y es **la misma pantalla**. La demo que se enseña en una reunión es la versión que se publica; lo único que cambia es de dónde sale el punto.
+
+**El cliente del directo va aparte del `DataSource`.** Todo lo que hay allí es el calendario, que se cachea un minuto y se pide una vez por pantalla. Esto se pide cada cinco segundos y se cachea cinco. Mezclarlos habría significado que uno de los dos tuviera el cacheo equivocado.
+
+**Cinco segundos de intervalo, porque la API cachea cinco.** Preguntar más rápido devolvería lo mismo y costaría dinero. Y el sondeo es sondeo, no WebSockets: para miles de vecinos mirando el mismo punto, una respuesta cacheada en CloudFront cuesta prácticamente nada y una conexión abierta por vecino no.
+
+**Un sondeo que falla no cambia nada en la pantalla, a propósito.** La posición anterior se queda en el mapa y su hora envejece, que es justo lo que la pantalla dice en voz alta. La cobertura se muere en una calle llena de gente y eso no es un estado de error. Pasados los dos minutos que el dominio tiene escritos desde la Fase 0, el punto y la etiqueta «EN DIRECTO» se vuelven grises y el texto pasa a «sin señal desde hace X min».
+
+**El recorrido que se dibuja es el previsto mientras dura y el simplificado cuando acaba**, así que un mapa abierto a la mañana siguiente sigue enseñando por dónde fue la procesión, sin decir nada de quién llevaba el teléfono.
+
+Y el test de contrato recorre ahora el camino entero: el código que genera el ayuntamiento se convierte en testigo, el móvil del voluntario manda una posición y el cliente del vecino la lee por la ruta pública.
+
+---
+
+## D-046 — Notificaciones: Expo Push, un buzón de salida y un tope diario que se salta la cancelación
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+La decisión pendiente nº 6 y nº 7 del documento de producto, resueltas, y la última función que quedaba en esqueleto.
+
+**El proveedor es Expo Push.** Se pone delante de Firebase Cloud Messaging y de APNs y acepta una llamada HTTP con cien mensajes dentro. Eso es toda la razón: la alternativa —SNS o FCM directo— son una cuenta de servicio de Google y una clave de Apple en Parameter Store, dos SDK en el paquete de la Lambda y un segundo camino de entrega que depurar, para un producto cuyo volumen entero es unos miles de mensajes un jueves por la tarde. Y no lleva credenciales: Expo Push funciona sin testigo de acceso salvo que el proyecto active la seguridad reforzada, así que no hay secreto que rotar.
+
+**Una sola Lambda y dos horarios,** distinguidos por el mensaje que manda el planificador:
+
+- **Cada hora en punto**, para el recordatorio. Cada hora y no una vez a las 19:00 porque la hora es un ajuste **del municipio**: la función mira el reloj en la zona de cada pueblo y envía para los que les toca, y para el resto vuelve en milisegundos. Un ayuntamiento que quiera el suyo a las ocho de la mañana lo tiene sin un segundo horario.
+- **Cada minuto**, para el buzón de salida. Los criterios de aceptación piden que un cambio llegue en menos de un minuto, y esto lo cumple sin cola, sin flujo de la tabla y sin conexión abierta: 1.440 invocaciones al día de una función que casi siempre no encuentra nada caben de sobra en la cuota gratis.
+
+**El panel no envía el aviso: escribe la orden.** No puede enviarlo — ningún rol municipal tiene permiso de IAM sobre el índice que dice quién marcó un evento (D-032) — así que el aviso y la orden de reparto se escriben **en una transacción** en una partición única, `pk = OUTBOX`, y la tarea de notificaciones la vacía. Una partición para toda la plataforma es justo lo que la hace barata de consultar: se pregunta por `OUTBOX` y casi siempre no hay nada. La orden lleva TTL de 24 horas, porque un aviso entregado un día tarde diciendo que la hora ha cambiado es peor que uno no entregado.
+
+**El recordatorio se reclama antes de enviarlo, no se marca después.** La tarea corre cada hora, un evento puede caer dentro de la ventana de dos ejecuciones y un reintento tras un tiempo de espera también es una ejecución. Reclamar primero, con una escritura condicional sobre el propio evento, hace que el peor caso sea un recordatorio que nadie recibe en vez de uno que todos reciben dos veces.
+
+**El tope diario es 3 por dispositivo y municipio**, configurable por ayuntamiento, y se lleva en un contador con TTL bajo el propio dispositivo. La comprobación y el incremento son la misma escritura condicional, que es lo que hace que el tope aguante cuando el recordatorio de la tarde y una cancelación caen a la vez. Dos pueblos que sigue un mismo vecino no se gastan la cuota el uno al otro, porque la promesa está escrita «del mismo municipio».
+
+**Y una cancelación se salta el tope, a propósito.** Quien marcó un evento y está a punto de bajar andando tiene que enterarse de que se ha cancelado, y «ya has recibido tres mensajes hoy» no es una razón para dejarle encontrarse la puerta cerrada.
+
+**Cada mensaje va en el idioma de su teléfono**, porque el testigo de push se guarda junto al idioma del dispositivo y los textos están en `@agora/i18n` desde la Fase 0. Y la hora se formatea en la zona del municipio: «Mañana a las 20:00» es la hora del cartel, no la del servidor.
+
+Lo que Expo contesta se usa para una cosa concreta: si un testigo vuelve como `DeviceNotRegistered`, la app se desinstaló de ese móvil y el testigo se borra. Un fallo de red no revienta la tarea —se cuenta, la orden se queda en el buzón y se reintenta al minuto siguiente—, porque quedan otros municipios por recorrer.
+
+---
+
+## D-047 — El testigo de notificaciones, y «borrar mis datos» también en el servidor
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+La otra mitad de D-046: la tarea sabe enviar, pero necesita una dirección a la que enviar, y esa la da el móvil.
+
+**El permiso se pide al marcar el primer evento, no al abrir la app.** Es el momento en que la pregunta tiene sentido para el vecino: acaba de decir que le interesa algo que tiene fecha y hora. Pedirlo en la pantalla de bienvenida, antes de que haya visto un solo evento, es la forma de que una app tenga las notificaciones desactivadas para siempre. Y en Ajustes hay un interruptor, porque quitarlo tiene que ser tan fácil como ponerlo.
+
+**El testigo se vuelve a enviar en cada arranque si el permiso ya estaba dado.** Un testigo de push no es para siempre: cambia al reinstalar la app o al restaurarla en otro móvil, y uno caducado es un recordatorio que no llega.
+
+**El testigo se valida en el manejador**, con el mismo patrón que usa el cliente de Expo. Un valor que no es un testigo de Expo es un mensaje que la tarea construiría, enviaría y vería rechazado, cada vez que se ejecuta, mientras la fila exista.
+
+**«Me interesa» ahora llega a la API**, que es lo que convierte la marca en un recordatorio: la tarea lee las marcas, así que una marca que no llegó es un recordatorio que no existe. El móvil es la autoridad —hay un registro por instalación, no hay un segundo dispositivo con el que discrepar— y al arrancar se reconcilia: lo que está en el móvil y no en la API se marca, lo que está en la API y no en el móvil se desmarca. Un fallo de red no se le cuenta al vecino: el corazón ya está pintado, la marca está en el teléfono y se arregla en el siguiente arranque. Eso es también el requisito de funcionamiento sin conexión de la sección 10.
+
+**Y «borrar mis datos» ahora borra de verdad.** Antes limpiaba el almacenamiento del móvil y dejaba en el servidor las marcas, los contadores y el testigo de push, así que los avisos habrían seguido llegando a un teléfono que pidió que lo olvidaran. Hay una ruta `DELETE /me` que borra el dispositivo, sus marcas —por el mismo camino que desmarcarlas una a una, para que los contadores que ve el ayuntamiento sigan siendo ciertos— y los contadores del tope diario. Después, la app es un teléfono distinto e igual de anónimo.
+
+Una cosa que **no** está hecha y no bloquea nada: el identificador del proyecto de Expo. Sin él, `getExpoPushTokenAsync` no puede pedir un testigo, así que el registro contesta `unsupported` y la pantalla de Ajustes lo dice. Se rellena con `EXPO_PUBLIC_EAS_PROJECT_ID` el día que se haga la primera build interna, sin tocar código.
+
+---
+
+## D-048 — El panel con identidad de verdad, y la demo intacta
+
+**Fecha:** 2026-09-19 · **Estado:** aceptada
+
+El panel llevaba desde la Fase 0 funcionando sobre la semilla en el navegador. Ahora habla con la API como quien haya iniciado sesión — y la demo sigue exactamente igual.
+
+**La misma regla que en la app (D-042):** con `NEXT_PUBLIC_API_BASE_URL` y los identificadores de Cognito puestos, el panel es el de un piloto; sin ellos, es la demostración. Eso no es un apaño: un concejal tiene que poder crear un evento en un portátil en una sala de juntas con mal wifi, y nada de lo que teclee ahí debe salir del navegador. Una build y la otra se diferencian en tres variables de entorno.
+
+**Cognito contesta solo «quién eres».** Lo que esa persona puede hacer sale de la tabla, por municipio, y la API lo lee en cada petición (D-029). Por eso en el cliente del panel no hay ni un rol ni un municipio: hay un correo y un testigo. Y por eso dar de baja a un técnico que se va es borrar una fila, sin esperar a que caduque nada.
+
+**El testigo se lee en cada llamada, no se captura,** porque caduca a la hora y la biblioteca de Cognito lo renueva por detrás con el testigo de refresco. Un panel abierto toda la tarde en una oficina municipal sigue funcionando.
+
+**Nadie se registra solo.** El pool es `allow_admin_create_user_only`, así que la única puerta de entrada es una invitación, y la manda un responsable municipal. `POST /panel/.../invitations` hace las dos cosas que hay que hacer y en ese orden: la cuenta en Cognito —que devuelve el `sub`— y la membresía en la tabla, que lo necesita. El rol de quien invita **se comprueba antes de crear la cuenta**, y no solo después al conceder la membresía: un rechazo a esas alturas deja a una persona invitada con un acceso y ningún sitio al que entrar. La Lambda del panel solo puede crear y leer un usuario; ni listar, ni cambiar contraseñas, ni borrar a nadie.
+
+**La primera vez que alguien entra, Cognito pide contraseña nueva.** La invitación lleva una temporal, así que el formulario tiene dos pasos, y el segundo tiene que reutilizar el mismo objeto de Cognito que recibió la temporal: el intercambio SRP tiene estado.
+
+**Todas las mutaciones del panel son asíncronas ahora**, también en la demo. Tenían que serlo para la de verdad, y hacer que la demo finja lo contrario habría significado dos juegos de pantallas distintos. El formulario ya no navega antes de que la escritura aterrice, que es lo que antes ocultaba cualquier negativa de la API.
+
+**Y el panel de datos deja de inventar cuando hay backend.** Las cifras salen de `GET /panel/.../stats`, que ya aplicaba el mínimo de 5: un dato retenido llega como `null` y se **omite** del gráfico en lugar de dibujarse como un cero — un cero diría «nadie», que no es lo que significa — y debajo se dice cuántos se han omitido y por qué. La gráfica de evolución mensual solo se enseña en la demo: la API no tiene todavía esa serie, y una línea inventada en la memoria anual de un ayuntamiento es la única cosa que esta pantalla no debe hacer nunca.
+
+Lo que queda para más adelante, y no bloquea un piloto: una pantalla de usuarios y asociaciones en el panel (el endpoint de invitación existe y el cliente también, pero no hay formulario todavía), y la serie mensual de interés.
+
+---
+
+## D-049 — El vecino no se registra: se le cuenta
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+Un recordatorio que merecía quedar escrito, porque es el modelo entero del lado del vecino: **nadie se registra**. Se abre la app, se elige el pueblo, se marca lo que gusta, y eso ya está en la base de datos y ya cuenta en las estadísticas del ayuntamiento. Sin cuenta, sin correo, sin formulario.
+
+Lo que faltaba era la cifra que el panel promete desde el principio: **cuántos vecinos**. No se podía responder, porque un dispositivo no dejaba constancia de qué municipio sigue.
+
+**Ahora sí, con una fila y un contador.** Cuando un vecino elige un pueblo —o marca un evento de ese pueblo, aunque haya llegado por un enlace compartido y no lo haya elegido nunca— se escribe una fila bajo su dispositivo (`DEV#<id>` / `FOL#<municipio>`) y se incrementa un contador bajo el municipio (`MUN#<id>` / `STAT#DEVICES`), las dos cosas en la misma transacción. La condición sobre la fila es lo que hace que el contador signifique algo: el segundo arranque la incumple, la transacción se cancela y nadie se cuenta dos veces. Así se puede llamar en cada arranque sin pensarlo.
+
+**Es un contador, no una lista, y a propósito.** El panel necesita el número; la lista de quién sigue al pueblo sería exactamente lo que este producto promete no tener. Y como vive bajo el municipio, las estadísticas lo leen con una lectura más, sin acercarse al índice que el rol del panel tiene denegado (D-032).
+
+**Al pedir «borrar mis datos» se devuelve la cuenta.** Si no, el ayuntamiento seguiría contando como suyo a un vecino que pidió que lo olvidaran.
+
+**Nunca se oculta por ser pequeño**, a diferencia de los segmentos: es el total del municipio, como el total de marcas, y un total no identifica a nadie. Lo que sí se oculta —los interesados de un evento con menos de 5— sigue igual.
+
+Un fallo que salió escribiéndolo, y que solo existía en el arnés de pruebas: el contrato repartía las peticiones a un manejador u otro **por lo que contenía la ruta**, así que `PUT /me/municipalities/{id}` se fue a la API pública en cuanto la ruta de un dispositivo llevó la palabra «municipalities» dentro. En la nube no pasa —API Gateway tiene una integración por ruta— pero el arnés tiene que ser fiel, así que ahora reparte por ruta exacta.
+
+---
+
+## D-050 — El panel sabe quién eres, y ya tiene todas sus pantallas
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+El panel leía la membresía y tiraba el rol. La API no: comprueba en cada petición lo que esa persona puede hacer, así que nada estaba abierto — pero una asociación veía la pestaña «Revisión» con botones de aprobar que el servidor rechazaba. Ofrecer un botón que contesta 403 es peor que no ofrecerlo.
+
+**El rol viene de la tabla y se usa solo para no mentir.** No es un permiso: el permiso sigue estando en la API y en el almacén, probado contra DynamoDB de verdad. Aquí sirve para que la barra de navegación, los botones y los textos digan lo que esa persona puede hacer. La demo se enseña como el panel del ayuntamiento, así que allí el rol es responsable municipal.
+
+**Lo que ve una asociación:** sus eventos («Mis eventos», no la agenda entera), sus métricas, y nada de la bandeja de revisión, las asociaciones, los directos o los usuarios. En el formulario desaparece el selector de «Organiza» —sus eventos son suyos y la API los escribe así de todos modos— y el botón dice **«Enviar al ayuntamiento»** en vez de «Publicar evento» cuando la asociación no es de confianza, porque es lo que va a pasar. Al guardar un cambio sobre algo ya publicado se le dice que queda pendiente y que **los vecinos siguen viendo la versión anterior**, que es justo el criterio de aceptación de la sección 7.2 y lo único que evita que lo vuelva a editar mañana.
+
+**Tres pantallas nuevas, sobre API que ya existía y estaba probada:**
+
+- **Asociaciones.** Alta, correo de contacto, baja y reactivación, y el interruptor **«De confianza»** con su consecuencia escrita al lado: sus eventos se publican sin pasar por revisión. Es la palanca que mantiene corta la bandeja, y merecía explicarse en vez de etiquetarse.
+- **Usuarios.** Invitar (cuenta en Cognito + membresía en una petición) y quitar acceso. Quitar el acceso es borrar la membresía: la cuenta puede seguir existiendo y ya no abre nada, que es la propiedad por la que se eligió esta arquitectura — nada que esperar, ningún testigo que caduque.
+- **Directos.** Preparar el directo de un evento, el código en tipografía grande para leerlo en voz alta con un botón de copiar, y empezar, pausar y terminar. **No hay QR**, y no por olvido: la app no tiene lector, así que un código que nadie puede escanear solo parecería una funcionalidad. Cuando haya lector, el QR es media hora.
+
+**Y una fila más en la tabla para poder contestar «quién tiene acceso».** La membresía se guardaba solo bajo la persona (`USER#<sub>` / `MEM#<municipio>`), lo que responde «dónde puede trabajar esta persona» pero no «quién entra en mi ayuntamiento». Ahora se escribe también bajo el municipio (`MUN#<id>` / `MEM#<sub>`), las dos en una transacción: un espejo que pueda desincronizarse sería peor que no tenerlo, porque enseñaría a un técnico que ya se fue. Se lee con la misma consulta que el panel ya hace, sin índice nuevo y sin recorrer la tabla.
+
+En la demo todo esto funciona sin API: las asociaciones y sus cambios se guardan en el navegador como los eventos, las invitaciones se quedan en memoria y la pantalla lo dice, y los directos llevan un código con el mismo alfabeto sin O, 0, I ni 1 para que lo que se enseña en una reunión se parezca a lo que luego sale.
+
+---
+
+## D-051 — Un envío que no sale deja de ser silencioso
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+El buzón de salida ya sobrevivía a un **envío** fallido: la orden se queda en la partición y al minuto siguiente se reintenta. Lo que no sobrevivía era una **ejecución que no ocurrió** —una Lambda que no arrancó, un error de función, un tiempo agotado— porque la hora del recordatorio pasa y nadie dice que pasó.
+
+**Los horarios guardan esos eventos en una cola SQS.** Catorce días de retención, que es lo que tarda alguien en volver de la feria y leer qué se perdió, y no cuesta nada mientras esté vacía: el primer millón de peticiones al mes es gratis y una cola vacía no hace ninguna. Nadie la lee por código; la lee una persona con la CLI cuando la alarma avisó.
+
+**Las dos tareas tienen política de reintentos distinta, y es a propósito.** El recordatorio merece reintentos —la tarde de un evento solo ocurre una vez, y un pico de DynamoDB o un arranque frío es justo lo que un reintento arregla—, así que tres intentos en diez minutos. El buzón **no**: otra ejecución empieza en sesenta segundos y hace el mismo trabajo, así que reintentar solo lo duplicaría. Su fallo va igualmente a la cola, que es lo que hace visible una ejecución que se murió.
+
+**Y un recordatorio que no llegó a nadie devuelve su marca.** La marca se reclama antes de enviar, para que no se envíe dos veces; eso significa que una tarde con el proveedor de push caído habría dejado todos los recordatorios marcados como enviados y sin enviar. Ahora, cuando de un evento no sale ni un mensaje, la marca se libera y el reintento del horario lo manda.
+
+**Lo que convierte el informe en un error es el manejador, no la tarea.** `run` cuenta y no lanza, porque el trabajo de los demás municipios tiene que terminar. El manejador registra la línea de siempre —así los números están en CloudWatch de todas formas— y después lanza si la ejecución tenía algo que enviar y no envió nada. Eso es lo que hace saltar la alarma de errores de la función, que ya existía, sin gastar una alarma nueva: las diez gratis están todas puestas.
+
+**Un puñado de fallos entre muchos no es un incidente** y no lanza: un móvil que desinstaló la app cuenta como fallo. Cero entregados de lo que fuera, sí — y hasta ahora se parecía exactamente a una tarde tranquila en un pueblo pequeño.
+
+---
+
+## D-052 — El informe en PDF, que es lo que se pega en la memoria anual
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+Lo que hay detrás de «Me interesa» comercialmente: el técnico de cultura tiene que escribir una memoria a final de año y hasta ahora la escribía de memoria. El documento de producto pide CSV **y** PDF; el CSV es para una hoja de cálculo y esto es para pegarlo en un documento o adjuntarlo a un correo.
+
+**Se dibuja en el navegador, con jsPDF cargado dinámicamente.** El panel es un sitio estático y no tiene servidor donde renderizar (D-013), así que se genera en el móvil o el portátil de quien lo pide. `await import('jspdf')` mantiene 400 kB fuera del paquete inicial de un panel que la mayor parte del tiempo solo lista eventos, y la fuente estándar del formato cubre acentos y ñ, así que no hay tipografía que incrustar.
+
+**Hereda las dos reglas de la pantalla de datos.** Todo es agregado, y un dato que la API retuvo por ser pequeño llega como `null` y se imprime **«menos de 5»** — nunca un número y nunca un cero, porque un cero diría «nadie». Al final se dice cuántos se han retenido y por qué.
+
+**Y si el panel está en modo demostración, lo dice en la primera página.** Un PDF con el nombre de un ayuntamiento y cifras inventadas dentro es exactamente lo que acaba archivado como real.
+
+Lo demás es oficio: banda con el color del municipio, las cuatro cifras grandes, la tabla de eventos ordenada por interesados con los títulos partidos a lo ancho de su columna, el interés por tipo de actividad, y en cada página el pie que dice que ningún dato identifica a un vecino. Las fechas van en la zona horaria del municipio, como en todo el producto: un informe que dice que la cabalgata fue el 5 en Madrid y el 4 en el servidor es un informe que nadie vuelve a creer.
+
+Verificado renderizándolo de verdad, no solo compilándolo: 60 eventos, un título largo, un dato retenido y el sello de demostración salen en cuatro páginas, con los acentos, las comillas latinas y el pie en todas.
+
+---
+
+## D-053 — Un script de despliegue, porque los seis pasos no caben en la cabeza
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+Desplegar esto son seis pasos en un orden concreto —estado remoto, backend, compilar las funciones, aplicar, rellenar los secretos, subir el panel— y la mitad de los fallos posibles son de despiste: aplicar contra la cuenta equivocada, comprimir un `dist/` de ayer, subir el panel apuntando a la API de otro entorno. `infra/deploy.sh` los encadena con las comprobaciones que uno olvida a las once de la noche.
+
+**Lo que no hace, y es la parte importante:**
+
+- **No aplica sin enseñar el plan y preguntar.** No hay ningún `-auto-approve` en el fichero. Producción, además, pide escribir `prod` a mano.
+- **No imprime un secreto.** Comprueba si los parámetros están rellenos, nunca su valor: lo que sale por pantalla acaba en el historial del terminal y en la captura que alguien manda por WhatsApp.
+- **No destruye nada.** Para eso está `terraform destroy`, escrito a propósito por alguien que sabe lo que hace.
+
+**Comprueba la cuenta antes del plan**, no después de dos minutos: compara lo que dice `sts get-caller-identity` con el `aws_account_id` del `terraform.tfvars` del entorno, que es el mismo valor que Terraform usa para negarse. Así el error llega en un segundo y dice cuál es cuál.
+
+**Compila siempre las funciones antes de aplicar**, porque Terraform comprime lo que encuentra y no compila nada: un `dist/` viejo es un despliegue del código de ayer con la confianza de hoy.
+
+**Y el panel se compila con las salidas del propio entorno** —la URL de la API, el pool y el cliente de Cognito—, que es justo donde estaba el error fácil: subir un panel que apunta a otro sitio.
+
+Los mensajes están en español porque los lee una persona; el código y los comentarios, en inglés como todo lo demás. La CI lo pasa por `bash -n` y `shellcheck`, porque es el único fichero del repositorio que se ejecuta contra una cuenta de verdad y merece revisarse como código y no creerse como un documento.
+
+Los pasos a mano siguen en `infra/terraform/README.md`, y conviene leerlos la primera vez: el script es para la segunda.
+
+---
+
+## D-054 — La serie mensual: un contador, y solo hacia arriba
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+La última gráfica que seguía inventada. Ahora existe de verdad y, con ella, la sección que le faltaba al informe.
+
+**Es un contador por municipio y mes** (`MUN#<id>` / `MONTH#<aaaa-mm>`), no un registro de eventos. Se incrementa en la misma transacción que escribe la marca, así que no hay forma de que una cosa esté y la otra no, y toda la serie vuelve en la consulta que las estadísticas ya hacían — sin índice nuevo y sin recorrer nada. La clave lleva prefijo `MONTH#` y no `STAT#` para no compartirlo con el contador de dispositivos que vive al lado.
+
+**Cuenta altas, nunca bajas, y es a propósito.** Un vecino que desmarca un evento tres meses después no puede des-ocurrir el interés que mostró en junio, y decidir de qué mes descontarlo es una pregunta sin buena respuesta. Así que la serie se llama lo que es: **«marcas nuevas por mes»**. El contador de cada evento sí baja al desmarcar, porque ese número responde a otra pregunta — cuánta gente está interesada ahora.
+
+**El mes se calcula en la zona del municipio**, como todas las fechas del producto: las doce y media de la noche del 30 de septiembre en Madrid ya es octubre, y esa marca pertenece a octubre aunque el servidor piense en UTC. Se usa la zona por defecto en lugar de leer la del municipio en cada marca: son una lectura por marca para mover la frontera de un cubo estadístico, y todos los municipios de la plataforma están en la misma zona. El día que haya uno fuera, se lee.
+
+**Un año y no más.** La consulta pide los doce últimos meses ordenados de nuevo a viejo y los da la vuelta, así que la pantalla y el informe tardan lo mismo el primer año que el quinto.
+
+**Y en el informe solo sale si es real.** La demo dibuja su línea inventada con una nota debajo que lo dice, porque enseñarla en una reunión es útil; el PDF la omite, porque un documento con el nombre de un ayuntamiento no puede llevar una curva inventada y la nota no viaja con el papel.
+
+Sustituye a `dailyStatsKey`, que estaba definida desde el principio y no la escribía nadie: estadísticas diarias por evento habrían sido una lectura por evento para dibujar una línea del municipio.
+
+---
+
+## D-055 — Probar el panel en un navegador, porque los dos fallos que se escaparon eran de pantalla
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+Todo lo demás de este repositorio se prueba sin navegador: las reglas contra un DynamoDB de verdad, los manejadores contra los almacenes de verdad, los clientes contra los manejadores de verdad. Y aun así los dos únicos fallos que llegaron a existir en el panel eran exactamente lo que nada de eso mira: un directo sin ningún botón para empezarlo, y una pantalla que se habría quedado en «Cargando…» para siempre sin que nadie se enterara. Los encontré abriendo el panel, no ejecutando tests.
+
+**Así que hay seis tests con Playwright, y son deliberadamente romos.** Abren cada pantalla de la demostración y comprueban que hay contenido y no un indicador de carga; recorren las dos cosas que un ayuntamiento hace de verdad —aprobar el evento de una asociación, y preparar un directo hasta que sale el código y empieza a emitir—; descargan el informe; y dan de alta una asociación y la marcan como de confianza. No revisan diseño ni comparan píxeles: una captura de referencia se rompe cada vez que alguien toca un margen, y entonces se deja de mirar.
+
+**Cualquier excepción del navegador tumba el test que la provocó.** Una pantalla que revienta por dentro pero sigue pintando algo parece correcta en una captura; esto es lo único que se daría cuenta.
+
+**Y los he verificado rompiendo el código a propósito.** Quitando el botón de «Preparar» falla el test del directo; quitando la carga de la semilla falla el de las pantallas. Un test que no falla cuando debería es decoración cara de mantener.
+
+Corre contra `next dev`, que es lo que ejecuta una persona; del export estático se encarga la compilación de la CI. Va en su propio trabajo, porque instalar Chromium tarda un minuto y no tiene por qué ponerse delante de los tests que no lo necesitan, y sube el informe de Playwright como artefacto cuando falla.
+
+Lo que sigue sin probarse en navegador es la app móvil: ahí no hay un `next dev` al que apuntar y montar un simulador en la CI cuesta más de lo que ahorraría hoy.
+
+---
+
+## D-056 — Una copia al día, que es la que recupera de nuestros propios errores
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+La replicación entre tres zonas de disponibilidad es automática y no protege de nada de lo que pasa de verdad: una migración que machaca la programación de un municipio, un borrado con la clave equivocada, un fallo que vacía una partición. De eso no recupera la infraestructura, recupera una copia.
+
+**Una copia diaria de la tabla, guardada treinta días, con AWS Backup.** A las cuatro de la mañana en Madrid, que es la hora más tranquila y ya han salido los recordatorios de la tarde. Se paga por gigabyte de lo que hay guardado: una tabla de 50 MB son medio céntimo al mes, y la diferencia entre «barato» y «gratis» deja de importar el día que ahí dentro está el calendario de un ayuntamiento de verdad.
+
+**Solo en producción.** Lo que hay en dev es la semilla y cuatro eventos de prueba: perderlo es una tarde, y una copia de eso es una factura por nada.
+
+**Sigue sin haber PITR** (D-036), y la comparación ahora está escrita donde toca: lo que añade es un registro continuo de 35 días —restaurar al segundo anterior a la migración, en vez de a las cuatro de la mañana— y es el caro de los dos con diferencia. El día que perder una tarde de ediciones de un ayuntamiento sea una llamada de teléfono y no un encogimiento de hombros, se enciende.
+
+**Restaurar crea una tabla nueva y deja la dañada donde está**, que es lo que hay que querer: se comparan antes de tirar nada. El procedimiento, con las órdenes exactas, está en `infra/terraform/README.md`; el rol con el que corre la restauración es una salida de Terraform para que la orden se pueda copiar y pegar.
+
+Y de paso, dos comentarios que se habían quedado viejos: las alarmas de producción ya no son nueve sino **exactamente diez** —ocho funciones, la API y la tabla—, que es justo lo que es gratis por cuenta. Por eso un fallo de envío de notificaciones se registra como error de la función (D-051) en lugar de gastar una alarma nueva.
+
+---
+
+## D-057 — Que sea AWS quien diga que no
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+El aislamiento entre municipios ya estaba tres veces: la clave de partición de todo nombra un municipio, así que una consulta que no lo nombre **no se puede escribir** (D-026); los almacenes se construyen alrededor de un actor y no aceptan un municipio como argumento; y hay tests contra un DynamoDB de verdad que intentan cruzar la línea y fallan. Esta es la cuarta, y la única que no depende de que nuestro código sea correcto.
+
+**Cada petición del panel corre con credenciales que AWS no deja salir de un municipio.** La función asume un rol con una **política de sesión** —una política que solo puede quitar permisos, nunca añadirlos— que lleva `dynamodb:LeadingKeys` con las particiones de ese municipio. Pedir las filas de otro pueblo vuelve como un acceso denegado de DynamoDB, no como una decisión nuestra.
+
+**Lo que no cubre, dicho claramente.** Las filas con clave de evento (`EVT#`), de usuario (`USER#`) y de código de voluntario (`CODE#`) no nombran un municipio en su partición, así que ninguna condición sobre esa clave puede acotarlas: esas siguen protegidas por el código, que lee el evento a través de su municipio antes de tocarlas. Cerrarlas del todo es rediseñar esas claves para que cuelguen del municipio, que es un cambio del modelo de datos y no de los permisos; queda escrito para cuando toque.
+
+**Lo que sí añade para ellas es un techo.** `DEV#` y `PLATFORM` no aparecen en la política: no están denegados, están **ausentes**, así que el panel no puede tocar la fila de un dispositivo por mucho que se tuerza el código. Y el `Deny` sobre gsi3 se repite en el rol asumido además de estar en el de la función, porque un `Deny` que solo vive en uno de los dos es un `Deny` que un refactor se lleva por delante.
+
+**Una llamada a STS por municipio y arranque en frío, no por petición.** Las credenciales duran una hora y se cachean mientras viva el contenedor, renovándose cinco minutos antes de caducar en vez de después de que falle algo. El nombre de sesión lleva el municipio, así que CloudTrail dice para qué pueblo se hizo cada llamada sin tener que cruzar nada.
+
+**Y sin rol que asumir, se usa el cliente de la función.** Es el caso local: los tests y una ejecución contra DynamoDB Local no tienen IAM que estrechar, y un panel que se negara a funcionar sin ella sería un panel contra el que nadie puede desarrollar. En la nube Terraform pone siempre las dos variables.
+
+Lo que se prueba aquí es **el documento**, no lo que AWS hace con él: seis tests sobre la política —que acota la tabla, que acota los dos índices, que no nombra otro municipio, que no lleva un comodín en la clave propia, que no menciona dispositivos ni el índice de la plataforma, y que no pide permiso para recorrer la tabla— más uno que comprueba que la ruta pide de verdad el cliente acotado para el municipio de la URL. Lo demás lo contesta IAM, y eso solo se ve en una cuenta.
+
+---
+
+## D-058 — Los textos legales, escritos desde lo que el sistema hace
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+Un ayuntamiento no firma una aplicación que no trae política de privacidad, aviso legal ni declaración de accesibilidad, y no los firma tarde: son de las primeras preguntas de la secretaría, antes que el precio. Hasta hoy el producto los tenía pendientes y eso bloqueaba una venta, no un despliegue.
+
+**Están escritos desde la arquitectura, no desde una plantilla.** Cada párrafo de la política de privacidad corresponde a algo que el código hace o deliberadamente no hace: el vecino no se registra (D-029), su ubicación no se recoge nunca —solo la del voluntario, mientras emite—, las métricas son agregados y los segmentos de menos de cinco dispositivos no se muestran. La consecuencia es una política corta, que es la única señal fiable de que el producto pide poco.
+
+**Y dice la verdad en lo que un texto de plantilla maquilla.** El identificador del dispositivo no permite saber quién es nadie, así que el artículo 11 del RGPD aplica: si un vecino pide sus datos y no nos da ese identificador, **no podemos encontrarlos**, y eso está escrito en la página en vez de prometer un derecho que no se puede ejercer. Lo que sí puede hacer, y es lo que funciona, es borrarlos desde Ajustes con un botón.
+
+**La transferencia a Estados Unidos aparece, porque existe.** Todo está en AWS Fráncfort menos las notificaciones, que salen por el servicio de Expo (D-021). Está declarada con sus cláusulas contractuales tipo en lugar de esconderse detrás de «proveedores tecnológicos».
+
+**La declaración de accesibilidad dice «parcialmente conforme» y nombra los tres huecos**: el mapa del directo, un PDF del informe sin etiquetar y los carteles que sube el ayuntamiento, cuyo texto alternativo depende de quien los suba. El Real Decreto 1112/2018 pide la declaración, no la perfección; una que dijera «plenamente conforme» sería falsa el primer día y es exactamente lo que se reclama.
+
+**Los datos de la empresa son variables, no texto.** `packages/core/src/company.json` tiene cuatro campos y una fecha, y mientras digan `PENDIENTE` las tres páginas muestran un aviso ámbar que explica que el texto está sin cerrar. No es un descuido disimulado: es imposible publicar esto por accidente sin verlo. Rellenar la sociedad cuando exista es una edición de un fichero.
+
+**El contrato de encargo del artículo 28 va aparte**, en `docs/legal/encargo-del-tratamiento.md`, porque no es una página web sino un papel que se firma con cada ayuntamiento. Lleva sus anexos —qué datos, qué medidas de seguridad, cómo se atienden los derechos—, la tabla de subencargados con AWS y Expo, notificación de brechas en 24 horas y las cuatro capas de aislamiento entre municipios escritas como garantía contractual, que es lo que las convierte en algo exigible.
+
+**Nada de esto lo ha revisado un abogado** y los tres documentos lo dicen. Lo que ahorra la revisión no es escribirlos: es tener que explicarle a quien la haga qué trata el sistema, porque ya está escrito y es corto.
+
+Se enlazan desde los tres sitios donde alguien los busca: Ajustes de la app, el pie del panel y el pie de la página pública de un evento, que es la que se comparte por WhatsApp y la única que ve quien no tiene la app instalada.
+
+---
+
+## D-059 — Los permisos que la app pide, y solo esos
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+`expo-calendar` y `expo-location` estaban en las dependencias y el código los llamaba, pero ninguno estaba declarado como plugin en `app.json`. Expo los enlaza igualmente, así que **el fallo no era una pantalla que se cae**: era peor, y más silencioso.
+
+Lo que se habría publicado en la App Store, con sus valores por defecto:
+
+- Los textos de permiso **en inglés** —«Allow HoyQ to access your calendars»— a un vecino de un pueblo de Granada.
+- `NSLocationAlwaysUsageDescription` y `NSLocationAlwaysAndWhenInUseUsageDescription`: la app **pidiendo ubicación permanente**, cuando la decisión del producto es que el voluntario emite en primer plano con la pantalla encendida (D-016) y la política de privacidad dice que la ubicación del vecino no se recoge nunca. La etiqueta de privacidad de la ficha de la tienda habría declarado seguimiento continuo de ubicación.
+- `NSRemindersUsageDescription` y su variante de acceso completo: permiso sobre los recordatorios del sistema, que la app no toca.
+- `NSMotionUsageDescription`: detección de actividad física, que la app no toca.
+
+Cuatro permisos que nadie pide y uno que contradice por escrito lo que se le promete al ayuntamiento. Para una venta a una administración pública eso no es un detalle técnico: es la ficha de la tienda desmintiendo el contrato de encargo.
+
+**Ahora los dos plugins están declarados, con su razón escrita en español, y lo que no se usa se borra en vez de quedarse.** El plugin de permisos de Expo interpreta `false` como «quita esta clave», así que pasar `remindersPermission: false` o `locationAlwaysPermission: false` no es un apaño: es la forma que tiene la herramienta de decir que no.
+
+**Y hay un comando que lo comprueba contra el resolvedor de verdad.** `pnpm --filter @agora/mobile check:permissions` ejecuta `expo config --type introspect` —lo que vería una build, plugins incluidos— y afirma en dos direcciones: que están las tres claves que el código necesita, y que **no** están las ocho que no usa. Comprueba además que ninguna se ha quedado con el texto inglés por defecto, porque una cadena que empieza por «Allow $(PRODUCT_NAME)» significa que nadie ha escrito el motivo que el vecino va a leer.
+
+La segunda dirección es la que importa. Un permiso de más no rompe nada, no sale en ningún test y no se ve hasta que lo lee quien revisa la app o quien firma el encargo del tratamiento. Añadir uno ahora obliga a editar esa lista a mano, que es exactamente la fricción que se busca.
+
+Esto corre en la CI, que hasta ahora **solo compilaba el APK de Android**: es la única comprobación del repositorio que mira el lado de iOS. La ubicación en segundo plano sigue fuera, y ahora hay un test que falla si alguien la enciende sin querer.
+
+De paso, la política de privacidad dice ahora que la app puede pedir la ubicación una vez para sugerir el municipio, que esa coordenada se resuelve en el propio móvil y que no se envía a ningún sitio. Era verdad y no estaba escrito, y un permiso que aparece en pantalla sin aparecer en la política es la clase de hueco que un delegado de protección de datos encuentra en dos minutos.
+
+---
+
+## D-060 — Un solo enlace, que abre la app si está y la web si no
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+El comentario de `packages/core/src/links.ts` describía desde el principio cómo tenía que funcionar un enlace compartido: abrir el evento en la app cuando está instalada y la página pública cuando no. La página existía, el `scheme` estaba registrado, y la mitad que hace que eso ocurra de verdad no estaba: sin ella el enlace de WhatsApp abría siempre el navegador, también en un móvil con la app puesta.
+
+**El enlace es uno, y es el `https`.** No hay un enlace para quien tiene la app y otro para quien no; eso obliga a quien comparte a saber algo que no puede saber. Así que se declara el mismo `https://<dominio>/e/<municipio>/<evento>` en los dos sistemas —`associatedDomains` en iOS, un `intentFilter` con `autoVerify` en Android— y el sistema operativo decide. `appEventUrl`, que construía un `hoyq://`, se ha borrado: no lo usaba nadie y con esto no hace falta.
+
+**Solo se reclama `/e/`.** El panel, las tres páginas legales y el lector de carteles viven en el mismo dominio y la app no tiene ninguno de los tres: una app que reclamara el dominio entero se tragaría enlaces que no sabe enseñar. El prefijo está una vez, en `@agora/core`, y lo leen el `app.config.ts`, el generador de los ficheros y la comprobación.
+
+**Las dos plataformas no se creen a la app.** Ambas piden un fichero servido desde el dominio que nombre a la aplicación, y esa es la parte que nadie recuerda: `autoVerify` sin `assetlinks.json` no es media función, es cero función. `apps/web/scripts/write-well-known.mjs` los escribe en el build del panel, desde dos variables de entorno que pertenecen a cuentas que todavía no existen.
+
+**Y sin esas claves no escribe nada, a propósito.** Un `assetlinks.json` con una huella de relleno es peor que no tenerlo: la verificación falla contra un fichero que parece correcto, en silencio, y se tarda una tarde en encontrarlo. Así que si no hay huella no hay fichero, el enlace abre la web —que es lo correcto mientras no haya app en las tiendas— y el build lo dice por pantalla. Las dos variables se validan con su forma exacta (32 pares hexadecimales y diez caracteres) porque son las dos cosas que se copian mal.
+
+**La pantalla que recibe el enlace selecciona el municipio.** Es lo que se olvida al pensar en enlaces profundos: el enlace que corre por un pueblo suele llegarle a alguien que no ha abierto la app nunca, así que `/e/:slug/:id` resuelve el municipio por su slug, lo activa y redirige al evento. Si el municipio no está en esa versión de la app, no sale un error: sale una línea que dice que se abra en el navegador, porque el evento existe y la web sí puede enseñarlo. La pantalla redirige, así que no se queda en la pila de atrás.
+
+**La comprobación de D-059 ahora cubre esto también**, y por eso se llama `check:native` en vez de `check:permissions`: afirma que el dominio declarado es el de `EXPO_PUBLIC_SITE_URL`, que el prefijo es `/e/`, que no se reclama el sitio entero, y que no hay un dominio reclamado sin variable —que sería reclamar el dominio equivocado—. Los cuatro fallos son silenciosos en producción, que es exactamente el motivo de comprobarlos en la CI.
+
+Y `links.ts`, que era el fichero que describía el contrato entre cuatro sitios, tiene por fin tests: siete, incluido el que exige que un valor mal formado explote en vez de convertirse en un dominio que no es de nadie.
+
+---
+
+## D-061 — Un registro que se escribe y no se puede leer no es un registro
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+Quince operaciones del panel dejaban su línea en el registro de auditoría. La ruta `GET .../audit` existía. El almacén comprobaba que solo un responsable municipal puede leerlo. La política de privacidad declaraba cuánto tiempo se conserva. **Y no había ninguna pantalla**, así que nada de eso servía para nada: la promesa estaba escrita y la prueba no se podía enseñar.
+
+Esta es la clase de hueco que no aparece en ningún test y no rompe nada. Se descubre el día que la secretaría del ayuntamiento lee el encargo del tratamiento, llega a la parte de poder acreditar quién publicó algo, y pregunta.
+
+**La pantalla es una tabla, y solo eso.** Cuándo, quién y qué, de lo más reciente a lo más antiguo, para el responsable municipal. No hay filtros, no hay búsqueda y no hay paginación porque todavía no hay volumen que lo justifique; lo que sí hay es un botón de actualizar, que es lo que se pulsa cuando alguien está mirando por encima del hombro.
+
+**No hay forma de editar ni borrar una línea, y por eso tampoco hay un botón que lo ofrezca.** El almacén no tiene un método que lo permita: es de solo añadir, que es justo lo que hace que un registro valga como prueba.
+
+**Una acción que no se reconoce se imprime tal cual.** Una tabla que se salta en silencio las filas que no sabe traducir es peor que una con una clave en crudo, y más en la pantalla cuyo único trabajo es estar completa.
+
+**En la demostración el registro es de verdad, no inventado.** Lo que aparece son las acciones que hace quien está enseñando la app: aprueba una verbena en Revisión, entra en Actividad y ahí está su línea. Un registro con filas ficticias no le enseña nada a un concejal; uno que refleja lo que acaba de hacer, sí.
+
+Y para que eso funcione tuvo que guardarse **con el resto del estado de la demo**, no en memoria. Es un detalle que se ve solo al probarlo en un navegador de verdad: el test entraba en la pantalla con una recarga completa y el registro salía vacío, porque los eventos de la demo sí sobrevivían en `localStorage` y el registro no. Un registro que se vacía justo cuando navegas a él es peor que no tenerlo, porque parece que funciona.
+
+Nueve tests de navegador ahora, y el nuevo afirma la única cosa que importa aquí: que aparece una línea **porque alguien hizo algo**. Una tabla vacía que renderiza bien es indistinguible de un registro que no se está escribiendo.
+
+---
+
+## D-062 — El aviso a todo el pueblo, sin un índice nuevo y sin comerse el recordatorio
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+La tabla de notificaciones del documento de proyecto (§9.7) tiene cuatro filas y solo había tres: el recordatorio de la tarde anterior, el aviso de cambio y el inicio de un directo. Faltaba la cuarta, el **evento destacado**, que es la única que no va dirigida a quien marcó algo sino al municipio entero.
+
+**No hay un cuarto índice.** La audiencia va en `gsi3`, el mismo que va de un evento a los dispositivos interesados. Ese índice es el único sitio del sistema que mapea algo a personas, el único que la función de notificaciones puede leer, y el único que todos los demás roles se niegan explícitamente (D-032). Un índice de audiencia aparte serían **dos** sitios así, dos permisos y dos denegaciones, y la segunda que se olvide en un refactor es la que filtra. Cuesta una escritura de índice más en el arranque en que un móvil empieza a seguir un pueblo, y nada después.
+
+**Las filas antiguas se reparan al arrancar.** La condición que impide contar dos veces al mismo dispositivo también impide que su fila se reescriba nunca, así que un móvil que empezó a seguir el pueblo antes de que existiera el índice se habría quedado invisible **para siempre**. Cuando la condición falla —que es cada arranque a partir del segundo— se escriben los dos atributos si no están, sin tocar el contador. Hay un test que borra esos atributos a mano y comprueba que el siguiente arranque lo arregla, porque es un fallo que no se ve: no hay error, solo un vecino al que nunca le llega nada.
+
+**El panel sigue sin poder saber quién sigue el pueblo.** Escribe la orden en el buzón y el trabajo de notificaciones —el único con permiso sobre el índice— la reparte en menos de un minuto. La promesa no cambia: el ayuntamiento ve cuántos, nunca quiénes.
+
+**Y la regla de la que estoy más contento: una difusión no puede gastar el último aviso del día.** El tope son tres por dispositivo y por municipio, y de esos tres el recordatorio de la tarde es **el único que el vecino ha pedido**. Si una difusión pudiera gastar los tres, un ayuntamiento que destaca dos cosas por la tarde le quitaría al vecino el aviso de la verbena que había marcado él. Así que una difusión se topa en `máximo − 1`: puede gastar dos, nunca el tercero. Hay un test que manda tres difusiones, comprueba que salen dos, y que el recordatorio llega igual.
+
+**Solo un evento publicado.** Un borrador no tiene página pública que abrir al tocar la notificación, y destacar uno cancelado sería el peor mensaje que este sistema puede enviar: un pueblo entero avisado de que vaya a algo que no se celebra.
+
+**Y en el panel pregunta dos veces, y dice el número en voz alta.** Es una tarjeta aparte de los avisos, no un quinto tipo de aviso, porque llega a otra gente: «llega a los 1.240 vecinos con la aplicación, no solo a quien marcó este evento», y hay que confirmar. Lo más fácil de abusar del producto es esto, y lo que hace que las notificaciones valga la pena leerlas es que casi nunca llegan.
+
+Queda en el registro de auditoría como `event.featured`, que es la acción por la que más probablemente pregunte alguien: es la única del panel que llega a todos los móviles del municipio.
+
+---
+
+## D-063 — El alta de un ayuntamiento es una orden, no una pantalla
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+`superadmin` estaba en la tabla de roles de `CLAUDE.md` y **en nada más**: ni ruta, ni pantalla, ni comando. Lo único que existía era `migrate-seed`, que escribe los cuatro municipios de la semilla de Granada. Vender al segundo ayuntamiento era, literalmente, imposible sin escribir esto.
+
+**Es un comando, y eso es la decisión.** Se ejecutará unas veinte veces en la vida del producto, necesita credenciales que el panel no tiene, y un formulario para crear inquilinos es un formulario al que alguien acaba llegando. La tabla de roles dice que el superadmin somos nosotros; esto es a lo que se parece «nosotros».
+
+**No se exporta desde `@agora/store`.** Está en `@agora/store/onboarding`, una subruta que hay que importar a propósito y que no importa ninguna Lambda. Escribir el primer responsable de un municipio es la única operación del sistema **sin un actor que comprobar**, porque la persona que crea es la primera que podría haberla autorizado. Un método en el almacén de membresías habría sido un agujero en todas las comprobaciones de permisos del producto; una puerta aparte que solo abre una orden de consola es una puerta sin nadie detrás.
+
+**El municipio, su puntero y su responsable van en una transacción.** La mitad de eso no es un ayuntamiento: una fila sin puntero es invisible, un puntero sin fila es un enlace roto, y cualquiera de las dos sin la membresía es un calendario que nadie puede editar. Las categorías van después y a propósito: DynamoDB acepta cien elementos por transacción, y un municipio al que le falta una categoría es un desplegable con un hueco, no un ayuntamiento que no funciona. Se vuelve a ejecutar y aparecen.
+
+**Lo que más protege es el `slug` ocupado.** Un slug es por donde resuelven el enlace compartido y el QR, así que uno ya en uso pertenece a un ayuntamiento con el calendario vivo: pisarlo es el peor error disponible aquí. Se comprueba antes de escribir y se repite como condición en la transacción, porque lo primero lee y lo segundo sujeta.
+
+**Y ahí el test encontró un fallo de verdad**, que es la razón de escribirlo: la comprobación leía `municipalityId` del puntero y la fila guarda `id`, así que **todos los slugs parecían libres**. La transacción lo habría frenado igual —por eso están las dos cosas—, pero el mensaje habría sido «ese municipio ya existe» en lugar de «ese slug es de otro», que es una pista muy distinta a las once de la noche.
+
+**Lo que se prueba no es que aparezcan las filas, es que el ayuntamiento se pueda usar.** El test comprueba que el slug resuelve, que las categorías están, y que la persona nombrada puede hacer de responsable municipal **sin que nadie le conceda nada** — que es lo que convierte esto en un arranque y no en una invitación.
+
+**Un dato mal escrito se lee.** Zod nombra el campo y la regla y entierra las dos en JSON; la orden traduce eso a la opción que hay que arreglar: «`--ine`: Expected a five digit INE code». Son valores que se teclean a mano en una consola, y por eso se validan.
+
+Queda pendiente lo de siempre: esto no se ha ejecutado nunca contra una cuenta de AWS de verdad, solo contra DynamoDB Local. La parte de Cognito es la única que no puedo probar aquí.
+
+---
+
+## D-064 — Medirla, no declararla
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+La declaración de accesibilidad decía «parcialmente conforme» y nombraba tres huecos, que es lo correcto: el Real Decreto 1112/2018 pide la declaración, no la perfección. Lo que no hacía era **demostrar nada**. Hasta hoy, nada en este repositorio había comprobado un solo ratio de contraste.
+
+**Ahora axe recorre las doce pantallas y las tres páginas legales en cada cambio**, contra WCAG 2.1 nivel AA —la norma a la que apunta la ley a través de la UNE-EN 301549— y un incumplimiento tumba la CI.
+
+**Y encontró un fallo de verdad**, que es la única razón de escribir esto: el campo de fichero del lector de carteles estaba oculto visualmente y **sin nombre**. Un `input` con `sr-only` sigue leyéndose, así que quien usa un lector de pantalla se encontraba dos controles para un solo trabajo: un campo de subida sin nombre y luego el botón «Subir cartel». Ahora el campo tiene nombre y está fuera del orden de tabulación, y el control es el botón, que es lo que siempre fue.
+
+**Un fallo entre trece pantallas no es motivo para presumir.** Es lo que cabía esperar de un panel escrito con etiquetas en todos los campos y contraste comprobado a ojo, y es exactamente por eso que había que medirlo: lo que estaba bien ya estaba bien, y lo único que estaba mal era invisible.
+
+**No hay nada excluido del análisis.** El día que haya que excluir algo, la exclusión va en el propio fichero de tests con el motivo al lado y la misma línea copiada en la declaración, porque una excepción que esconde una máquina es una excepción que nadie ha declarado.
+
+**El test de contraste se ha verificado rompiéndolo**: bajar un texto gris a `neutral-300` hace que falle con `color-contrast (serious)`. Un test de accesibilidad que nunca ha fallado es un sello de goma.
+
+**Y hay un test que a mí me parece el más útil de los catorce**: que algo coja el foco al primer tabulador. Si no lo coge nada, el panel entero está cerrado para quien no puede usar el ratón, y ninguna comprobación de contraste lo habría dicho nunca.
+
+**La declaración ahora distingue las dos mitades**, que es la parte honesta: dice que la autoevaluación es automática y continua para lo que una máquina puede comprobar —contraste, encabezados, nombres, atributos—, y dice explícitamente que **no** cubre que lo que lee un lector de pantalla se entienda, que el orden de tabulación tenga sentido, ni la app del vecino con VoiceOver y TalkBack. Eso sigue debiéndose, y ahora está escrito como lo que se debe en vez de quedar tapado por una herramienta en verde.
+
+---
+
+## D-065 — La app del vecino, por fin en un navegador
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+388 tests y ninguno tocaba una pantalla de la aplicación que usa el vecino. Todo lo de debajo estaba probado —la lógica del calendario, los clientes de la API, los manejadores— y las pantallas se comprobaban abriéndolas a mano, que es exactamente cómo el panel acumuló dos fallos que un navegador encontró en un minuto.
+
+**Expo exporta esta app para web**, así que el mismo código de React Native que va en el APK se renderiza aquí. El trato es claro: no es un teléfono, así que no dice nada de VoiceOver, ni del diálogo de permiso de notificaciones, ni de cómo va el mapa en un Android de hace cuatro años. Lo que sí dice es si una pantalla se pinta, si un vecino puede marcar un evento y volver a encontrarlo, y si el enlace compartido aterriza en algún sitio — que es la clase de fallo que deja a un concejal mirando un spinner.
+
+**Se prueba contra el export de verdad, no contra un servidor de desarrollo.** Un `expo export` es lo que se serviría, y construirlo es además cómo se caza una ruta que no se puede exportar.
+
+**Y la red está cortada.** Nada fuera de la aplicación es alcanzable durante los tests, que es la condición para la que se diseñó: una calle llena de gente en una procesión. El calendario va dentro del paquete, así que todo lo que lee un vecino tiene que seguir ahí, y el mapa —cuyas teselas vienen de un CDN de terceros— tiene que fallar sin llevarse la pantalla por delante.
+
+Cuatro cosas aprendidas escribiéndolo, y las cuatro están en el fichero:
+
+**Los selectores son roles, no texto ni clases.** El diseño pone los encabezados en mayúsculas y flota la barra de pestañas sobre el contenido; un test que dependiera de cualquiera de las dos cosas se rompería en el siguiente cambio visual sin que nada estuviera mal. Y «Gratis» es a la vez un filtro y una etiqueta impresa en cada evento gratuito: buscar las palabras encuentra el filtro y un cartel.
+
+**No se cuentan tarjetas.** La lista se renderiza a medida que se desplaza, así que cuántas hay depende de cuándo mires. Lo que se afirma es que después de cada filtro sigue habiendo calendario.
+
+**Toda espera es una afirmación positiva sobre lo que debe estar en pantalla.** Escribí primero un ayudante que comprobaba que no hubiera un «Cargando…», y es inútil: `goto` vuelve antes de que la app hidrate, y una página en blanco tampoco tiene spinner. Ese ayudante pasaba con una aplicación que no había arrancado, que es justo el fallo que pretendía cazar. No queda ninguno en el fichero.
+
+**Y el idioma es el del dispositivo.** Un navegador sin cabeza pide `en-US`, así que la primera versión probó cada pantalla en inglés —la app le hace caso, correctamente— con lo que casi ningún usuario ve. Ahora se fija `es-ES`, y hay un test aparte con un dispositivo en inglés, que es lo único que demuestra que el segundo idioma está conectado al teléfono y no solo escrito.
+
+El test de «Me interesa» se ha verificado rompiendo la persistencia: si el marcado no se guarda en el teléfono, falla. Y eso importa más de lo que parece, porque un marcado que no sobrevive a cerrar la aplicación es un recordatorio que nunca llega.
+
+---
+
+## D-066 — Desplegar sin que exista ninguna clave
+
+**Fecha:** 2026-09-20 · **Estado:** aceptada
+
+Hasta aquí desplegar significaba que alguien tuviera unas credenciales de AWS en su portátil. Funciona, y es lo que hay que hacer la primera vez, pero no escala a dos socios y no es lo que se le cuenta a la secretaría de un ayuntamiento cuando pregunta quién tiene las llaves de la infraestructura.
+
+**AWS confía en GitHub como proveedor de identidad.** El workflow pide un testigo a GitHub, STS lo cambia por credenciales que duran el trabajo, y **no hay nada guardado**: ninguna clave en un secreto del repositorio, ninguna en un portátil, ninguna en un contenedor. La respuesta a «quién tiene las llaves» pasa a ser «nadie, se emiten para cada despliegue y caducan en una hora», que es una respuesta mucho mejor.
+
+**La confianza nombra el repositorio y la rama.** Sin la rama, cualquiera que pueda abrir una pull request desde un fork podría ejecutar un workflow que asume el rol. Eso es toda la vulnerabilidad y está a una línea de distancia, así que la condición es `repo:<owner>/<nombre>:ref:refs/heads/main` y la rama es una variable con la rama principal por defecto.
+
+**Cuatro valores en el repositorio, y ninguno es un secreto**: el ARN del rol, el número de cuenta, el bucket del estado y la tabla de bloqueo. Van en *Variables* y no en *Secrets* a propósito: verlos en el log de un workflow que ha fallado ayuda, y ninguno abre nada por sí solo.
+
+**La CI ejecuta `infra/deploy.sh`, el mismo script que ejecutas tú.** Dos formas de desplegar significan que una de las dos está mal y nadie sabe cuál. Para eso el script aprendió dos cosas: `DEPLOY_YES` para no preguntar —lo que sustituye a la pregunta es un revisor del entorno `prod` de GitHub, que es la misma pregunta hecha antes y por escrito— y `TF_BACKEND_BUCKET`, porque Terraform no acepta variables en un bloque `backend` y la CI no tiene un fichero que editar ni por qué commitearlo.
+
+**Y el límite, dicho en voz alta, porque una política que se vende mejor de lo que es resulta peor que una amplia:** este rol es **transitivamente administrador de la cuenta**. Tiene que crear los roles de IAM de las Lambdas y cedérselos (`iam:PassRole`), y cualquier cosa que pueda escribir la política de un rol y engancharla a una función que también escribe llega a todo. Ninguna condición de IAM cierra eso, porque no existe una clave de condición que inspeccione una política en línea.
+
+Así que la lista honesta de lo que protege esta cuenta es corta y **nada de ella está en el `Allow`**: solo una rama de un repositorio puede asumir el rol, las credenciales duran una hora, cada cambio llega por un commit revisado, y CloudTrail guarda el nombre de sesión de la ejecución que lo hizo.
+
+Lo que sí está en el `Deny`, que es donde hay que mirar al revisarlo: no puede crear usuarios ni claves de acceso —la única forma de convertir una credencial de una hora en una permanente—, no puede tocar el proveedor OIDC, **no puede editarse a sí mismo** (y eso hace trabajo de verdad: el `Allow` sobre `role/agora-*` incluye su propio rol), no puede enganchar `AdministratorAccess` ni sus primas, no puede borrar el bucket del estado, y no toca la organización, la facturación ni CloudTrail.
+
+**Cerrarlo de verdad es un límite de permisos**: denegar `iam:CreateRole` salvo que el rol nuevo lleve una frontera que definamos nosotros. Eso obliga a poner la frontera en todos los roles de Lambda del stack, y una frontera un poco demasiado estrecha rompe una función **en ejecución**, no al aplicar. En un sistema que todavía no tiene ni un test contra AWS de verdad, eso es un cambio que hay que hacer a propósito y no de pasada. Queda escrito, no hecho.
+
+**Verificado renderizando la política, no solo validándola.** `allowed_account_ids` obliga a una llamada a STS, así que un `plan` necesita credenciales de verdad; para leer el JSON exacto que va a recibir AWS hice el plan en una copia con los ARN puestos a mano. Las nueve sentencias salen como se pretendía y la condición `iam:PolicyARN` está donde debe. Lo que no se ha ejecutado nunca, y hay que decirlo, es un `apply` en una cuenta real.
+
+La guía de todo esto, paso a paso y para una persona, está en [`docs/primer-despliegue.md`](primer-despliegue.md).

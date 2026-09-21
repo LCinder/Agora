@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // This package runs in Lambda and in the test harness, so it is the one
+    // that needs the Node built-ins: child_process to start DynamoDB Local,
+    // fetch to wait for it.
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"]
+}
