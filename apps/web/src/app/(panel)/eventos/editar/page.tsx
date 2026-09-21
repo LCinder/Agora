@@ -279,7 +279,7 @@ function NoticeComposer({
   interested: number;
   onSend: (type: EventNotice['type'], message: string) => void;
 }) {
-  const { municipality } = usePanel();
+  const { demo, municipality } = usePanel();
   const [type, setType] = useState<EventNotice['type']>('time_change');
   const [message, setMessage] = useState('');
   const [sent, setSent] = useState(false);
@@ -333,9 +333,19 @@ function NoticeComposer({
           ) : null}
         </div>
 
-        <p className="text-xs text-neutral-500">
-          En la demo el envío es simulado: no se manda ninguna notificación real.
-        </p>
+        {/* Only in the demo. Against the real backend this notice reaches the
+            outbox and the job delivers it within the minute, and telling a
+            municipal technician that their cancellation was pretend is worse
+            than saying nothing. */}
+        {demo ? (
+          <p className="text-xs text-neutral-500">
+            En la demo el envío es simulado: no se manda ninguna notificación real.
+          </p>
+        ) : (
+          <p className="text-xs text-neutral-500">
+            Sale en menos de un minuto, solo a quien marcó «Me interesa» en este evento.
+          </p>
+        )}
       </div>
     </Card>
   );
