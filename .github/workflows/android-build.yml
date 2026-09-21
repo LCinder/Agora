@@ -12,6 +12,11 @@ on:
         type: choice
         options: [preview, development]
         default: preview
+      backend:
+        description: 'api habla con el backend real; demo lleva la semilla dentro y funciona sin red'
+        type: choice
+        options: [api, demo]
+        default: api
       architectures:
         description: 'Arquitecturas de Android incluidas en el APK'
         type: choice
@@ -41,6 +46,20 @@ jobs:
       # workflow_dispatch fills these in; a push falls back to the defaults.
       PROFILE: ${{ inputs.profile || 'preview' }}
       REACT_NATIVE_ARCHITECTURES: ${{ inputs.architectures || 'arm64-v8a' }}
+      BACKEND: ${{ inputs.backend || 'api' }}
+
+      # Baked into the bundle at build time, which is what EXPO_PUBLIC_ means.
+      #
+      # With EXPO_PUBLIC_API_BASE_URL set the app talks to the real backend;
+      # empty, it falls back to the seed files under content/ and runs with no
+      # network at all. That fallback is the demo: a phone on a table in front
+      # of a councillor, in a meeting room with bad wifi.
+      #
+      # A push build is `backend: demo`. Everything else, including every merge
+      # into main, gets the API — so what is on the phone is what is in the
+      # database, and there is no wondering which one you are looking at.
+      EXPO_PUBLIC_API_BASE_URL: ${{ (inputs.backend || 'api') == 'demo' && '' || vars.API_BASE_URL }}
+      EXPO_PUBLIC_SITE_URL: ${{ vars.SITE_URL }}
 
     steps:
       - uses: actions/checkout@v4
@@ -67,6 +86,19 @@ jobs:
       #
       # The image already ships the SDK with its licences accepted, which is all
       # a prebuild and a gradle assemble need. One fewer action to break.
+      - name: Say which backend this APK will talk to
+        run: |
+          set -euo pipefail
+          if [ -n "${EXPO_PUBLIC_API_BASE_URL:-}" ]; then
+            echo "Backend: $EXPO_PUBLIC_API_BASE_URL"
+          elif [ "$BACKEND" = 'demo' ]; then
+            echo 'Backend: none. This APK carries the seed and works offline.'
+          else
+            echo 'API_BASE_URL is not set as a repository variable, and this is not a demo build.'
+            echo 'Set it, or run this workflow with backend: demo.'
+            exit 1
+          fi
+
       - name: Check the SDK is there and its licences are accepted
         run: |
           set -euo pipefail
@@ -166,6 +198,11 @@ jobs:
             echo "| --- | --- |"
             echo "| Fichero | \`${{ steps.apk.outputs.name }}\` |"
             echo "| Perfil | \`$PROFILE\` |"
+            if [ -n "${EXPO_PUBLIC_API_BASE_URL:-}" ]; then
+              echo "| Datos | API real — \`$EXPO_PUBLIC_API_BASE_URL\` |"
+            else
+              echo "| Datos | Semilla incluida, funciona sin red |"
+            fi
             echo "| Versión | ${{ steps.apk.outputs.version }} |"
             echo "| Arquitecturas | \`$REACT_NATIVE_ARCHITECTURES\` |"
             echo "| Tamaño | ${{ steps.apk.outputs.size }} |"
