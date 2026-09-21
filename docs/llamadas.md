@@ -88,13 +88,28 @@ tarde, con tiempo, y ofréceles una videollamada.
 
 ### A la centralita
 
-> «Buenos días, ¿me pasa con el área de Cultura y Festejos, por favor?»
+> «Buenos días. ¿Me pasa con el técnico de Cultura, por favor?»
 
-No preguntes por «el de informática» ni por «quien lleve las apps». Ahí el producto se convierte en
-un expediente y no sale nunca.
+Punto. Y hay tres cosas en esa frase de nueve palabras:
 
-Si preguntan de qué se trata: _«Es sobre la agenda de eventos del municipio, tengo que comentarle una
-cosa al técnico.»_ Corto. No vendas a la centralita.
+**Pides que te pasen, no un número.** Dar un directo es algo que quien coge la centralita no sabe si
+puede hacer, y ante la duda dice que no. Pasar una llamada es literalmente su trabajo y lo hace sin
+pensarlo.
+
+**No dices «propuesta».** En un ayuntamiento esa palabra significa «comercial», y filtrar comerciales
+es para lo que está esa persona. Es la palabra que dispara el «mándeme un correo» antes de que
+termines de hablar.
+
+**No explicas nada más.** Quien tiene que explicarse no pertenece. Si preguntan de qué se trata:
+_«Es por la agenda de eventos del municipio.»_ Corto y sobre su asunto, no sobre el tuyo. Si insisten
+con de qué empresa: _«Soy María, somos de Granada. Es un tema de la agenda de eventos, ¿me lo pasa un
+momento?»_ — la verdad, sin regalar la palabra comercial.
+
+Y pregunta por el **técnico**, no por el concejal: coge el teléfono, tiene tiempo, y es su opinión la
+que decide. Al concejal es más difícil llegar y de todas formas te va a derivar al técnico.
+
+No preguntes nunca por «el de informática» ni por «quien lleve las apps». Ahí el producto se
+convierte en un expediente y no sale nunca.
 
 ### A la persona: veinte segundos y te callas
 
@@ -116,13 +131,62 @@ Y **te callas**. El silencio lo tiene que romper la otra persona.
 
 ### El cierre
 
-- **Si dice que sí:** cierra día y hora **en esa misma frase**, y pide el correo directo para mandar
-  la confirmación. «La semana que viene os llamo» no es una reunión.
-- **Si dice «mándame un correo»:** acéptalo sin pelear, pero no cuelgues sin dos cosas — su correo
-  (no el del registro) y una fecha: _«Te lo mando en cinco minutos. ¿Te llamo el lunes para ver qué
-  te ha parecido?»_
+- **Si dice que sí:** cierra día y hora **en esa misma frase**. «La semana que viene os llamo» no es
+  una reunión.
 - **Si dice que no es su área:** pregunta el nombre y la extensión de quien sí lo lleva. Un nombre
   vale la llamada entera.
+- **Si dice «mándame un correo»:** ver la sección siguiente, que es la que importa.
+
+---
+
+## 3.b «Mándame un correo» no es un paso, es un no educado
+
+Esto está escrito porque ya pasó con Talaria: mandas el correo, y no lo lee nadie, y no contesta
+nadie. No es mala fe. El correo de un ayuntamiento recibe cuarenta cosas al día y la tuya no lleva
+número de expediente.
+
+**La regla: no cuelgues nunca teniendo solo un correo.** Si sales de la llamada con eso y nada más, la
+llamada se ha perdido. Hay cuatro cosas que lo convierten en algo, y las cuatro se dicen sin colgar.
+
+**1. Acepta al instante, y engánchale una fecha en la misma frase.** No pelees nunca con quien te está
+diciendo que no; lo que haces es añadir algo:
+
+> «Perfecto, se lo mando ahora mismo. ¿Le va bien que le llame el jueves a media mañana y me dice qué
+> le ha parecido?»
+
+Ese segundo «sí» es todo. A partir de ahí tu correo tiene una cita, y una cita se lee la víspera.
+
+**2. Su dirección, no la del registro.** Pregúntalo así: _«¿Me la da directamente, o se lo mando al
+registro general?»_ La segunda opción suena tan a agujero negro que casi todo el mundo te da la suya.
+
+**3. Su nombre.** Sin nombre no hay seguimiento: volver a llamar diciendo «el jueves hablé con usted,
+¿verdad?» es empezar de cero.
+
+**4. Llama el jueves.** De verdad. Casi nadie que dice «te llamo» llama, y ese es justo el hueco por
+el que te cuelas.
+
+### Dos caminos que se saltan el correo entero
+
+**Preséntate allí.** Gójar, Cájar, Ogíjares y La Zubia están a quince minutos de Granada. Un técnico
+que no contesta correos te dedica diez minutos si estás en el mostrador con el móvil en la mano. Y no
+es colarse: _«Paso por allí el miércoles por la mañana, ¿está él?»_ es una pregunta normal por
+teléfono y muchísimo más fácil de contestar que sí a una reunión. Es lo que no se probó con Talaria.
+
+**El móvil publicado, en Ogíjares y Cájar.** Están en su web, son móviles de trabajo y un WhatsApp a
+las once de la mañana se lee. Dos líneas y una pregunta, no un tocho. En Ogíjares ese móvil es el del
+alcalde, que además lleva Cultura.
+
+### El correo, cuando toque mandarlo
+
+Porque alguno habrá que mandar. Que no sea un dossier:
+
+- **El nombre del pueblo en el asunto.** «Agenda de eventos de Gójar — lo que hablamos por teléfono».
+  Sin el pueblo dentro, es publicidad.
+- **Cinco líneas.** Quién eres, las dos cosas que hacéis distinto, y **una sola pregunta cerrada**:
+  _«¿le viene bien el martes 29 a las 10:00?»_. Eso se contesta en cuatro segundos; «¿qué le parece?»
+  no se contesta nunca.
+- **En los cinco minutos siguientes**, mientras se acuerda de tu voz.
+- Sin adjuntos pesados y sin PDF de doce páginas.
 
 ---
 
