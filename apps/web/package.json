@@ -6,7 +6,7 @@
     "dev": "next dev",
     "well-known": "node scripts/write-well-known.mjs",
     "build": "pnpm run well-known && next build",
-    "build:static": "pnpm run well-known && PANEL_STATIC_EXPORT=1 next build",
+    "build:static": "pnpm run well-known && node scripts/build-static.mjs",
     "test:e2e": "playwright test",
     "start": "next start",
     "lint": "eslint .",
