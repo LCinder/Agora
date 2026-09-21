@@ -1,0 +1,223 @@
+# Llamadas a ayuntamientos
+
+Guion y orden para una mañana de llamadas. Complementa a
+[`fase-1-validacion.md`](fase-1-validacion.md), que dice a quién ver y cuándo, y a
+[`demo.md`](demo.md), que dice qué enseñar una vez estás dentro.
+
+Los datos de contacto están en [`municipios-granada.csv`](municipios-granada.csv), que es la fuente
+de verdad. Los teléfonos que aparecen aquí abajo son una copia para no tener que cambiar de ventana
+mientras marcas.
+
+> **El objetivo de la llamada no es vender. Es conseguir veinte minutos.** Si empiezas a explicar
+> funcionalidades por teléfono, la reunión ya no hace falta y no la vas a conseguir.
+
+---
+
+## 1. Cuándo
+
+**Martes, miércoles o jueves, de 9:30 a 11:30.** El lunes están despachando lo del fin de semana y
+el viernes el ayuntamiento se vacía a mediodía. Antes de las 9:00 no ha llegado el técnico; a partir
+de las 13:30 no coges a nadie.
+
+**Dos ganchos que solo sirven este otoño**, y los dos son verdad:
+
+- **«Os llamo ahora porque en otoño se preparan los presupuestos del año que viene.»** Una
+  conversación en octubre entra en una partida; la misma en marzo entra en una lista de deseos.
+- **La cabalgata de Reyes está a tres meses.** Es el mejor escaparate que tiene el producto y tiene
+  fecha en su calendario, no en el tuyo: _«si esto se cierra en octubre, la cabalgata la sigue el
+  pueblo desde el móvil»_. Es mucho más concreto que cualquier argumento de producto, y es la
+  respuesta a «¿y esto para qué lo quiero yo?».
+
+---
+
+## 2. A quién llamar, y en este orden
+
+No hagas más de ocho llamadas. A partir de ahí la voz se cansa, y de todas formas las tres primeras
+te van a cambiar el guion.
+
+### 9:30 — Calentamiento: dos que no te importa perder
+
+Tu primera llamada del día va a ser la peor que hagas. Que sea a un sitio pequeño.
+
+| Municipio | Hab. | Teléfono | Qué es ese número |
+| --- | ---: | --- | --- |
+| **Gójar** | 6.371 | 958 50 91 52 | **Directo del técnico de Cultura y Deporte** |
+| **Cájar** | 5.511 | 623 25 88 31 | **Móvil del concejal de Cultura** |
+
+Los dos son casos raros y buenos: se salta la centralita y hablas directamente con quien decide o
+con quien lo usaría.
+
+### 10:00 — Las que importan, con el guion ya caliente
+
+| Municipio | Hab. | Teléfono | Por qué esta |
+| --- | ---: | --- | --- |
+| **La Zubia** | 20.389 | 958 59 01 11 | La demo está cargada con su programación y ya era la puerta de entrada que se contemplaba desde Talaria. Es la única donde puedes decir «ya lo tengo montado con vuestros datos» |
+| **Ogíjares** | 15.239 | 676 33 80 09 | **Cultura la lleva el propio alcalde**, y su móvil está publicado. Menos capas que en ningún otro sitio |
+| **Huétor Vega** | 12.285 | 958 30 05 11 | El concejal de Cultura lleva también **Smart City e Innovación**: es el perfil que entiende esto en una frase. Ojo, ver la nota de abajo |
+| **Churriana de la Vega** | 16.878 | 958 55 08 74 | Cinturón, tamaño justo, y Festejos va con Juventud y Turismo, que es quien más partido le saca al directo |
+
+### 11:00 — Las grandes del cinturón, que son el ticket alto
+
+| Municipio | Hab. | Teléfono | Qué es ese número |
+| --- | ---: | --- | --- |
+| **Armilla** | 25.300 | 958 57 80 37 | **Directo de la Concejalía de Cultura** |
+| **Atarfe** | 20.914 | 958 43 60 11 | Centralita. Cultura la lleva la primera teniente de alcalde |
+| **Las Gabias** | 23.584 | 958 58 02 61 | Centralita |
+| **Maracena** | 22.294 | 958 42 13 95 | **Casa de la Cultura**, que es donde está el técnico |
+
+Más presupuesto y más vida asociativa, pero también más capas antes de llegar a quien firma. Por eso
+van cuando ya llevas cuatro llamadas de rodaje.
+
+### 11:30 — Una llamada que no es una venta
+
+**Diputación de Granada — 958 24 75 00**, área de Cultura o la de asistencia a municipios. Puede
+contratar para decenas de municipios a la vez y el ciclo es de seis meses, así que se abre hoy y no
+cuando haga falta. **No pidas nada:** pregunta quién lleva los servicios digitales que se ofrecen a
+los municipios, y apunta el nombre.
+
+### Lo que dejaría para otro día
+
+**Baza y Guadix (el Cascamorras)** son el mejor caso del mundo para el seguimiento en directo —una
+carrera por las calles con medio pueblo detrás— pero están a hora y media. No puedes rematar la
+llamada con «me paso el jueves», que es lo que convierte una llamada en una reunión. Llámalos una
+tarde, con tiempo, y ofréceles una videollamada.
+
+---
+
+## 3. Qué decir
+
+### A la centralita
+
+> «Buenos días, ¿me pasa con el área de Cultura y Festejos, por favor?»
+
+No preguntes por «el de informática» ni por «quien lleve las apps». Ahí el producto se convierte en
+un expediente y no sale nunca.
+
+Si preguntan de qué se trata: _«Es sobre la agenda de eventos del municipio, tengo que comentarle una
+cosa al técnico.»_ Corto. No vendas a la centralita.
+
+### A la persona: veinte segundos y te callas
+
+> «Buenos días, soy María, desarrolladora, y soy de aquí, de Granada.
+>
+> Os llamo porque estamos trabajando con ayuntamientos de la provincia en la agenda de eventos del
+> municipio. El problema que nos cuentan siempre es el mismo: lo que pasa en el pueblo está repartido
+> entre la web, el Facebook, los carteles y los grupos de WhatsApp, y quien lo publica lo publica
+> tres veces.
+>
+> Lo que hacemos distinto son dos cosas: que **las hermandades y las peñas suban sus propios eventos
+> y vosotros solo aprobéis**, y que en una procesión o en la cabalgata **el vecino vea por dónde va,
+> en directo, desde el móvil**.
+>
+> ¿Tenéis veinte minutos la semana que viene para que os lo enseñe? Es una demo en el móvil, no una
+> presentación.»
+
+Y **te callas**. El silencio lo tiene que romper la otra persona.
+
+### El cierre
+
+- **Si dice que sí:** cierra día y hora **en esa misma frase**, y pide el correo directo para mandar
+  la confirmación. «La semana que viene os llamo» no es una reunión.
+- **Si dice «mándame un correo»:** acéptalo sin pelear, pero no cuelgues sin dos cosas — su correo
+  (no el del registro) y una fecha: _«Te lo mando en cinco minutos. ¿Te llamo el lunes para ver qué
+  te ha parecido?»_
+- **Si dice que no es su área:** pregunta el nombre y la extensión de quien sí lo lleva. Un nombre
+  vale la llamada entera.
+
+---
+
+## 4. Las dos preguntas
+
+Si la conversación da para más de un minuto, estas dos, y escuchas:
+
+1. **«¿Quién mete hoy los eventos y cuánto tiempo le lleva?»**
+2. **«¿Os serviría que las asociaciones subieran los suyos?»**
+
+La primera te da el argumento en su propio número: si dicen doce minutos por evento, multiplícalo por
+los eventos de su programa de fiestas y **el ahorro lo ha calculado él**. La segunda te dice en
+treinta segundos si la funcionalidad diferenciadora vale algo en ese pueblo.
+
+Las cinco preguntas largas de `fase-1-validacion.md` son para la reunión, no para el teléfono.
+
+---
+
+## 5. Lo que va a salir, y qué contestar
+
+**«¿Esto no es lo de Bandomovil?»**
+
+> «Ellos son un canal del ayuntamiento hacia el vecino, y para eso funcionan bien. Esto es la agenda
+> viva del pueblo, donde también publican las hermandades, y donde vosotros veis qué eventos
+> interesan. Y el directo no lo tiene nadie.»
+
+**«Es que nosotros ya tenemos una app.»**
+
+> «Lo sé, la he mirado. ¿Quién mete ahí la agenda hoy?» — y escuchas. Casi siempre la respuesta es
+> que la agenda está vacía o desactualizada, y ahí está la conversación entera.
+
+**«¿Y los bandos?»**
+
+> «Los avisos van ligados a un evento, que es lo que la gente quiere recibir. Si os hace falta un
+> canal general, se puede añadir.»
+
+No la esquives: es la pregunta más probable de todas.
+
+**«¿Cuánto cuesta?»**
+
+> La horquilla —entre 900 y 2.200 al año según el tamaño— y **acto seguido la pregunta que de verdad
+> importa: «¿de qué partida saldría?»**. Un «nos encanta» sin partida no vale nada. Y remata con lo
+> que desbloquea la conversación: **está por debajo del contrato menor, o sea que lo podéis firmar
+> vosotros sin licitación.**
+
+**«¿Y la protección de datos?»**
+
+> «El vecino no se registra. No pedimos nombre, ni correo, ni teléfono, ni ubicación. Los datos están
+> en la Unión Europea y os llevamos firmado el contrato de encargado del tratamiento.»
+
+---
+
+## 6. Lo que no debes decir
+
+- **No digas «una app»** como titular. Todos han pagado alguna que se descargaron ochenta personas, y
+  la palabra está quemada. Di «que vuestra programación llegue a vuestros vecinos».
+- **No vendas por teléfono.** Veinte minutos, nada más.
+- **No prometas la app con el escudo del ayuntamiento** aunque la pidan. «Se puede, y lo hablamos
+  cuando el calendario esté funcionando.»
+- **No digas que los datos de la demo son su programación real.** Son de ejemplo y hay que decirlo.
+- **No prometas una descarga.** La app **no está en Google Play todavía**: lo que puedes mandar es un
+  APK o enseñarla tú en el móvil.
+
+---
+
+## 7. Antes de las 9:00
+
+- [ ] **El correo de una página escrito ya**, para mandarlo en treinta segundos mientras sigues
+      hablando. Te lo van a pedir en la primera llamada.
+- [ ] **El móvil con la app instalada** y el panel abierto en el portátil. Los dos funcionan contra
+      la API de verdad.
+- [ ] **El CSV abierto** en una hoja de cálculo, con una columna más para el resultado.
+- [ ] Llama **desde un número que se vea**. Un número oculto no lo coge nadie en un ayuntamiento.
+
+Y después de cada llamada, antes de la siguiente, **anota el resultado con una de estas cuatro
+palabras** (de `fase-1-validacion.md`, sección 6): `Interesado con partida`, `Interesado sin partida`,
+`No` (con el motivo, que vale más que el no) o `Sin respuesta`. Si el seguimiento cuesta trabajo, se
+abandona a la tercera llamada.
+
+---
+
+## 8. Notas sueltas que valen dinero
+
+**Huétor Vega ya tiene app propia**, publicada por el propio ayuntamiento y en las dos tiendas desde
+hace más de una década: noticias, agenda, callejero, listín de teléfonos y horarios de autobús. No es
+un obstáculo, es el argumento — pagaron por una app hace diez años y lo que hay que preguntar es
+quién mantiene hoy esa agenda. Si la respuesta es «nadie», la venta es sustituirla por algo que se
+rellena solo porque lo rellenan las asociaciones.
+
+**Ogíjares tiene Cultura en manos del alcalde.** Es la estructura más corta que te vas a encontrar:
+quien coge el teléfono es quien firma.
+
+**Gójar publica el directo del técnico de Cultura y Deporte.** Es exactamente la persona que dice el
+documento de proyecto que hay que convencer: si él dice que le ahorra trabajo, la venta está medio
+hecha; si dice que le da trabajo, está muerta.
+
+**Cájar y Ogíjares publican los móviles de sus concejales.** Úsalos en horario de oficina y no a las
+nueve de la noche: es un móvil de trabajo, pero lo lleva una persona.

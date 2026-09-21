@@ -13,6 +13,9 @@ cambia la app, el panel, el APK y los correos del panel a la vez. Ver
 - Decisiones técnicas y su motivo: [`docs/decisiones.md`](docs/decisiones.md)
 - Módulos contratables por municipio: [`docs/modulos-por-municipio.md`](docs/modulos-por-municipio.md)
 - **Guion de la demostración: [`docs/demo.md`](docs/demo.md)**
+- **Llamar a un ayuntamiento: [`docs/llamadas.md`](docs/llamadas.md)**, con los contactos en [`docs/municipios-granada.csv`](docs/municipios-granada.csv)
+- Argumentos y cosas que venden: [`docs/ideas-de-venta.md`](docs/ideas-de-venta.md)
+- A quién ver y cuándo: [`docs/fase-1-validacion.md`](docs/fase-1-validacion.md)
 - Arquitectura en AWS de la Fase 2: [`docs/fase-2-aws.md`](docs/fase-2-aws.md)
 - Textos legales y contrato de encargo: [`docs/legal/`](docs/legal/) (las tres páginas se sirven en `/legal/…`)
 - **Primer despliegue, paso a paso: [`docs/primer-despliegue.md`](docs/primer-despliegue.md)**
