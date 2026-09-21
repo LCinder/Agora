@@ -1,41 +1,41 @@
-municipio,habitantes,grupo,concejal_cultura,concejal_fiestas,tecnico_cultura,telefono,que_es_ese_telefono,email,web,verificado,fuente
-La Zubia,20389,A,Pablo Manuel Melgarejo Cordón,Natalia Arregui Barragán,,958 59 01 11,Centralita,,lazubia.es,2026-09-21,https://lazubia.es/gobierno-ayuntamiento-de-la-zubia/
-Armilla,25300,A,Pablo Arturo Cano Cobo,,,958 57 80 37,Directo de la Concejalía de Cultura,pablo.cano@armilla.es,armilla.es,2026-09-21,https://armilla.es/el-ayuntamiento/concejalias/concejalia-de-cultura/
-Las Gabias,23584,A,Cristina María Moreno Ayuso,Sebastián Pertíñez Reyes,,958 58 02 61,Centralita,,lasgabias.es,2026-09-21,https://www.lasgabias.es/lasgabias/equipo-de-gobierno/
-Maracena,22294,A,Antonio Segovia Ganivet,Amabel Adarve Anguita (Eventos),,958 42 13 95,Casa de la Cultura,,maracena.es,2026-09-21,https://maracena.es/equipo-de-gobierno/
-Atarfe,20914,A,Jennifer García Moreno,Víctor Almohano González,,958 43 60 11,Centralita,,atarfe.es,2026-09-21,https://www.atarfe.es/equipo-de-gobierno-3
-Churriana de la Vega,16878,A,Mª Esther López Lara,Sara Mª Sánchez Morente,,958 55 08 74,Centralita,info@churrianadelavega.org,ayuntamientochurrianadelavega.org,2026-09-21,https://ayuntamientochurrianadelavega.org/concejalias/
-Ogíjares,15239,A,Estefano Polo Segura (es el alcalde),Ana María Segura Ruíz,,676 33 80 09,Móvil directo del concejal de Cultura,estefanopolo@ogijares.org,ogijares.es,2026-09-21,https://ogijares.es/ayuntamiento/equipo-de-gobierno
-Huétor Vega,12285,A,Ángel Luis Moreno del Paso,Carolina Higueras Moyano,,958 30 05 11,Centralita,,huetorvega.org,2026-09-21,https://huetorvega.org/corporacion/
-Gójar,6371,A,Rubén Melgarejo Fernández,María Isabel Yáñez Martín,,958 50 91 52,Directo del técnico de Cultura y Deporte,info@gojar.es,gojar.es,2026-09-21,https://gojar.es/cultura/
-Alfacar,5834,A,,,,958 54 30 02,Centralita,,ayuntamientodealfacar.es,2026-09-21,https://ayuntamientodealfacar.es/
-Cájar,5511,A,Juan Antonio Carrillo Jiménez,,,623 25 88 31,Móvil directo del concejal de Cultura,j.carrillo@cajar.es,cajar.es,2026-09-21,https://cajar.es/corporacion-municipal-2/
-Albolote,19768,A,,,,,,,,,
-Vegas del Genil,12424,A,,,,,,,,,
-Peligros,11725,A,,,,,,,,,
-Alhendín,10475,A,,,,,,,,,
-Monachil,8664,A,,,,,,,,,
-Cenes de la Vega,8254,A,,,,,,,,,
-Cúllar Vega,7947,A,,,,,,,,,
-Villa de Otura,7696,A,,,,,,,,,
-Pulianas,5659,A,,,,,,,,,
-Motril,59862,B,,,,,,,,,
-Almuñécar,27544,B,,,,,,,,,
-Loja,20951,B,,,,,,,,,
-Baza,20587,B,,,,,,,,,
-Guadix,18881,B,,,,,,,,,
-Santa Fe,15494,B,,,,,,,,,
-Salobreña,12760,B,,,,,,,,,
-Huétor Tájar,10749,B,,,,,,,,,
-Íllora,9923,B,,,,,,,,,
-Pinos Puente,9807,B,,,,,,,,,
-Padul,9667,B,,,,,,,,,
-Albuñol,7388,B,,,,,,,,,
-Huéscar,7241,B,,,,,,,,,
-Dúrcal,7234,B,,,,,,,,,
-Chauchina,5817,B,,,,,,,,,
-Órgiva,5728,B,,,,,,,,,
-Alhama de Granada,5544,B,,,,,,,,,
-Gualchos,5284,B,,,,,,,,,
-Montefrío,5283,B,,,,,,,,,
-Diputación de Granada,,Diputación,,,,958 24 75 00,Centralita,dipgra@dipgra.es,dipgra.es,2026-09-21,https://www.dipgra.es/servicios/areas/cultura/
+municipio;habitantes;grupo;concejal_cultura;concejal_fiestas;tecnico_cultura;telefono;que_es_ese_telefono;email;web;verificado;fuente
+La Zubia;20389;A;Pablo Manuel Melgarejo Cordón;Natalia Arregui Barragán;;958 59 01 11;Centralita;;lazubia.es;21/09/2026;https://lazubia.es/gobierno-ayuntamiento-de-la-zubia/
+Armilla;25300;A;Pablo Arturo Cano Cobo;;;958 57 80 37;Directo de la Concejalía de Cultura;pablo.cano@armilla.es;armilla.es;21/09/2026;https://armilla.es/el-ayuntamiento/concejalias/concejalia-de-cultura/
+Las Gabias;23584;A;Cristina María Moreno Ayuso;Sebastián Pertíñez Reyes;;958 58 02 61;Centralita;;lasgabias.es;21/09/2026;https://www.lasgabias.es/lasgabias/equipo-de-gobierno/
+Maracena;22294;A;Antonio Segovia Ganivet;Amabel Adarve Anguita (Eventos);;958 42 13 95;Casa de la Cultura;;maracena.es;21/09/2026;https://maracena.es/equipo-de-gobierno/
+Atarfe;20914;A;Jennifer García Moreno;Víctor Almohano González;;958 43 60 11;Centralita;;atarfe.es;21/09/2026;https://www.atarfe.es/equipo-de-gobierno-3
+Churriana de la Vega;16878;A;Mª Esther López Lara;Sara Mª Sánchez Morente;;958 55 08 74;Centralita;info@churrianadelavega.org;ayuntamientochurrianadelavega.org;21/09/2026;https://ayuntamientochurrianadelavega.org/concejalias/
+Ogíjares;15239;A;Estefano Polo Segura (es el alcalde);Ana María Segura Ruíz;;676 33 80 09;Móvil directo del concejal de Cultura;estefanopolo@ogijares.org;ogijares.es;21/09/2026;https://ogijares.es/ayuntamiento/equipo-de-gobierno
+Huétor Vega;12285;A;Ángel Luis Moreno del Paso;Carolina Higueras Moyano;;958 30 05 11;Centralita;;huetorvega.org;21/09/2026;https://huetorvega.org/corporacion/
+Gójar;6371;A;Rubén Melgarejo Fernández;María Isabel Yáñez Martín;;958 50 91 52;Directo del técnico de Cultura y Deporte;info@gojar.es;gojar.es;21/09/2026;https://gojar.es/cultura/
+Alfacar;5834;A;;;;958 54 30 02;Centralita;;ayuntamientodealfacar.es;21/09/2026;https://ayuntamientodealfacar.es/
+Cájar;5511;A;Juan Antonio Carrillo Jiménez;;;623 25 88 31;Móvil directo del concejal de Cultura;j.carrillo@cajar.es;cajar.es;21/09/2026;https://cajar.es/corporacion-municipal-2/
+Albolote;19768;A;;;;;;;;;
+Vegas del Genil;12424;A;;;;;;;;;
+Peligros;11725;A;;;;;;;;;
+Alhendín;10475;A;;;;;;;;;
+Monachil;8664;A;;;;;;;;;
+Cenes de la Vega;8254;A;;;;;;;;;
+Cúllar Vega;7947;A;;;;;;;;;
+Villa de Otura;7696;A;;;;;;;;;
+Pulianas;5659;A;;;;;;;;;
+Motril;59862;B;;;;;;;;;
+Almuñécar;27544;B;;;;;;;;;
+Loja;20951;B;;;;;;;;;
+Baza;20587;B;;;;;;;;;
+Guadix;18881;B;;;;;;;;;
+Santa Fe;15494;B;;;;;;;;;
+Salobreña;12760;B;;;;;;;;;
+Huétor Tájar;10749;B;;;;;;;;;
+Íllora;9923;B;;;;;;;;;
+Pinos Puente;9807;B;;;;;;;;;
+Padul;9667;B;;;;;;;;;
+Albuñol;7388;B;;;;;;;;;
+Huéscar;7241;B;;;;;;;;;
+Dúrcal;7234;B;;;;;;;;;
+Chauchina;5817;B;;;;;;;;;
+Órgiva;5728;B;;;;;;;;;
+Alhama de Granada;5544;B;;;;;;;;;
+Gualchos;5284;B;;;;;;;;;
+Montefrío;5283;B;;;;;;;;;
+Diputación de Granada;;Diputación;;;;958 24 75 00;Centralita;dipgra@dipgra.es;dipgra.es;21/09/2026;https://www.dipgra.es/servicios/areas/cultura/
