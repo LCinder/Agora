@@ -62,6 +62,8 @@ export interface Messages {
   'event.watchLive': string;
   'event.priceFree': string;
   'event.notFound': string;
+  'event.posterOf': string;
+  'event.seePoster': string;
   'event.interestedCount': string;
   'event.viewsCount': string;
 
@@ -196,6 +198,8 @@ const es: Messages = {
   'event.watchLive': 'Ver en directo',
   'event.priceFree': 'Entrada gratuita',
   'event.notFound': 'No encontramos este evento.',
+  'event.posterOf': 'Cartel de {title}',
+  'event.seePoster': 'Ver el cartel completo',
   'event.interestedCount': 'A {count} vecinos les interesa',
   // A visit is one opening of the event by one phone on one day, which is
   // what the number actually counts. «Visitas» says that; «personas» would not.
@@ -337,6 +341,8 @@ const en: Messages = {
   'event.watchLive': 'Watch live',
   'event.priceFree': 'Free entry',
   'event.notFound': 'We could not find this event.',
+  'event.posterOf': 'Poster for {title}',
+  'event.seePoster': 'See the whole poster',
   'event.interestedCount': '{count} neighbours are interested',
   'event.viewsCount': '{count} visits',
 

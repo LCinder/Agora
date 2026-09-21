@@ -2,8 +2,9 @@ import { SUPPORTED_LOCALES } from '@agora/i18n';
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 
+import { useTabBarClearance } from '../../components/tab-bar';
 import { Body, Button, Caption, Card, Chip, Display, Screen, Subtitle } from '../../components/ui';
 import { PUBLIC_SITE_URL } from '../../lib/config';
 import { type PushState, disablePush, enablePush, pushState } from '../../lib/push';
@@ -31,6 +32,7 @@ export default function SettingsScreen() {
   const { appearance, forgetEverything, locale, municipality, setAppearance, setLocale, t, theme } =
     useApp();
   const router = useRouter();
+  const clearance = useTabBarClearance(theme.spacing);
 
   const [push, setPush] = useState<PushState | null>(null);
 
@@ -64,7 +66,17 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
-      <View style={{ gap: theme.spacing(4), padding: theme.spacing(5) }}>
+      {/* Six cards and a floating tab bar over the last of them. This was a
+          plain View, so everything below the fold — notifications, volunteer
+          mode, and the delete-my-data button the privacy policy promises — was
+          simply unreachable on a phone. */}
+      <ScrollView
+        contentContainerStyle={{
+          gap: theme.spacing(4),
+          padding: theme.spacing(5),
+          paddingBottom: clearance,
+        }}
+      >
         <Display>{t('settings.title')}</Display>
 
         <Card>
@@ -193,7 +205,7 @@ export default function SettingsScreen() {
         </Card>
 
         <Caption>{t('settings.demoNotice')}</Caption>
-      </View>
+      </ScrollView>
     </Screen>
   );
 }

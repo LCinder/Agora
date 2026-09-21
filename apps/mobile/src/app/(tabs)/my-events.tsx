@@ -5,6 +5,7 @@ import { RefreshControl, ScrollView, View } from 'react-native';
 
 import { EventCard } from '../../components/event-card';
 import { CalendarSkeleton } from '../../components/skeleton';
+import { useTabBarClearance } from '../../components/tab-bar';
 import { Display, EmptyState, Loading, Screen, Subtitle } from '../../components/ui';
 import { useMunicipalityData } from '../../hooks/use-municipality-data';
 import { useApp } from '../../providers/app-provider';
@@ -18,6 +19,7 @@ import { useApp } from '../../providers/app-provider';
 export default function MyEventsScreen() {
   const { interestedEventIds, municipality, ready, t, theme } = useApp();
   const { loading, refreshing, refresh, events, categories } = useMunicipalityData();
+  const clearance = useTabBarClearance(theme.spacing);
 
   const { upcoming, past } = useMemo(() => {
     const now = Date.now();
@@ -57,7 +59,10 @@ export default function MyEventsScreen() {
         <ScrollView
           contentContainerStyle={{
             gap: theme.spacing(3),
-            paddingBottom: theme.spacing(10),
+            // Room for the floating tab bar. It was 40 against a bar 64 tall,
+            // so the last event sat behind it with nowhere to scroll to — which
+            // is what "no se puede hacer scroll" turned out to mean.
+            paddingBottom: clearance,
             paddingHorizontal: theme.spacing(5),
             paddingTop: theme.spacing(4),
           }}

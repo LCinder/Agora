@@ -8,6 +8,7 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { EventCard } from '../../components/event-card';
 import { MonthView } from '../../components/month-view';
 import { CalendarSkeleton } from '../../components/skeleton';
+import { useTabBarClearance } from '../../components/tab-bar';
 import { Chip, EmptyState, Loading, Screen } from '../../components/ui';
 import { useMunicipalityData } from '../../hooks/use-municipality-data';
 import { useApp } from '../../providers/app-provider';
@@ -22,6 +23,7 @@ import { FONTS } from '../../theme/theme';
 export default function CalendarScreen() {
   const { municipality, ready, t, theme } = useApp();
   const { loading, refreshing, refresh, events, categories } = useMunicipalityData();
+  const clearance = useTabBarClearance(theme.spacing);
   const router = useRouter();
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -151,7 +153,7 @@ export default function CalendarScreen() {
         <ScrollView
           contentContainerStyle={{
             gap: theme.spacing(4),
-            paddingBottom: theme.spacing(26),
+            paddingBottom: clearance,
             // The grid wants the wider canvas; the list reads better inset.
             paddingHorizontal: theme.spacing(view === 'month' ? 3 : 5),
           }}

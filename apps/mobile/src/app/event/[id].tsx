@@ -142,16 +142,46 @@ export default function EventDetailScreen() {
     <Screen>
       <ScreenScroll>
         {/* The cover runs full bleed: it is the poster, and a poster with a
-            margin round it is a thumbnail. */}
+            margin round it is a thumbnail.
+
+            It is also cropped — the header is about as tall as it is wide and a
+            poster is portrait — so where there is a real one it is a door to
+            the whole thing, the same way the map below is. What gets cut off is
+            the bottom of the poster, which is where the date, the place and the
+            organiser are printed. */}
         <View style={styles.cover}>
-          <EventCover
-            event={event}
-            category={category}
-            size="hero"
-            width={coverWidth}
-            height={Math.round(coverWidth * 0.92)}
-            rounded={false}
-          />
+          <Pressable
+            onPress={event.imageUrl ? () => router.push(`/poster/${event.id}`) : undefined}
+            accessibilityRole={event.imageUrl ? 'button' : undefined}
+            accessibilityLabel={event.imageUrl ? t('event.seePoster') : undefined}
+            disabled={!event.imageUrl}
+            style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
+          >
+            <EventCover
+              event={event}
+              category={category}
+              size="hero"
+              width={coverWidth}
+              height={Math.round(coverWidth * 0.92)}
+              rounded={false}
+            />
+
+            {event.imageUrl ? (
+              <View
+                style={[
+                  styles.expand,
+                  theme.elevation,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderRadius: theme.radius.pill,
+                    margin: theme.spacing(3),
+                  },
+                ]}
+              >
+                <Ionicons name="expand" size={18} color={theme.colors.text} />
+              </View>
+            ) : null}
+          </Pressable>
           <Pressable
             onPress={() => router.back()}
             accessibilityRole="button"

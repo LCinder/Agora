@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { TAB_BAR_GAP_STEPS, TAB_BAR_HEIGHT } from '../../components/tab-bar';
 import { useApp } from '../../providers/app-provider';
 import { FONTS } from '../../theme/theme';
 
@@ -33,15 +34,15 @@ export default function TabsLayout() {
             borderRadius: theme.radius.lg,
             borderTopColor: theme.colors.border,
             borderWidth: 1,
-            bottom: insets.bottom + theme.spacing(2),
-            height: 64,
+            bottom: insets.bottom + theme.spacing(TAB_BAR_GAP_STEPS),
+            height: TAB_BAR_HEIGHT,
             left: theme.spacing(5),
             paddingBottom: 0,
             position: 'absolute',
             right: theme.spacing(5),
           },
         ],
-        tabBarItemStyle: { height: 62 },
+        tabBarItemStyle: { height: TAB_BAR_HEIGHT - 2 },
         tabBarLabelStyle: { fontFamily: FONTS.semibold, fontSize: 12 },
       }}
     >
