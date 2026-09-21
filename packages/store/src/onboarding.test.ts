@@ -4,7 +4,14 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { type StoreClient, createStoreClient } from './client';
 import { actorFrom, createMembershipStore } from './memberships';
-import { AlreadyOnboarded, SlugTaken, onboardMunicipality } from './onboarding';
+import {
+  AlreadyAMember,
+  AlreadyOnboarded,
+  NoSuchMunicipality,
+  SlugTaken,
+  addAdministrator,
+  onboardMunicipality,
+} from './onboarding';
 import { createPublicStore } from './public-store';
 import { LOCAL_CREDENTIALS, type LocalDynamo, startDynamoLocal } from './testing/dynamo-local';
 import { ZUBIA, createTable, dropTable, seed } from './testing/fixtures';
@@ -73,7 +80,6 @@ describe.skipIf(local === null)('setting up a municipality', () => {
 
   afterAll(async () => {
     await dropTable(client, TABLE);
-    await local?.stop();
   });
 
   it('leaves a town hall its first administrator can actually use', async () => {
@@ -174,4 +180,75 @@ describe.skipIf(local === null)('setting up a municipality', () => {
 
     expect(await createPublicStore(client, TABLE).getMunicipalityBySlug('huetor-vega')).toBeNull();
   });
+});
+
+/**
+ * The gap between the two tools that set a town hall up.
+ *
+ * `onboardMunicipality` makes a municipality and its first person together.
+ * `migrate-seed` makes municipalities and no people at all — which is how La
+ * Zubia ended up in the table with twenty-two events and nobody able to open
+ * the panel for it.
+ */
+describe.skipIf(local === null)('adding an administrator to a town that exists', () => {
+  let client: StoreClient;
+
+  beforeEach(async () => {
+    client = createStoreClient({
+      region: 'eu-central-1',
+      endpoint: local?.endpoint ?? '',
+      credentials: LOCAL_CREDENTIALS,
+    });
+
+    await dropTable(client, TABLE);
+    await createTable(client, TABLE);
+    await seed(client, TABLE);
+  });
+
+  afterAll(async () => {
+    await dropTable(client, TABLE);
+  });
+
+  it('lets the named person administer a seeded municipality', async () => {
+    await addAdministrator(client, TABLE, ZUBIA, ANA);
+
+    const memberships = createMembershipStore(client, TABLE);
+    const mine = await memberships.listForUser(ANA.authUserId);
+
+    expect(mine).toHaveLength(1);
+    expect(mine[0]?.role).toBe('municipal_admin');
+    expect(mine[0]?.municipalityId).toBe(ZUBIA);
+
+    // Same proof as the founder's: she can do the job without anybody granting
+    // her anything afterwards.
+    const staff = await memberships.listForMunicipality(actorFrom(mine[0]!));
+
+    expect(staff.map((one) => one.email)).toContain(ANA.email);
+  });
+
+  it('refuses a municipality that is not there', async () => {
+    await expect(addAdministrator(client, TABLE, 'mun-inventado', ANA)).rejects.toThrow(
+      NoSuchMunicipality,
+    );
+  });
+
+  it('refuses to quietly promote somebody who already has access', async () => {
+    await addAdministrator(client, TABLE, ZUBIA, ANA);
+
+    await expect(addAdministrator(client, TABLE, ZUBIA, ANA)).rejects.toThrow(AlreadyAMember);
+  });
+
+  it('writes nothing on a dry run', async () => {
+    await addAdministrator(client, TABLE, ZUBIA, ANA, { dryRun: true });
+
+    const memberships = createMembershipStore(client, TABLE);
+
+    expect(await memberships.listForUser(ANA.authUserId)).toHaveLength(0);
+  });
+});
+
+// At the end of the file rather than inside a block: the container is shared by
+// every describe here, and whichever one stopped it would break the next.
+afterAll(async () => {
+  await local?.stop();
 });

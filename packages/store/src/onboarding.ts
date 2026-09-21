@@ -226,3 +226,105 @@ export async function onboardMunicipality(
 
   return { municipality, categories: categories.length };
 }
+
+export class NoSuchMunicipality extends Error {
+  constructor(id: string) {
+    super(`There is no municipality "${id}".`);
+    this.name = 'NoSuchMunicipality';
+  }
+}
+
+export class AlreadyAMember extends Error {
+  constructor(email: string, municipalityId: string) {
+    super(`"${email}" already has access to "${municipalityId}".`);
+    this.name = 'AlreadyAMember';
+  }
+}
+
+/**
+ * Gives a municipality that already exists its first person.
+ *
+ * `onboardMunicipality` creates a town hall and its administrator together,
+ * which is right when we are setting one up. But a municipality can also arrive
+ * through `migrate-seed`, which loads the towns under `content/` — and those
+ * arrive with a full calendar and **nobody who can edit it**. That gap is not a
+ * demo inconvenience: La Zubia is the town the product is shown with, and until
+ * somebody can sign in for it the panel has nothing to show.
+ *
+ * Same two items as the founder in `onboardMunicipality`, for the same reason:
+ * one is how a person finds their municipalities, the other is how a
+ * municipality lists its people, and a membership that exists in one direction
+ * only is invisible from the other.
+ *
+ * It refuses rather than overwrites. Someone who already has access here may
+ * have a narrower role on purpose, and quietly promoting them to administrator
+ * because a command was run twice is the kind of thing nobody notices until it
+ * matters.
+ */
+export async function addAdministrator(
+  client: StoreClient,
+  tableName: string,
+  municipalityId: string,
+  founder: Founder,
+  options: OnboardingOptions = {},
+): Promise<void> {
+  const { dryRun = false, onProgress } = options;
+
+  const municipality = await client.send(
+    new GetCommand({
+      TableName: tableName,
+      Key: municipalityKey(municipalityId),
+      ProjectionExpression: 'pk',
+    }),
+  );
+
+  if (municipality.Item === undefined) throw new NoSuchMunicipality(municipalityId);
+
+  const already = await client.send(
+    new GetCommand({
+      TableName: tableName,
+      Key: membershipKey(founder.authUserId, municipalityId),
+      ProjectionExpression: 'pk',
+    }),
+  );
+
+  if (already.Item !== undefined) throw new AlreadyAMember(founder.email, municipalityId);
+
+  onProgress?.(`administrator ${founder.email} of ${municipalityId}`);
+
+  if (dryRun) return;
+
+  const membership = {
+    entity: 'membership',
+    authUserId: founder.authUserId,
+    municipalityId,
+    role: 'municipal_admin' as const,
+    organizationId: null,
+    email: founder.email,
+    fullName: founder.fullName ?? '',
+    createdAt: new Date().toISOString(),
+  };
+
+  // Both directions in one transaction. The conditions repeat the read above:
+  // that one reads, these hold.
+  await client.send(
+    new TransactWriteCommand({
+      TransactItems: [
+        {
+          Put: {
+            TableName: tableName,
+            Item: { ...membershipKey(founder.authUserId, municipalityId), ...membership },
+            ConditionExpression: 'attribute_not_exists(sk)',
+          },
+        },
+        {
+          Put: {
+            TableName: tableName,
+            Item: { ...municipalMemberKey(municipalityId, founder.authUserId), ...membership },
+            ConditionExpression: 'attribute_not_exists(sk)',
+          },
+        },
+      ],
+    }),
+  );
+}
