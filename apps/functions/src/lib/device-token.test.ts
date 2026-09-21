@@ -43,9 +43,14 @@ describe('the device token', () => {
   });
 
   it('rejects an expired token', () => {
-    const token = mintDeviceToken('device-one', SECRET, new Date('2026-01-01T00:00:00Z'));
-    const later = new Date('2026-01-01T00:00:00Z');
-    later.setSeconds(later.getSeconds() + TOKEN_LIFETIME_SECONDS + 1);
+    const minted = new Date('2026-01-01T00:00:00Z');
+    const token = mintDeviceToken('device-one', SECRET, minted);
+
+    // Added to the instant, not through setSeconds: that walks the local wall
+    // clock, and six months from January crosses the March time change, so it
+    // lands an hour short of the expiry and the token is still valid. The test
+    // then passes in UTC on CI and fails on a laptop in Madrid.
+    const later = new Date(minted.getTime() + (TOKEN_LIFETIME_SECONDS + 1) * 1000);
 
     expect(verifyDeviceToken(token, SECRET, later)).toBeNull();
   });

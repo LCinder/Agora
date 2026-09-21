@@ -71,6 +71,10 @@ coverage/
 *.tfstate
 *.tfstate.*
 terraform.tfvars
+# A saved plan is a binary snapshot of the whole infrastructure, including
+# every attribute value. It belongs on a laptop, never in a public repository.
+tfplan
+*.tfplan
 *.auto.tfvars
 crash.log
 
