@@ -1,4 +1,4 @@
-import { DEFAULT_TIME_ZONE, monthKeyInZone } from '@agora/core';
+import { DEFAULT_TIME_ZONE, dayKeyInZone, monthKeyInZone } from '@agora/core';
 import { TransactionCanceledException } from '@aws-sdk/client-dynamodb';
 import {
   DeleteCommand,
@@ -20,6 +20,7 @@ import {
   devicePk,
   eventKey,
   interestKey,
+  viewGuardKey,
 } from './keys';
 
 /**
@@ -36,6 +37,16 @@ import {
  * attributes of the reminder index, and it increments a counter on the event.
  * The counter is what the panel reads. Nobody in the panel can go the other way.
  */
+/**
+ * How long the "already counted today" row sticks around.
+ *
+ * Two days rather than one: the day it guards is a day in `Europe/Madrid`, and
+ * a row that expired at midnight UTC would let a phone count the same evening
+ * twice for two hours of the year. DynamoDB deletes them on its own schedule
+ * anyway, so the only cost of being generous is a row nobody reads.
+ */
+const VIEW_GUARD_LIFETIME_HOURS = 48;
+
 export interface Interest {
   municipalityId: string;
   eventId: string;
@@ -64,6 +75,19 @@ export interface DeviceStore {
   listInterests(): Promise<Interest[]>;
   markInterest(municipalityId: string, eventId: string): Promise<void>;
   unmarkInterest(municipalityId: string, eventId: string): Promise<void>;
+  /**
+   * Counts that this phone opened an event, at most once a day.
+   *
+   * The guard is here and not only in the app because a tally a town hall puts
+   * in its memoria anual has to be one nobody could inflate by holding a finger
+   * on the refresh: the app skips the call when it already made it today, and
+   * this refuses it if it arrives anyway.
+   *
+   * Nothing is recorded about the opening beyond the fact that it happened —
+   * no time, no place, no order of events read. The guard row is keyed by the
+   * day and deletes itself.
+   */
+  recordView(municipalityId: string, eventId: string): Promise<void>;
   /**
    * Deletes everything this device ever wrote: the marks, the counters of the
    * anti-spam cap, the push token and the device itself.
@@ -172,8 +196,16 @@ export function createDeviceStore(
       // something a resident should be told about.
       if (reasons[0]?.Code === 'ConditionalCheckFailed') return;
 
-      // The event itself does not exist, which is worth saying out loud.
-      throw notFound('Ese evento no existe.');
+      // The event is gone. On the way up that is worth saying out loud — the
+      // resident asked to be reminded of something that does not exist.
+      if (by === 1) throw notFound('Ese evento no existe.');
+
+      // On the way down it is not. The town hall deleted a duplicate and a
+      // phone is still carrying the mark: the counter it would have decremented
+      // went with the event, and refusing here would leave the resident holding
+      // a mark they cannot remove — and "borrar mis datos", which unmarks
+      // everything one by one, unable to finish.
+      await client.send(new DeleteCommand({ TableName: tableName, Key: key }));
     }
   }
 
@@ -371,6 +403,44 @@ export function createDeviceStore(
 
     async unmarkInterest(municipalityId, eventId) {
       await move(municipalityId, eventId, -1);
+    },
+
+    async recordView(municipalityId, eventId) {
+      const day = dayKeyInZone(new Date(), DEFAULT_TIME_ZONE);
+
+      try {
+        await client.send(
+          new TransactWriteCommand({
+            TransactItems: [
+              {
+                Put: {
+                  TableName: tableName,
+                  Item: {
+                    ...viewGuardKey(deviceId, municipalityId, eventId, day),
+                    entity: 'view_guard',
+                    expiresAt: Math.floor(Date.now() / 1000) + VIEW_GUARD_LIFETIME_HOURS * 3600,
+                  },
+                  ConditionExpression: 'attribute_not_exists(pk)',
+                },
+              },
+              {
+                Update: {
+                  TableName: tableName,
+                  Key: eventKey(municipalityId, eventId),
+                  UpdateExpression: 'SET viewCount = if_not_exists(viewCount, :zero) + :one',
+                  ExpressionAttributeValues: { ':zero': 0, ':one': 1 },
+                  ConditionExpression: 'attribute_exists(pk)',
+                },
+              },
+            ],
+          }),
+        );
+      } catch (error) {
+        if (!(error instanceof TransactionCanceledException)) throw error;
+
+        // Already counted today, or the event is not there. Neither is worth an
+        // error: the neighbour is reading a page, not filing a return.
+      }
     },
   };
 }

@@ -376,6 +376,57 @@ describe.skipIf(local === null)('the panel API', () => {
 
       expect((bodyOf(approved) as { title: string }).title).toBe('Vía crucis con recorrido nuevo');
     });
+
+    it('deletes one, and the log is all that is left of it', async () => {
+      const created = await call('POST', `municipalities/${ZUBIA}/events`, {
+        subject: EDITOR,
+        body: {
+          id: 'evt-typed-twice',
+          title: 'Concierto (duplicado)',
+          categoryId: 'cat-cultura',
+          startAt: '2027-08-16T21:00:00.000Z',
+          location: { name: 'Auditorio' },
+          status: 'published',
+        },
+      });
+
+      expect(statusOf(created)).toBe(200);
+
+      const deleted = await call('DELETE', `municipalities/${ZUBIA}/events/evt-typed-twice`, {
+        subject: EDITOR,
+      });
+
+      expect(statusOf(deleted)).toBe(204);
+      expect(
+        statusOf(
+          await call('GET', `municipalities/${ZUBIA}/events/evt-typed-twice`, { subject: EDITOR }),
+        ),
+      ).toBe(404);
+
+      const log = bodyOf(await call('GET', `municipalities/${ZUBIA}/audit`, { subject: ADMIN }));
+
+      expect((log as { action: string; entityId: string }[])[0]).toMatchObject({
+        action: 'event.delete',
+        entityId: 'evt-typed-twice',
+      });
+    });
+
+    it('does not let an association delete what the town has already seen', async () => {
+      const refused = await call(
+        'DELETE',
+        `municipalities/${ZUBIA}/events/${EVENTS.zubiaPublished}`,
+        { subject: ASSOCIATION },
+      );
+
+      expect(statusOf(refused)).toBe(403);
+      expect(
+        statusOf(
+          await call('GET', `municipalities/${ZUBIA}/events/${EVENTS.zubiaPublished}`, {
+            subject: EDITOR,
+          }),
+        ),
+      ).toBe(200);
+    });
   });
 
   describe('notices', () => {
@@ -537,6 +588,7 @@ describe.skipIf(local === null)('the panel API', () => {
       expect(Object.keys(stats)).toEqual([
         'devices',
         'events',
+        'views',
         'interests',
         'suppressed',
         'generatedAt',

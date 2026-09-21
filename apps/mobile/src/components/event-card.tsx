@@ -3,6 +3,7 @@ import {
   formatTime,
   formatWhen,
   readableOn,
+  reportableCount,
   type Event,
   type EventCategory,
 } from '@agora/core';
@@ -134,7 +135,7 @@ export function EventCard({
               {event.isFree ? (
                 <Text style={[styles.heroMeta, styles.free]}>{t('common.free')}</Text>
               ) : null}
-              {saved ? <Ionicons name="heart" size={17} color="#FFFFFF" /> : null}
+              <Interest event={event} saved={saved} onCover />
             </View>
           </LinearGradient>
         </View>
@@ -171,12 +172,64 @@ export function EventCard({
         </Text>
       </View>
 
-      {saved ? <Ionicons name="heart" size={18} color={theme.colors.text} /> : null}
+      <Interest event={event} saved={saved} />
     </Pressable>
   );
 }
 
+/**
+ * How many neighbours marked this one, next to whether you did.
+ *
+ * A count and never a list: this is the same number the town hall sees, and the
+ * only thing anybody ever learns about who marked an event (D-029). A filled
+ * heart is yours, an outline is the town's.
+ *
+ * Hidden below five, and the threshold is the product's, not this screen's
+ * (`MINIMUM_AUDIENCE`): three marks in a village are three neighbours somebody
+ * could name, and the town hall is not shown that number either. It also spares
+ * the calendar the worst thing it could say on the morning a programme goes up,
+ * which is "a 1 vecino le interesa" under every event.
+ */
+function Interest({
+  event,
+  saved,
+  onCover = false,
+}: {
+  event: Event;
+  saved: boolean;
+  onCover?: boolean;
+}) {
+  const { t, theme } = useApp();
+
+  const shown = reportableCount(event.interestCount);
+
+  if (!saved && shown === null) return null;
+
+  const tint = onCover ? '#FFFFFF' : theme.colors.text;
+
+  return (
+    <View
+      style={[styles.row, { gap: 4 }]}
+      accessible
+      accessibilityLabel={shown === null ? undefined : t('event.interestedCount', { count: shown })}
+    >
+      <Ionicons name={saved ? 'heart' : 'heart-outline'} size={17} color={tint} />
+      {shown === null ? null : (
+        <Text
+          style={[
+            styles.count,
+            { color: onCover ? 'rgba(255,255,255,0.92)' : theme.colors.textMuted },
+          ]}
+        >
+          {shown}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  count: { fontFamily: FONTS.semibold, fontSize: 14 },
   eyebrow: { fontFamily: FONTS.bold, fontSize: 11, letterSpacing: 1.4 },
   featured: { paddingHorizontal: 9, paddingVertical: 3 },
   free: { color: '#A7F3B4', fontFamily: FONTS.bold },

@@ -109,6 +109,12 @@ const ROUTES: { method: string; pattern: RegExp; routeKey: string; names: string
   },
   {
     method: 'PUT',
+    pattern: /^\/me\/views\/([^/]+)$/,
+    routeKey: 'PUT /me/views/{eventId}',
+    names: ['eventId'],
+  },
+  {
+    method: 'PUT',
     pattern: /^\/me\/municipalities\/([^/]+)$/,
     routeKey: 'PUT /me/municipalities/{municipalityId}',
     names: ['municipalityId'],
@@ -392,6 +398,18 @@ describe.skipIf(local === null)('the app against the API', () => {
     expect(await devices.listInterests()).toEqual([]);
   });
 
+  it('counts the opening of an event, once for the phone that opened it', async () => {
+    const reader = createPublicStore(client, TABLE);
+    const before = await reader.getVisibleEvent(ZUBIA, EVENTS.zubiaPublished);
+
+    await devices.view(ZUBIA, EVENTS.zubiaPublished);
+    await devices.view(ZUBIA, EVENTS.zubiaPublished);
+
+    const after = await reader.getVisibleEvent(ZUBIA, EVENTS.zubiaPublished);
+
+    expect(after?.viewCount).toBe((before?.viewCount ?? 0) + 1);
+  });
+
   it('counts a resident who never registered, and shows them to the town hall', async () => {
     // The whole of what a neighbour does to exist here: open the app and pick a
     // town. No account, no email, no form.
@@ -599,6 +617,13 @@ describe.skipIf(local === null)('the app against the API', () => {
     const cancelled = await panel.cancelEvent(created.id);
 
     expect(cancelled.status).toBe('cancelled');
+
+    // And deleting it, which is the other half: cancelling leaves it on the
+    // calendar marked off, this leaves nothing.
+    await panel.deleteEvent(created.id);
+
+    expect(await panel.getEvent(created.id)).toBeNull();
+    expect((await panel.listEvents()).map((found) => found.id)).not.toContain(created.id);
   });
 
   it('refuses the panel to somebody with no membership', async () => {

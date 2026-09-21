@@ -180,6 +180,29 @@ export function interestKey(
 }
 
 /**
+ * That this phone already opened this event today.
+ *
+ * A view is worth counting once a day per phone: a neighbour who checks the
+ * time of the procession four times has not made the event four times more
+ * popular, and a tally a town hall cannot trust is worse than no tally. The row
+ * exists only to make that rule enforceable on the server, so it holds nothing
+ * but its own key and carries a TTL that deletes it two days later.
+ *
+ * Under the device, like everything else a phone owns, so "borrar mis datos"
+ * takes it with the rest.
+ */
+export function viewGuardKey(
+  deviceId: string,
+  municipalityId: string,
+  eventId: string,
+  day: string,
+): { pk: string; sk: string } {
+  return { pk: devicePk(deviceId), sk: `VIEW#${municipalityId}#${eventId}#${day}` };
+}
+
+export const VIEW_PREFIX = 'VIEW#';
+
+/**
  * How many notifications a device has already had from one municipality today.
  *
  * Under the device, because that is who the cap protects, and keyed by

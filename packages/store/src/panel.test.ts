@@ -368,6 +368,215 @@ describe.skipIf(local === null)('the panel', () => {
     });
   });
 
+  describe('the cover', () => {
+    it('holds one event at a time, whoever puts it there', async () => {
+      const staff = createStaffStore(client, TABLE, editor);
+
+      const first = await staff.createEvent({
+        id: 'evt-cover-one',
+        title: 'Pregón',
+        categoryId: 'cat-fiestas',
+        startAt: new Date('2027-05-01T20:00:00.000Z'),
+        location: { name: 'Plaza', latitude: null, longitude: null },
+        status: 'published',
+        isFeatured: true,
+      });
+
+      expect(first.isFeatured).toBe(true);
+
+      const second = await staff.createEvent({
+        id: 'evt-cover-two',
+        title: 'Verbena',
+        categoryId: 'cat-fiestas',
+        startAt: new Date('2027-05-02T22:00:00.000Z'),
+        location: { name: 'Plaza', latitude: null, longitude: null },
+        status: 'published',
+        isFeatured: true,
+      });
+
+      expect(second.isFeatured).toBe(true);
+      expect((await staff.getEvent('evt-cover-one'))?.isFeatured).toBe(false);
+
+      // And the same through an edit, which is how the panel actually does it.
+      await staff.updateEvent('evt-cover-one', { isFeatured: true });
+
+      expect((await staff.getEvent('evt-cover-two'))?.isFeatured).toBe(false);
+
+      const featured = (await staff.listEvents()).filter((event) => event.isFeatured);
+
+      expect(featured).toHaveLength(1);
+      expect(featured[0]?.id).toBe('evt-cover-one');
+    });
+
+    it('is not an association to put itself on', async () => {
+      const association = createStaffStore(client, TABLE, hermandad);
+
+      const asked = await association.createEvent({
+        id: 'evt-cover-asked',
+        title: 'Triduo',
+        categoryId: 'cat-fiestas',
+        startAt: new Date('2027-05-03T19:00:00.000Z'),
+        location: { name: 'Parroquia', latitude: null, longitude: null },
+        isFeatured: true,
+      });
+
+      expect(asked.isFeatured).toBe(false);
+
+      // Nor by editing one of its own afterwards.
+      await association.updateEvent('evt-cover-asked', { isFeatured: true, title: 'Triduo (2)' });
+
+      const after = await association.getEvent('evt-cover-asked');
+
+      expect(after?.isFeatured).toBe(false);
+      expect(after?.title).toBe('Triduo (2)');
+    });
+  });
+
+  describe('deleting an event', () => {
+    it('takes it off the calendar for good', async () => {
+      const staff = createStaffStore(client, TABLE, editor);
+      const publicStore = createPublicStore(client, TABLE);
+
+      const doomed = await staff.createEvent({
+        id: 'evt-duplicate',
+        title: 'Concierto (duplicado)',
+        categoryId: 'cat-cultura',
+        startAt: new Date('2027-06-01T21:00:00.000Z'),
+        location: { name: 'Auditorio', latitude: null, longitude: null },
+        status: 'published',
+      });
+
+      expect(await publicStore.getVisibleEvent(ZUBIA, doomed.id)).not.toBeNull();
+
+      await staff.deleteEvent(doomed.id);
+
+      expect(await publicStore.getVisibleEvent(ZUBIA, doomed.id)).toBeNull();
+      expect(await staff.getEvent(doomed.id)).toBeNull();
+    });
+
+    it('leaves nothing in the review inbox pointing at it', async () => {
+      const staff = createStaffStore(client, TABLE, editor);
+      const association = createStaffStore(client, TABLE, hermandad);
+
+      const pending = await association.createEvent({
+        id: 'evt-pending-then-deleted',
+        title: 'Rosario de la aurora',
+        categoryId: 'cat-fiestas',
+        startAt: new Date('2027-06-15T07:00:00.000Z'),
+        location: { name: 'Parroquia', latitude: null, longitude: null },
+      });
+
+      expect(pending.status).toBe('pending_review');
+
+      const queued = (await staff.reviewQueue()).filter(
+        (item) => item.kind === 'event' && item.event.id === pending.id,
+      );
+
+      expect(queued).toHaveLength(1);
+
+      await staff.deleteEvent(pending.id);
+
+      expect(
+        (await staff.reviewQueue()).filter(
+          (item) => item.kind === 'event' && item.event.id === pending.id,
+        ),
+      ).toHaveLength(0);
+      expect(await association.getEvent(pending.id)).toBeNull();
+    });
+
+    it('belongs to the town hall once the neighbours have seen it', async () => {
+      const association = createStaffStore(client, TABLE, hermandad);
+
+      const own = await association.createEvent({
+        id: 'evt-association-own',
+        title: 'Ensayo',
+        categoryId: 'cat-fiestas',
+        startAt: new Date('2027-07-01T19:00:00.000Z'),
+        location: { name: 'Casa hermandad', latitude: null, longitude: null },
+      });
+
+      // Waiting for review, so nobody has seen it: the association may drop it.
+      await association.deleteEvent(own.id);
+
+      expect(await association.getEvent(own.id)).toBeNull();
+
+      // Published, so it may not.
+      await expect(association.deleteEvent(EVENTS.zubiaPublished)).rejects.toThrow(StoreError);
+      expect(await association.getEvent(EVENTS.zubiaPublished)).not.toBeNull();
+    });
+
+    it('lets a resident drop a mark it left behind', async () => {
+      const staff = createStaffStore(client, TABLE, editor);
+      const device = createDeviceStore(client, TABLE, 'device-orphan');
+
+      const doomed = await staff.createEvent({
+        id: 'evt-marked-then-deleted',
+        title: 'Cine de verano',
+        categoryId: 'cat-cultura',
+        startAt: new Date('2027-08-01T22:00:00.000Z'),
+        location: { name: 'Piscina', latitude: null, longitude: null },
+        status: 'published',
+      });
+
+      await device.markInterest(ZUBIA, doomed.id);
+      await staff.deleteEvent(doomed.id);
+
+      // The counter it would have decremented went with the event. Refusing here
+      // would leave the phone holding a mark it cannot remove, and would break
+      // "borrar mis datos", which unmarks everything one by one.
+      await device.unmarkInterest(ZUBIA, doomed.id);
+
+      expect(await device.listInterests()).toHaveLength(0);
+    });
+  });
+
+  describe('how many opened an event', () => {
+    it('counts a phone once a day, however many times it looks', async () => {
+      const staff = createStaffStore(client, TABLE, editor);
+      const one = createDeviceStore(client, TABLE, 'device-reader-one');
+      const two = createDeviceStore(client, TABLE, 'device-reader-two');
+
+      const event = await staff.createEvent({
+        id: 'evt-read',
+        title: 'Taller',
+        categoryId: 'cat-cultura',
+        startAt: new Date('2027-09-01T18:00:00.000Z'),
+        location: { name: 'Biblioteca', latitude: null, longitude: null },
+        status: 'published',
+      });
+
+      expect(event.viewCount).toBe(0);
+
+      await one.recordView(ZUBIA, event.id);
+      await one.recordView(ZUBIA, event.id);
+      await one.recordView(ZUBIA, event.id);
+      await two.recordView(ZUBIA, event.id);
+
+      expect((await staff.getEvent(event.id))?.viewCount).toBe(2);
+    });
+
+    it('says nothing about an event that is not there', async () => {
+      const device = createDeviceStore(client, TABLE, 'device-reader-three');
+
+      await expect(device.recordView(ZUBIA, 'evt-does-not-exist')).resolves.toBeUndefined();
+    });
+
+    it('survives an edit, like the marks do', async () => {
+      const staff = createStaffStore(client, TABLE, editor);
+
+      await createDeviceStore(client, TABLE, 'device-reader-four').recordView(ZUBIA, 'evt-read');
+
+      const before = (await staff.getEvent('evt-read'))?.viewCount;
+
+      await staff.updateEvent('evt-read', { title: 'Taller de cerámica' });
+
+      const after = await staff.getEvent('evt-read');
+
+      expect(after?.title).toBe('Taller de cerámica');
+      expect(after?.viewCount).toBe(before);
+    });
+  });
+
   // -------------------------------------------------------------------------
   // The data panel
   // -------------------------------------------------------------------------

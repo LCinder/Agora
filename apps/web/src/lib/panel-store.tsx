@@ -133,6 +133,14 @@ export interface PanelState {
    */
   updateEvent: (id: string, changes: Partial<NewEvent>) => Promise<'applied' | 'queued'>;
   cancelEvent: (id: string) => Promise<void>;
+  /**
+   * Deletes an event outright. Nothing comes back.
+   *
+   * Cancelling is what a town hall almost always wants — the neighbours who
+   * marked it have to be told — so the screens ask twice before calling this
+   * and say which of the two they are doing.
+   */
+  deleteEvent: (id: string) => Promise<void>;
   approveEvent: (id: string) => Promise<void>;
   rejectEvent: (id: string, reason: string) => Promise<void>;
   addNotice: (notice: Omit<EventNotice, 'id' | 'createdAt'>) => Promise<void>;
@@ -502,6 +510,11 @@ export function PanelProvider({ children }: { children: ReactNode }) {
         rejectionReason: null,
         isFeatured: draft.isFeatured,
         liveTrackingEnabled: false,
+        // Typed into the demo a minute ago: nobody has seen it, let alone
+        // marked it. The seed's events carry invented tallies so the calendar
+        // looks alive; this one honestly has none.
+        interestCount: 0,
+        viewCount: 0,
         createdAt: now,
         updatedAt: now,
         publishedAt: now,
@@ -611,6 +624,24 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       await reload(client);
     },
     [client, noteDemo, reload, setStatus],
+  );
+
+  const deleteEvent = useCallback(
+    async (id: string) => {
+      if (client === null) {
+        persist(
+          events.filter((entry) => entry.id !== id),
+          notices.filter((notice) => notice.eventId !== id),
+        );
+        noteDemo('event.delete', 'event', id);
+
+        return;
+      }
+
+      await client.deleteEvent(id);
+      await reload(client);
+    },
+    [client, events, noteDemo, notices, persist, reload],
   );
 
   const approveEvent = useCallback(
@@ -928,6 +959,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       createEvent,
       updateEvent,
       cancelEvent,
+      deleteEvent,
       approveEvent,
       rejectEvent,
       addNotice,
@@ -967,6 +999,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       categories,
       createEvent,
       createOrganization,
+      deleteEvent,
       demo,
       events,
       getLive,

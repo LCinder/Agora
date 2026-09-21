@@ -85,6 +85,8 @@ const statsSchema = z.object({
     draft: z.number(),
     cancelled: z.number(),
   }),
+  /** Openings of an event page across the municipality. A total, not a segment. */
+  views: z.object({ total: z.number() }).default({ total: 0 }),
   interests: z.object({
     total: z.number(),
     topEvents: z.array(
@@ -93,6 +95,8 @@ const statsSchema = z.object({
         title: z.string(),
         startAt: z.coerce.date(),
         interested: reportableSchema,
+        /** Held back below the same threshold as the marks. */
+        viewed: reportableSchema.default(null),
       }),
     ),
     byCategory: z.array(z.object({ categoryId: z.string(), interested: reportableSchema })),
@@ -190,6 +194,14 @@ export interface PanelClient {
   /** Applied for the town hall; queued for review when an association edits. */
   updateEvent(eventId: string, patch: EventPatchInput): Promise<EditResult>;
   cancelEvent(eventId: string): Promise<Event>;
+  /**
+   * Removes an event and everything asked about it. There is no undo.
+   *
+   * For the duplicate and the one typed into the wrong month. An event
+   * neighbours have already seen should be cancelled instead, and the API
+   * refuses this one to an association once it is published.
+   */
+  deleteEvent(eventId: string): Promise<void>;
   approveEvent(eventId: string): Promise<Event>;
   rejectEvent(eventId: string, reason: string): Promise<Event>;
 
@@ -274,6 +286,10 @@ export function createPanelClient(options: PanelClientOptions): PanelClient {
 
     async cancelEvent(eventId) {
       return eventSchema.parse(await api.send('POST', `${at(eventId)}/cancel`));
+    },
+
+    async deleteEvent(eventId) {
+      await api.send('DELETE', at(eventId));
     },
 
     async approveEvent(eventId) {

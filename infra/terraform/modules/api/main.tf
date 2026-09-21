@@ -521,6 +521,9 @@ locals {
     "GET /me/interests",
     "PUT /me/interests/{eventId}",
     "DELETE /me/interests/{eventId}",
+    # That a phone opened an event, counted once a day. Behind the authorizer
+    # like the rest: a tally anybody could post to is not a tally.
+    "PUT /me/views/{eventId}",
     # Following a municipality: what the town hall's "dispositivos activos" is
     # counted from. One row per phone per town, and no name anywhere in it.
     "PUT /me/municipalities/{municipalityId}",

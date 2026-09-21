@@ -13,6 +13,36 @@ import type { SeedEvent, SeedWhen } from './seed-schema';
 /** Stand-in creation date for seeded events; they have no real history. */
 const SEED_TIMESTAMP = new Date('2026-09-01T09:00:00Z');
 
+/**
+ * Plausible tallies for the demo, which has no residents to produce real ones.
+ *
+ * The demo build has no API and nobody has marked anything, so every event
+ * would show nothing where the app shows "a N vecinos les interesa" — and a
+ * calendar where no event has an audience is the opposite of what this screen
+ * is for in a meeting. The numbers are derived from the event's own id, so they
+ * are the same on every reload: statistics that move when a councillor
+ * refreshes the page invite exactly the question we do not want.
+ *
+ * Roughly one in eight of the people who open an event marks it, which is what
+ * makes the pair of numbers read as a real one rather than as two random ones.
+ * This is the demo's invention and nothing reads it once there is an API, where
+ * both numbers come off the event's own counters.
+ */
+function demoTallies(
+  id: string,
+  isFeatured: boolean,
+): { interestCount: number; viewCount: number } {
+  let hash = 0;
+
+  for (const character of id) {
+    hash = (hash * 31 + character.charCodeAt(0)) % 100_000;
+  }
+
+  const interest = (18 + (hash % 140)) * (isFeatured ? 3 : 1);
+
+  return { interestCount: interest, viewCount: interest * 8 + (hash % 37) };
+}
+
 export interface ResolveContext {
   municipalityId: string;
   timeZone: string;
@@ -48,6 +78,7 @@ export function resolveSeedEvent(seed: SeedEvent, context: ResolveContext): Even
   const { startAt, endAt } = resolveWhen(when, context);
 
   return eventSchema.parse({
+    ...demoTallies(seed.id, seed.isFeatured === true),
     ...rest,
     municipalityId: context.municipalityId,
     startAt,

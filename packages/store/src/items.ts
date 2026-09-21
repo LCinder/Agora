@@ -27,6 +27,8 @@ export interface EventItem extends Record<string, unknown> {
   organizationId: string | null;
   /** Count of residents who marked "Me interesa". The panel sees this and never the devices. */
   interestCount: number;
+  /** Openings of the detail screen, one per phone per day. Same rule: a number, never a list. */
+  viewCount: number;
 }
 
 export function toEventItem(event: Event): EventItem {
@@ -65,7 +67,11 @@ export function toEventItem(event: Event): EventItem {
     updatedAt: event.updatedAt.toISOString(),
     publishedAt: event.publishedAt === null ? null : event.publishedAt.toISOString(),
 
+    // Zero, and never `event.interestCount`. This builds the item for a brand
+    // new event; on an edit the write expression below refuses to touch either
+    // tally, which is what stops an edit taking them back to zero.
     interestCount: 0,
+    viewCount: 0,
   };
 }
 
@@ -128,9 +134,10 @@ export interface EventWriteExpression {
  * How an event is written once it already exists — or might.
  *
  * An update and not a `Put` of the whole item, for one reason that matters: the
- * item also carries `interestCount`, which residents increment and no writer
- * here may reset. Rewriting the item would take it back to zero on every edit,
- * and that counter is the only thing the panel is ever allowed to see.
+ * item also carries `interestCount` and `viewCount`, which residents increment
+ * and no writer here may reset. Rewriting the item would take them back to zero
+ * on every edit, and those counters are the only thing the panel is ever
+ * allowed to see about who cared.
  *
  * The index attributes are recomputed from the new state and removed when the
  * state does not belong in an index. That single line is what moves an event
@@ -147,7 +154,10 @@ export function eventWriteExpression(
   const item = toEventItem(event);
   const names: Record<string, string> = {};
   const values: Record<string, unknown> = { ':zero': 0 };
-  const sets: string[] = ['interestCount = if_not_exists(interestCount, :zero)'];
+  const sets: string[] = [
+    'interestCount = if_not_exists(interestCount, :zero)',
+    'viewCount = if_not_exists(viewCount, :zero)',
+  ];
   const removes: string[] = [];
 
   const fields =
@@ -184,7 +194,23 @@ export function eventWriteExpression(
 
 /** How many residents marked an event, straight off the counter. */
 export function interestCountOf(item: Record<string, unknown>): number {
-  const value = item['interestCount'];
+  return counterOf(item, 'interestCount');
+}
+
+/** How many phones opened it, straight off the other counter. */
+export function viewCountOf(item: Record<string, unknown>): number {
+  return counterOf(item, 'viewCount');
+}
+
+/**
+ * Zero for an item written before the counter existed.
+ *
+ * Not a nicety: every event seeded before this was added has no such attribute,
+ * and a report that says `NaN` where a number belongs is a report a councillor
+ * stops trusting.
+ */
+function counterOf(item: Record<string, unknown>, name: string): number {
+  const value = item[name];
 
   return typeof value === 'number' ? value : 0;
 }

@@ -16,7 +16,7 @@ import {
   TextArea,
 } from '../../../../components/ui';
 import { usePanel, type EventNotice } from '../../../../lib/panel-store';
-import { demoInterestCount } from '../../../../lib/demo';
+import { useRouter } from 'next/navigation';
 
 const NOTICE_TYPES: { value: EventNotice['type']; label: string }[] = [
   { value: 'time_change', label: 'Cambio de hora' },
@@ -47,9 +47,11 @@ export default function EditEventPage() {
 
 function EditEventView() {
   const id = useSearchParams().get('id') ?? '';
+  const router = useRouter();
   const {
     addNotice,
     cancelEvent,
+    deleteEvent,
     events,
     featureEvent,
     loading,
@@ -98,11 +100,20 @@ function EditEventView() {
         title={event.title}
         description={`Página pública: ${publicEventPath(municipality.slug, event.id)}`}
         action={
-          event.status === 'cancelled' ? undefined : (
-            <Button variant="danger" onClick={() => cancelEvent(event.id)}>
-              Cancelar evento
-            </Button>
-          )
+          <div className="flex flex-wrap items-center gap-2">
+            {event.status === 'cancelled' ? null : (
+              <Button variant="danger" onClick={() => cancelEvent(event.id)}>
+                Cancelar evento
+              </Button>
+            )}
+            <DeleteEvent
+              cancellable={event.status === 'published'}
+              onDelete={async () => {
+                await deleteEvent(event.id);
+                router.replace('/eventos');
+              }}
+            />
+          </div>
         }
       />
 
@@ -112,7 +123,7 @@ function EditEventView() {
         {municipal ? (
           <div className="grid gap-6">
             <NoticeComposer
-              interested={demoInterestCount(event.id, event.isFeatured)}
+              interested={event.interestCount}
               onSend={(type, message) => void addNotice({ eventId: event.id, type, message })}
             />
             <FeaturedComposer
@@ -327,5 +338,60 @@ function NoticeComposer({
         </p>
       </div>
     </Card>
+  );
+}
+
+/**
+ * Deleting the event this page is about.
+ *
+ * Next to "Cancelar evento" and deliberately quieter than it: cancelling is the
+ * answer almost every time, because the neighbours who marked it get told, and
+ * this one leaves nothing at all. Two clicks, and the second says what it does.
+ */
+function DeleteEvent({
+  cancellable,
+  onDelete,
+}: {
+  /** Published, so cancelling is the thing they probably meant. */
+  cancellable: boolean;
+  onDelete: () => Promise<void>;
+}) {
+  const [asking, setAsking] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
+
+  if (!asking) {
+    return (
+      <span className="inline-flex items-center gap-2">
+        {failed === null ? null : <span className="text-xs text-red-700">{failed}</span>}
+        <Button variant="secondary" onClick={() => setAsking(true)}>
+          Borrar
+        </Button>
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex flex-wrap items-center gap-2">
+      <span className="text-xs text-neutral-600">
+        {cancellable
+          ? 'Se borra sin avisar a quien lo marcó. Para eso, cancélalo.'
+          : 'No se puede deshacer.'}
+      </span>
+      <Button
+        variant="danger"
+        onClick={() => {
+          setFailed(null);
+          void onDelete().catch((error: unknown) => {
+            setAsking(false);
+            setFailed(error instanceof Error ? error.message : 'No se ha podido borrar.');
+          });
+        }}
+      >
+        Borrar para siempre
+      </Button>
+      <Button variant="secondary" onClick={() => setAsking(false)}>
+        Mejor no
+      </Button>
+    </span>
   );
 }

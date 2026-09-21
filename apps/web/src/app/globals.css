@@ -1,6 +1,24 @@
 @import 'tailwindcss';
 
+/*
+ * The panel is light, full stop.
+ *
+ * It is used on whatever laptop the town hall has, next to a printed programme
+ * and often projected onto a wall in a meeting room, and it is the thing we
+ * show a councillor. A panel that turns dark because the operating system
+ * decided so is a panel we have not seen before the meeting.
+ *
+ * Rather than deleting the `dark:` classes from thirty files, the variant is
+ * re-pointed at a class nobody puts on the page: the rules are still there,
+ * still typed, still formatted, and they never match. A dark mode later is one
+ * `dark` on <html> away.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
+  /* Form controls, scrollbars and the rest of what the browser paints. */
+  color-scheme: light;
+
   --background: #ffffff;
   --foreground: #171717;
 }
@@ -9,13 +27,6 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
@@ -28,8 +39,7 @@ body {
  * Chart tokens.
  *
  * A single validated hue: every chart in the panel draws one series, so a
- * categorical palette would be noise. The dark steps are chosen for the dark
- * surface rather than flipped from the light ones.
+ * categorical palette would be noise.
  *
  * The series hue is the municipality's own colour, handed in by the data
  * screen as `--viz-series-brand-*` already lifted to 3:1 against the card it
@@ -41,13 +51,4 @@ body {
   --viz-grid: #e5e5e1;
   --viz-axis: #5c5c55;
   --viz-series-1: var(--viz-series-brand-light, #2a78d6);
-}
-
-@media (prefers-color-scheme: dark) {
-  .viz-root {
-    --viz-surface: #1a1a19;
-    --viz-grid: #33332f;
-    --viz-axis: #b0b0a8;
-    --viz-series-1: var(--viz-series-brand-dark, #3987e5);
-  }
 }

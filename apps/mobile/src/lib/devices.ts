@@ -2,8 +2,16 @@ import { type DeviceClient, createDeviceClient } from '@agora/data';
 import { getLocales } from 'expo-localization';
 import { Platform } from 'react-native';
 
+import { DEFAULT_TIME_ZONE, dayKeyInZone } from '@agora/core';
+
 import { apiBaseUrl, usingRealBackend } from './data';
-import { interestKey, loadDeviceRegistration, saveDeviceRegistration } from './storage';
+import {
+  interestKey,
+  loadDeviceRegistration,
+  loadViewedToday,
+  saveDeviceRegistration,
+  saveViewedToday,
+} from './storage';
 
 /**
  * The one thing this app writes to the API: that an event interests this phone.
@@ -76,6 +84,40 @@ export async function pushInterest(
     else await deviceClient.unmark(municipalityId, eventId);
   } catch {
     // Reconciled on the next launch.
+  }
+}
+
+/**
+ * Counts that this phone opened an event, at most once a day.
+ *
+ * What the town hall's "vistas" is made of, and the argument that comes right
+ * after "Me interesa" in a meeting: a councillor can see that four hundred
+ * people looked at the concert and eleven marked it, which is a different and
+ * more useful fact than either number alone.
+ *
+ * The day is a day in Spain, not a UTC one, so an event opened at half past
+ * midnight counts for the night it belongs to. Failure is swallowed: this is a
+ * statistic, and nothing the neighbour is doing depends on it.
+ */
+export async function recordView(municipalityId: string, eventId: string): Promise<void> {
+  if (deviceClient === null) return;
+
+  const day = dayKeyInZone(new Date(), DEFAULT_TIME_ZONE);
+  const key = interestKey(municipalityId, eventId);
+  const seen = await loadViewedToday(day);
+
+  if (seen.includes(key)) return;
+
+  // Written before the request and not after: if it fails, the phone has still
+  // made its one attempt for today, and the number is not worth a retry that
+  // arrives every time the neighbour reopens the page in a street with no
+  // coverage.
+  await saveViewedToday(day, [...seen, key]);
+
+  try {
+    await deviceClient.view(municipalityId, eventId);
+  } catch {
+    // A statistic, not the neighbour's business.
   }
 }
 

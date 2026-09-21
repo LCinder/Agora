@@ -47,7 +47,10 @@ export function EventForm({ event }: { event?: Event }) {
   const [locationName, setLocationName] = useState(event?.location.name ?? '');
   const [isFree, setIsFree] = useState(event?.isFree ?? true);
   const [priceInfo, setPriceInfo] = useState(event?.priceInfo ?? '');
-  const [isFeatured, setIsFeatured] = useState(event?.isFeatured ?? false);
+  // Carried, not edited. What is on the cover is chosen from one list in
+  // Eventos, where the question "which one is it" can only have one answer;
+  // a checkbox here would let two events each believe they are the cover.
+  const isFeatured = event?.isFeatured ?? false;
   const [organizationId, setOrganizationId] = useState(event?.organizationId ?? '');
   const [error, setError] = useState<string | null>(null);
   const [queued, setQueued] = useState<'new' | 'edit' | null>(null);
@@ -202,11 +205,6 @@ export function EventForm({ event }: { event?: Event }) {
 
           <div className="flex flex-wrap items-center gap-4">
             <Checkbox label="Entrada gratuita" checked={isFree} onChange={setIsFree} />
-            <Checkbox
-              label="Destacar en la portada"
-              checked={isFeatured}
-              onChange={setIsFeatured}
-            />
           </div>
 
           {isFree ? null : (

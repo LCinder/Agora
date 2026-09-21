@@ -1,8 +1,8 @@
-import { type Event, isAwaitingReview } from '@agora/core';
+import { MINIMUM_AUDIENCE, type Event, isAwaitingReview, reportableCount } from '@agora/core';
 import { GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 
 import type { StoreClient } from './client';
-import { interestCountOf } from './items';
+import { interestCountOf, viewCountOf } from './items';
 import { MONTH_PREFIX, SK_PREFIX, deviceCountKey, municipalityPk } from './keys';
 import type { StaffActor } from './staff-store';
 
@@ -21,12 +21,16 @@ import type { StaffActor } from './staff-store';
  * difference between a number and a threshold costs the town hall nothing:
  * either way they learn the event did not land.
  *
+ * The threshold lives in `@agora/core` because the app applies it too: the same
+ * tally is shown on the event itself, and a number the town hall is not allowed
+ * to see must not be one the whole town can read off a card.
+ *
  * The aggregation runs on read, over one query. There is no daily statistics
  * table yet because there is nothing it would make faster: a municipality has
  * dozens of events a month, not millions, and a table of pre-computed totals is
  * a second source of truth to keep honest.
  */
-export const MINIMUM_SEGMENT = 5;
+export const MINIMUM_SEGMENT = MINIMUM_AUDIENCE;
 
 /** A year of the monthly series is what a memoria anual compares against. */
 const MONTHS_KEPT = 12;
@@ -39,6 +43,15 @@ export interface EventInterest {
   title: string;
   startAt: Date;
   interested: ReportableCount;
+  /**
+   * How many phones opened it, counted once a day each.
+   *
+   * The number beside the marks, and the more useful of the two for programming
+   * next year: four hundred people looked at the concert and eleven marked it
+   * says something that neither figure says on its own. Held back below the same
+   * threshold as everything else here.
+   */
+  viewed: ReportableCount;
 }
 
 export interface PanelStats {
@@ -58,6 +71,8 @@ export interface PanelStats {
     draft: number;
     cancelled: number;
   };
+  /** Openings of an event page across the municipality. Not a segment. */
+  views: { total: number };
   interests: {
     /** The municipality's total. Not a segment, so never suppressed. */
     total: number;
@@ -77,10 +92,6 @@ export interface PanelStats {
   /** How many numbers were held back for being too small. */
   suppressed: number;
   generatedAt: Date;
-}
-
-function reportable(count: number): ReportableCount {
-  return count < MINIMUM_SEGMENT ? null : count;
 }
 
 export interface StatsStore {
@@ -153,8 +164,15 @@ export function createStatsStore(
       };
 
       const perCategory = new Map<string, number>();
-      const perEvent: { eventId: string; title: string; startAt: Date; count: number }[] = [];
+      const perEvent: {
+        eventId: string;
+        title: string;
+        startAt: Date;
+        count: number;
+        views: number;
+      }[] = [];
       let total = 0;
+      let views = 0;
 
       for (const item of mine) {
         const status = String(item['status']) as Event['status'];
@@ -165,15 +183,18 @@ export function createStatsStore(
         if (isAwaitingReview({ status })) events.awaitingReview += 1;
 
         const count = interestCountOf(item);
+        const opened = viewCountOf(item);
         const categoryId = String(item['categoryId']);
 
         total += count;
+        views += opened;
         perCategory.set(categoryId, (perCategory.get(categoryId) ?? 0) + count);
         perEvent.push({
           eventId: String(item['id']),
           title: String(item['title']),
           startAt: new Date(String(item['startAt'])),
           count,
+          views: opened,
         });
       }
 
@@ -183,7 +204,7 @@ export function createStatsStore(
         .sort((left, right) => right.count - left.count)
         .slice(0, options.topEvents ?? 10)
         .map((entry) => {
-          const interested = reportable(entry.count);
+          const interested = reportableCount(entry.count);
 
           if (interested === null) suppressed += 1;
 
@@ -192,13 +213,14 @@ export function createStatsStore(
             title: entry.title,
             startAt: entry.startAt,
             interested,
+            viewed: reportableCount(entry.views),
           };
         });
 
       const byCategory = [...perCategory.entries()]
         .sort(([, left], [, right]) => right - left)
         .map(([categoryId, count]) => {
-          const interested = reportable(count);
+          const interested = reportableCount(count);
 
           if (interested === null) suppressed += 1;
 
@@ -208,6 +230,7 @@ export function createStatsStore(
       return {
         devices: { following },
         events,
+        views: { total: views },
         interests: { total, topEvents, byCategory, monthly },
         suppressed,
         generatedAt: new Date(),

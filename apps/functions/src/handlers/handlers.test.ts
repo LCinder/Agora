@@ -271,6 +271,38 @@ describe.skipIf(local === null)('the handlers', () => {
       expect(statusOf(result)).toBe(400);
     });
 
+    it('counts a view once a day, and needs the municipality too', async () => {
+      const mine = dependencies('device-reader');
+
+      const view = () =>
+        deviceRoute(
+          apiEvent('PUT /me/views/{eventId}', {
+            path: { eventId: EVENTS.zubiaPublished },
+            query: { municipalityId: ZUBIA },
+          }),
+          mine,
+        );
+
+      expect(statusOf(await view())).toBe(204);
+      // The second one is answered the same way and changes nothing: a phone
+      // that opens an event twice has not made it twice as popular.
+      expect(statusOf(await view())).toBe(204);
+
+      const event = await createPublicStore(client, TABLE).getVisibleEvent(
+        ZUBIA,
+        EVENTS.zubiaPublished,
+      );
+
+      expect(event?.viewCount).toBe(1);
+
+      const noMunicipality = await deviceRoute(
+        apiEvent('PUT /me/views/{eventId}', { path: { eventId: EVENTS.zubiaPublished } }),
+        mine,
+      );
+
+      expect(statusOf(noMunicipality)).toBe(400);
+    });
+
     it('turns a store refusal into the right status', async () => {
       const result = await deviceRoute(
         apiEvent('PUT /me/interests/{eventId}', {

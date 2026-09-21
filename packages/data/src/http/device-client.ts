@@ -49,6 +49,15 @@ export interface DeviceClient {
   mark(municipalityId: string, eventId: string): Promise<void>;
   unmark(municipalityId: string, eventId: string): Promise<void>;
   /**
+   * Says this phone opened an event, which is what the town hall's "vistas" is.
+   *
+   * Counted once per phone per day at both ends: the caller keeps a list of what
+   * it already sent today so the request is not even made, and the API refuses a
+   * second one if it arrives. Nothing about the opening is recorded beyond that
+   * it happened.
+   */
+  view(municipalityId: string, eventId: string): Promise<void>;
+  /**
    * Says this phone follows a municipality.
    *
    * What the town hall's count of neighbours with the app is made of, and the only
@@ -112,8 +121,11 @@ export function createDeviceClient(options: DeviceClientOptions): DeviceClient {
     return fresh;
   }
 
+  const under = (collection: string, municipalityId: string, eventId: string) =>
+    `/me/${collection}/${encodeURIComponent(eventId)}?municipalityId=${encodeURIComponent(municipalityId)}`;
+
   const interestPath = (municipalityId: string, eventId: string) =>
-    `/me/interests/${encodeURIComponent(eventId)}?municipalityId=${encodeURIComponent(municipalityId)}`;
+    under('interests', municipalityId, eventId);
 
   return {
     register,
@@ -132,6 +144,11 @@ export function createDeviceClient(options: DeviceClientOptions): DeviceClient {
     async unmark(municipalityId, eventId) {
       await register();
       await api.send('DELETE', interestPath(municipalityId, eventId));
+    },
+
+    async view(municipalityId, eventId) {
+      await register();
+      await api.send('PUT', under('views', municipalityId, eventId));
     },
 
     async follow(municipalityId) {

@@ -1,7 +1,7 @@
 import { byStartDate, eventEndsAt } from '@agora/core';
 import { Redirect } from 'expo-router';
 import { useMemo } from 'react';
-import { ScrollView, View } from 'react-native';
+import { RefreshControl, ScrollView, View } from 'react-native';
 
 import { EventCard } from '../../components/event-card';
 import { CalendarSkeleton } from '../../components/skeleton';
@@ -17,7 +17,7 @@ import { useApp } from '../../providers/app-provider';
  */
 export default function MyEventsScreen() {
   const { interestedEventIds, municipality, ready, t, theme } = useApp();
-  const { loading, events, categories } = useMunicipalityData();
+  const { loading, refreshing, refresh, events, categories } = useMunicipalityData();
 
   const { upcoming, past } = useMemo(() => {
     const now = Date.now();
@@ -45,7 +45,7 @@ export default function MyEventsScreen() {
 
   return (
     <Screen>
-      <View style={{ paddingHorizontal: theme.spacing(5) }}>
+      <View style={{ paddingHorizontal: theme.spacing(5), paddingTop: theme.spacing(4) }}>
         <Display>{t('myEvents.title')}</Display>
       </View>
 
@@ -61,6 +61,15 @@ export default function MyEventsScreen() {
             paddingHorizontal: theme.spacing(5),
             paddingTop: theme.spacing(4),
           }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => void refresh()}
+              tintColor={theme.colors.textMuted}
+              colors={[theme.colors.primary]}
+              progressBackgroundColor={theme.colors.surface}
+            />
+          }
         >
           {upcoming.map((event) => (
             <EventCard

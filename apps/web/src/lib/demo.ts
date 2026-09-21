@@ -8,22 +8,11 @@ export const DEMO_MUNICIPALITY_SLUG = 'la-zubia';
 export const DEMO_MUNICIPALITY_ID = 'la-zubia';
 
 /**
- * Deterministic stand-in for the interest counts the real "Me interesa" will
- * produce.
+ * Stand-in for the device count of the municipality.
  *
- * Derived from the event id so the numbers are stable across reloads: a demo
- * where the statistics jump every time the page is refreshed invites exactly
- * the question we do not want in a meeting.
+ * The last invented number in the panel. The per-event tallies used to be
+ * invented here too; they now ride on the events themselves, made up once by
+ * the seed for the demo and counted for real everywhere else, so every screen
+ * reads one field instead of choosing between a real number and a fake one.
  */
-export function demoInterestCount(eventId: string, isFeatured: boolean): number {
-  let hash = 0;
-  for (const character of eventId) {
-    hash = (hash * 31 + character.charCodeAt(0)) % 100_000;
-  }
-
-  const base = 18 + (hash % 140);
-  return isFeatured ? base * 3 : base;
-}
-
-/** Stand-in for the device count of the municipality. */
 export const DEMO_ACTIVE_DEVICES = 2417;

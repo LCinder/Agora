@@ -1,10 +1,18 @@
 'use client';
 
-import { byStartDate, formatWhen, type EventStatus } from '@agora/core';
+import { byStartDate, formatWhen, type Event, type EventStatus } from '@agora/core';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
-import { Card, Empty, PageHeader, Select, StatusBadge } from '../../../components/ui';
+import {
+  Button,
+  Card,
+  Empty,
+  Field,
+  PageHeader,
+  Select,
+  StatusBadge,
+} from '../../../components/ui';
 import { usePanel } from '../../../lib/panel-store';
 
 const STATUS_OPTIONS: { value: EventStatus | 'all'; label: string }[] = [
@@ -62,6 +70,8 @@ export default function EventsPage() {
         }
       />
 
+      {ownOnly ? null : <FeaturedPicker />}
+
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:max-w-xl">
         <Select
           aria-label="Filtrar por estado"
@@ -109,6 +119,11 @@ export default function EventsPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
+                    {event.isFeatured ? (
+                      <span className="rounded bg-neutral-900 px-2 py-0.5 text-xs font-semibold text-white">
+                        En portada
+                      </span>
+                    ) : null}
                     <StatusBadge status={event.status} />
                     <Link
                       href={`/eventos/editar?id=${event.id}`}
@@ -116,6 +131,7 @@ export default function EventsPage() {
                     >
                       Editar
                     </Link>
+                    <DeleteEvent event={event} />
                   </div>
                 </div>
               </Card>
@@ -124,5 +140,153 @@ export default function EventsPage() {
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * Which event is on the cover of the app, of which there is one.
+ *
+ * It lives here and not in the event form because it is a decision about the
+ * calendar rather than about an event: a checkbox on a form answers "is this
+ * one featured", and the question the town hall actually has is "what is on the
+ * cover this week". One list, one answer, and choosing a new one takes the last
+ * one off — the store enforces that too, so a second browser tab cannot end up
+ * with two.
+ *
+ * Only published events are offered. The cover of the app is not a place to put
+ * a draft, and a cancelled event there would be the worst thing the calendar
+ * could lead with.
+ */
+function FeaturedPicker() {
+  const { events, municipality, updateEvent } = usePanel();
+  const [working, setWorking] = useState(false);
+
+  const candidates = useMemo(
+    () => events.filter((event) => event.status === 'published').sort(byStartDate),
+    [events],
+  );
+
+  const featured = events.find((event) => event.isFeatured && event.status === 'published');
+
+  async function choose(nextId: string) {
+    if (working) return;
+
+    setWorking(true);
+
+    try {
+      // The old one is cleared explicitly rather than left to the server. The
+      // API does enforce it, but the demo build has no server at all, and a
+      // panel that behaves differently in a meeting is not the panel.
+      if (featured && featured.id !== nextId) {
+        await updateEvent(featured.id, { isFeatured: false });
+      }
+
+      if (nextId !== '') await updateEvent(nextId, { isFeatured: true });
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  return (
+    <Card className="mb-4">
+      <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+        <Field
+          label="Destacado en la portada"
+          hint="Sale grande al abrir la aplicación. Solo puede haber uno: al elegir otro, el anterior deja de estarlo."
+        >
+          <Select
+            value={featured?.id ?? ''}
+            disabled={working}
+            onChange={(change) => void choose(change.target.value)}
+          >
+            <option value="">Ninguno</option>
+            {candidates.map((event) => (
+              <option key={event.id} value={event.id}>
+                {event.title}
+              </option>
+            ))}
+          </Select>
+        </Field>
+
+        {featured ? (
+          <p className="text-sm text-neutral-600">
+            Ahora mismo:{' '}
+            <Link href={`/eventos/editar?id=${featured.id}`} className="font-semibold underline">
+              {featured.title}
+            </Link>
+          </p>
+        ) : (
+          <p className="text-sm text-neutral-600">
+            Sin destacado. La portada abre con lo que hay hoy
+            {municipality ? ` en ${municipality.name}` : ''}.
+          </p>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+/**
+ * Deleting an event, which is not the same as cancelling it.
+ *
+ * Two clicks and no dialog: a `confirm()` is a browser modal that behaves
+ * differently on every machine this gets demonstrated on, and the second click
+ * says what it does rather than asking a yes/no question about something that
+ * has scrolled out of view.
+ *
+ * A published event says "cancel it instead" first, because that is almost
+ * always the right answer: the neighbours who marked it have to be told, and an
+ * event that simply disappears from the calendar reads as a bug in the app.
+ */
+function DeleteEvent({ event }: { event: Event }) {
+  const { deleteEvent, role } = usePanel();
+  const [asking, setAsking] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
+
+  const visible = event.status !== 'published' || role !== 'org_editor';
+
+  if (!visible) return null;
+
+  if (!asking) {
+    return (
+      <span className="inline-flex items-center gap-2">
+        {failed === null ? null : <span className="text-xs text-red-700">{failed}</span>}
+        <button
+          type="button"
+          onClick={() => {
+            setFailed(null);
+            setAsking(true);
+          }}
+          className="text-sm font-semibold text-red-700 underline"
+        >
+          Borrar
+        </button>
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex flex-wrap items-center gap-2">
+      {event.status === 'published' || event.status === 'cancelled' ? (
+        <span className="text-xs text-neutral-600">
+          Los vecinos ya lo han visto. Se borra sin avisarles.
+        </span>
+      ) : null}
+      <Button
+        variant="danger"
+        onClick={() => {
+          setFailed(null);
+          void deleteEvent(event.id).catch((error: unknown) => {
+            setAsking(false);
+            setFailed(error instanceof Error ? error.message : 'No se ha podido borrar.');
+          });
+        }}
+      >
+        Borrar para siempre
+      </Button>
+      <Button variant="secondary" onClick={() => setAsking(false)}>
+        Mejor no
+      </Button>
+    </span>
   );
 }

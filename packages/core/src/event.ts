@@ -52,6 +52,27 @@ export const eventSchema = z
     isFeatured: z.boolean().default(false),
     liveTrackingEnabled: z.boolean().default(false),
 
+    /**
+     * How many neighbours marked "Me interesa", and how many opened it.
+     *
+     * Two tallies and never a list. Nothing in this product can go from either
+     * number back to a device, let alone to a person: the index that would
+     * answer it is denied to every role but the reminder job (D-032), and there
+     * is no name anywhere to reach anyway (D-029).
+     *
+     * They carry defaults because they are not the writer's to set. An editor
+     * sends an event without them and the store keeps whatever the residents
+     * put there; the panel's write expression leaves both attributes out
+     * entirely, which is what makes an edit unable to reset them.
+     *
+     * A view is one opening of the detail screen, counted once per phone per
+     * day. Not "how many people saw it" — nobody can measure that — but a
+     * number a town hall can compare between two events, which is the question
+     * they actually ask.
+     */
+    interestCount: z.number().int().min(0).default(0),
+    viewCount: z.number().int().min(0).default(0),
+
     createdAt: z.coerce.date(),
     updatedAt: z.coerce.date(),
     publishedAt: z.coerce.date().nullable().default(null),
@@ -67,6 +88,28 @@ export const eventSchema = z
 
 export type EventLocation = z.infer<typeof eventLocationSchema>;
 export type Event = z.infer<typeof eventSchema>;
+
+/**
+ * Below how many an audience is people rather than a statistic.
+ *
+ * The project document sets it for the town hall's panel (section 10) and it
+ * holds everywhere a count is shown, to residents included. Two neighbours
+ * interested in a talk in a village of four thousand are not an anonymous
+ * number: they are two people somebody could name, and printing "a 2 vecinos
+ * les interesa" on the event itself says more about them than the town hall is
+ * ever shown.
+ *
+ * So a tally appears from five upwards and is left out below it — not shown as
+ * zero, and not rounded. Nobody loses anything by it: what an event with three
+ * marks tells you is that it has not landed yet, and that reads perfectly well
+ * from a card with no number on it.
+ */
+export const MINIMUM_AUDIENCE = 5;
+
+/** The number to show for a tally, or null when it is too small to show. */
+export function reportableCount(count: number): number | null {
+  return count < MINIMUM_AUDIENCE ? null : count;
+}
 
 /**
  * What residents are allowed to see.

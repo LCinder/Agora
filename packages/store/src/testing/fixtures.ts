@@ -93,6 +93,8 @@ export function event(input: {
     priceInfo: null,
     isFree: true,
     audienceTags: [],
+    interestCount: 0,
+    viewCount: 0,
     status: input.status,
     rejectionReason: input.status === 'rejected' ? 'Sin motivo' : null,
     isFeatured: false,

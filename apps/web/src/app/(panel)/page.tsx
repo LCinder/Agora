@@ -4,7 +4,7 @@ import { formatWhen, groupEvents, isAwaitingReview, residentVisibleEvents } from
 import Link from 'next/link';
 
 import { Card, Empty, PageHeader, StatTile, StatusBadge } from '../../components/ui';
-import { DEMO_ACTIVE_DEVICES, demoInterestCount } from '../../lib/demo';
+import { DEMO_ACTIVE_DEVICES } from '../../lib/demo';
 import { usePanel } from '../../lib/panel-store';
 
 /**
@@ -34,8 +34,7 @@ export default function PanelHome() {
   const groups = groupEvents(published, context);
 
   const totalInterest =
-    stats?.interests.total ??
-    published.reduce((sum, event) => sum + demoInterestCount(event.id, event.isFeatured), 0);
+    stats?.interests.total ?? published.reduce((sum, event) => sum + event.interestCount, 0);
 
   return (
     <>

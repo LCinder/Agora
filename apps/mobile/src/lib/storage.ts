@@ -16,6 +16,7 @@ const KEYS = {
   appearance: 'agora.appearance',
   volunteerSession: 'agora.volunteer.session',
   deviceRegistration: 'agora.device.registration',
+  viewedToday: 'agora.views.today',
 } as const;
 
 /** An interest is one event of one municipality. */
@@ -92,6 +93,30 @@ export async function loadInterests(): Promise<InterestKey[]> {
 
 export async function saveInterests(interests: readonly InterestKey[]): Promise<void> {
   await writeJson(KEYS.interests, interests);
+}
+
+/**
+ * The events this phone has already been counted as opening today.
+ *
+ * It exists to not make a request the API would refuse: a view counts once per
+ * phone per day, and a neighbour checking the time of the procession four times
+ * would otherwise send four of them. The whole record is replaced when the day
+ * changes, so there is nothing to prune and no history of what was read — only
+ * today's list, and only until midnight.
+ */
+interface ViewedToday {
+  day: string;
+  keys: InterestKey[];
+}
+
+export async function loadViewedToday(day: string): Promise<InterestKey[]> {
+  const stored = await readJson<ViewedToday | null>(KEYS.viewedToday, null);
+
+  return stored !== null && stored.day === day ? stored.keys : [];
+}
+
+export async function saveViewedToday(day: string, keys: readonly InterestKey[]): Promise<void> {
+  await writeJson(KEYS.viewedToday, { day, keys });
 }
 
 /**

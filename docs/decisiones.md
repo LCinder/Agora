@@ -1239,3 +1239,110 @@ Eso mueve la restricción de rama a otro sitio, y hay que decirlo claro porque e
 Lo que esto enseña, y es la razón de escribirlo entero en vez de arreglarlo y callar: **la mitad de una integración con un proveedor de identidad no se puede verificar sin el proveedor**. Los tres stacks validaban, la política renderizaba con sus nueve sentencias, los tests pasaban — y el sujeto estaba mal en dos dimensiones distintas. Lo único que lo dijo fue un `apply` en una cuenta real. Es exactamente el hueco que sigue abierto para el circuito completo de la aplicación.
 
 Ahora la comprobación de que coincide se puede hacer sin ejecutar nada: el sujeto que espera el rol está en IAM → *Trust relationships*, y el que manda GitHub se calcula con los dos ids. Si las dos cadenas no son idénticas carácter a carácter, no hay despliegue, y el mensaje de error no lo va a decir.
+
+---
+
+## D-068 — Dos contadores en el evento, y un suelo de cinco para los dos
+
+**Fecha:** 2026-09-21 · **Estado:** aceptada
+
+El evento lleva ahora dos números: cuánta gente lo ha marcado y cuánta lo ha abierto. Hasta aquí el
+primero existía pero solo lo veía el ayuntamiento, y el segundo no existía.
+
+**Se enseñan también al vecino.** Un calendario lleno vale más cuando se ve a qué va a ir la gente,
+y es la misma diferencia entre una cartelera y una cartelera con las entradas vendidas. No hay nada
+que se escape por enseñarlo: el índice que diría *quién* marcó un evento solo lo puede leer el
+trabajo de recordatorios (D-032), y no hay ningún nombre detrás de un dispositivo que pudiera
+filtrarse (D-029).
+
+**Y por eso mismo el umbral es el mismo para todos.** El documento de proyecto fija que no se
+muestre un dato con menos de cinco dispositivos detrás (sección 10), y hasta ahora eso era una regla
+del panel. Ponerlo en una tarjeta de la app sin el suelo habría sido peor que quitarlo del panel:
+«a 2 vecinos les interesa» la charla del martes, en un pueblo de cuatro mil habitantes, no es una
+estadística anónima, son dos personas que alguien puede nombrar — y se lo estaríamos contando al
+pueblo entero, no al técnico de cultura. Así que `MINIMUM_AUDIENCE` vive en `@agora/core`, lo
+aplican la app y el panel, y por debajo de cinco no se muestra nada: ni un cero, ni un redondeo.
+Una tarjeta sin número dice exactamente lo que hay que decir, que es que ese evento todavía no ha
+calado.
+
+**Una visita es una apertura por teléfono y por día.** No «cuánta gente lo ha visto», que no se
+puede medir, sino un número que el ayuntamiento puede comparar entre dos eventos, que es la pregunta
+que de verdad se hacen. El límite se guarda a los dos lados: la app no repite la llamada si ya la
+hizo hoy, y la API la rechaza si llega igualmente. Esa segunda mitad es la que hace que el número se
+pueda imprimir en una memoria anual — un contador que cualquiera puede inflar teniendo el dedo en
+recargar no es un contador.
+
+La fila que recuerda que este teléfono ya abrió este evento hoy lleva TTL de 48 horas y se borra
+sola. Cuarenta y ocho y no veinticuatro porque el día que guarda es un día en `Europe/Madrid`, y una
+fila que caducara a medianoche UTC dejaría contar dos veces la misma tarde durante dos horas al año.
+
+**Ninguno de los dos números lo puede tocar quien edita.** Los dos se escriben con `if_not_exists`
+en la expresión de actualización, igual que ya se hacía con el interés: una edición no puede
+devolverlos a cero ni aunque lo intente, porque los atributos no están en la lista de lo que una
+edición escribe.
+
+**Y la demo se inventa los dos**, en el fichero de semilla y con la misma fórmula derivada del id
+que ya se inventaba el panel. Un calendario donde ningún evento tiene público es lo contrario de lo
+que esa pantalla hace en una reunión. A cambio desaparece `demoInterestCount`: era un segundo número
+falso para lo mismo, en otro paquete, y dos invenciones de la misma cifra acaban discrepando.
+
+---
+
+## D-069 — Borrar un evento, y un solo destacado
+
+**Fecha:** 2026-09-21 · **Estado:** aceptada
+
+**Cancelar no es borrar, y hacían falta las dos.** Cancelar deja el evento en el calendario marcado
+como cancelado, que es lo correcto casi siempre: quien había planeado la tarde tiene que enterarse,
+y un evento que desaparece sin más se lee como un fallo de la aplicación. Pero el duplicado, la
+prueba y el concierto tecleado en el mes que no era no merecen una lápida en la agenda, y hasta
+ahora no había forma de quitarlos.
+
+Se borra el evento y los cambios que hubiera pendientes sobre él, en ese orden: un cambio huérfano
+en el índice de revisión deja una fila en la bandeja del ayuntamiento que apunta a nada, y esa
+bandeja es la pantalla que no puede enseñar fantasmas.
+
+**Lo que se deja a propósito son las marcas de los vecinos.** Viven bajo el dispositivo que las hizo
+y solo se llega a ellas por el índice que este rol tiene denegado (D-032), así que esta función no
+podría borrarlas aunque quisiera — y tampoco debería: son filas de otro. Un evento que ya no existe
+no se lista, no se recuerda y no se lee, así que se quedan inertes hasta que el teléfono se olvide.
+
+Eso sí obligó a arreglar algo que estaba mal y no se notaba: desmarcar un evento que ya no existe
+fallaba, porque la transacción exige que el evento esté ahí para restarle uno. Habría dejado al
+vecino con una marca que no puede quitar y, peor, habría roto «borrar mis datos», que desmarca una
+por una. Ahora al bajar se borra la marca igualmente; al subir sigue siendo un 404, porque pedir que
+te recuerden algo que no existe sí es un error.
+
+**Y una asociación solo borra lo suyo mientras nadie lo haya visto.** Publicado o cancelado, la
+decisión de quitarlo del calendario es municipal.
+
+**Del destacado de portada solo puede haber uno.** Era una casilla en el formulario del evento, que
+responde a «¿está este destacado?» cuando la pregunta que tiene el ayuntamiento es «¿qué hay esta
+semana en la portada?». Ahora es una lista desplegable arriba de *Eventos*, con los publicados y
+«Ninguno», y elegir uno quita el anterior. La regla la aplica el almacén y no la pantalla: una regla
+que vive en el cliente se cumple hasta que alguien abre una segunda pestaña.
+
+De paso se cierra un agujero que llevaba ahí desde el principio: `isFeatured` lo podía poner
+cualquier asociación en su propio evento, con lo que cualquier peña podía ponerse en la portada del
+municipio. Ahora se ignora igual que se ignora que una asociación pida `published` — sin error y sin
+efecto.
+
+---
+
+## D-070 — El panel es claro, y el modo oscuro se apaga con una línea
+
+**Fecha:** 2026-09-21 · **Estado:** aceptada
+
+El panel seguía el esquema del sistema operativo, así que en un portátil configurado en oscuro se
+veía oscuro. Eso está bien en una herramienta que uno elige y mal en esta: se usa en el ayuntamiento
+junto a un programa impreso, a menudo proyectado en una pared, y es lo que se le enseña a un
+concejal. Un panel que se pone oscuro porque lo decidió Windows es un panel que no hemos visto antes
+de la reunión.
+
+En lugar de borrar las clases `dark:` de treinta ficheros, la variante se reapunta a una clase que
+nadie pone en la página: `@custom-variant dark (&:where(.dark, .dark *))`. Las reglas siguen ahí,
+siguen tipadas y siguen formateándose, y no coinciden nunca. El CSS compilado lo confirma: cero
+`prefers-color-scheme: dark`, setenta y dos selectores `.dark` inertes. Un modo oscuro de verdad,
+el día que alguien lo pida, es poner `dark` en el `<html>`.
+
+La app del vecino no cambia: es oscura a propósito y se mira de noche en la calle.

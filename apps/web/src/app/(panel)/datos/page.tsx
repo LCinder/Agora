@@ -1,6 +1,12 @@
 'use client';
 
-import { byStartDate, formatShortDate, readableOn, residentVisibleEvents } from '@agora/core';
+import {
+  byStartDate,
+  formatShortDate,
+  readableOn,
+  reportableCount,
+  residentVisibleEvents,
+} from '@agora/core';
 import { useMemo, useState, type CSSProperties } from 'react';
 import {
   Bar,
@@ -15,7 +21,7 @@ import {
 } from 'recharts';
 
 import { Button, Card, Empty, PageHeader, StatTile } from '../../../components/ui';
-import { DEMO_ACTIVE_DEVICES, demoInterestCount } from '../../../lib/demo';
+import { DEMO_ACTIVE_DEVICES } from '../../../lib/demo';
 import { usePanel } from '../../../lib/panel-store';
 import { downloadReport, type ReportRow } from '../../../lib/report';
 
@@ -103,7 +109,7 @@ export default function DataPage() {
     return published
       .map((event) => ({
         name: shorten(event.title),
-        interesados: demoInterestCount(event.id, event.isFeatured),
+        interesados: event.interestCount,
       }))
       .sort((a, b) => b.interesados - a.interesados)
       .slice(0, 8);
@@ -126,7 +132,7 @@ export default function DataPage() {
 
     for (const event of published) {
       const current = totals.get(event.categoryId) ?? 0;
-      totals.set(event.categoryId, current + demoInterestCount(event.id, event.isFeatured));
+      totals.set(event.categoryId, current + event.interestCount);
     }
 
     // Labelled with the category's name, not its id: "semana-santa" is a
@@ -172,6 +178,12 @@ export default function DataPage() {
   const publishedCount = stats?.events.published ?? published.length;
   const averagePerEvent = publishedCount === 0 ? 0 : Math.round(totalInterest / publishedCount);
 
+  // Openings of an event, counted once per phone per day. The demo has no
+  // residents, so it borrows the seed's own invented tallies rather than
+  // showing a town where nobody has looked at anything.
+  const totalViews =
+    stats?.views.total ?? published.reduce((sum, event) => sum + event.viewCount, 0);
+
   /**
    * The PDF the memoria anual is made of.
    *
@@ -216,7 +228,7 @@ export default function DataPage() {
           category: categories.find((entry) => entry.id === event.categoryId)?.name ?? '—',
           interested:
             stats === null
-              ? demoInterestCount(event.id, event.isFeatured)
+              ? reportableCount(event.interestCount)
               : (heldBack.get(event.id) ?? null),
         }))
         .sort((left, right) => (right.interested ?? -1) - (left.interested ?? -1));
@@ -229,6 +241,7 @@ export default function DataPage() {
         period,
         figures: [
           { label: 'Eventos publicados', value: String(publishedCount) },
+          { label: 'Visitas a los eventos', value: totalViews.toLocaleString('es-ES') },
           { label: 'Marcas de «Me interesa»', value: totalInterest.toLocaleString('es-ES') },
           { label: 'Media por evento', value: String(averagePerEvent) },
           ...(municipal
@@ -279,19 +292,14 @@ export default function DataPage() {
   }
 
   // The series takes the municipality's colour rather than a fixed blue — it
-  // is their report. Lifted to 3:1 against each scheme's card, which is what
-  // WCAG asks of a graphic object; the CSS picks the one that applies.
+  // is their report. Lifted to 3:1 against the white card, which is what WCAG
+  // asks of a graphic object. One value and not two: the panel is light.
   const brand = municipality.branding.primaryColor;
 
   return (
     <div
       className="viz-root"
-      style={
-        {
-          '--viz-series-brand-light': readableOn(brand, '#FFFFFF', 3),
-          '--viz-series-brand-dark': readableOn(brand, '#1A1A19', 3),
-        } as CSSProperties
-      }
+      style={{ '--viz-series-brand-light': readableOn(brand, '#FFFFFF', 3) } as CSSProperties}
     >
       <PageHeader
         title="Datos"
@@ -315,8 +323,13 @@ export default function DataPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatTile label="Eventos publicados" value={publishedCount} />
+        <StatTile
+          label="Visitas a los eventos"
+          value={totalViews.toLocaleString('es-ES')}
+          hint="Una por vecino y día"
+        />
         <StatTile label="Marcas de «Me interesa»" value={totalInterest.toLocaleString('es-ES')} />
         <StatTile label="Media por evento" value={averagePerEvent} />
         {municipal ? (

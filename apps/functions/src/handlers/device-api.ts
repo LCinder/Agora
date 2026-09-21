@@ -122,6 +122,19 @@ async function dispatch(event: ApiEvent, dependencies: DeviceApiDependencies): P
 
       return noContent();
 
+    // Opening an event. The app only sends this the first time a phone opens a
+    // given event on a given day, and the store refuses it a second time
+    // anyway, so the number the town hall reads is openings and not taps.
+    case 'PUT /me/views/{eventId}': {
+      const municipalityId = municipalityFrom(event);
+
+      if (municipalityId === null) return badRequest('Falta municipalityId.');
+
+      await store.recordView(municipalityId, pathParameter(event, 'eventId'));
+
+      return noContent();
+    }
+
     case 'DELETE /me/interests/{eventId}': {
       const municipalityId = municipalityFrom(event);
 

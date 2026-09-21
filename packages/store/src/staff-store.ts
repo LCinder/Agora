@@ -130,6 +130,20 @@ export interface StaffStore {
   approveEvent(eventId: string): Promise<Event>;
   rejectEvent(eventId: string, reason: string): Promise<Event>;
   cancelEvent(eventId: string): Promise<Event>;
+  /**
+   * Removes an event for good, with the changes anybody asked for on it.
+   *
+   * Cancelling is the right answer almost every time: a neighbour who planned
+   * their evening around an event has to be told it is off, and one that simply
+   * vanishes reads as a bug. This is for the other case — the duplicate, the
+   * test entry, the concert typed into the wrong town — where leaving a
+   * tombstone in the calendar would be worse than the mistake.
+   *
+   * So it is the town hall's, and an association may only delete its own event
+   * while nobody has seen it: once something is published or cancelled, taking
+   * it off the calendar is a municipal decision.
+   */
+  deleteEvent(eventId: string): Promise<void>;
   /** The changes asked for on one event, whatever their state. */
   listChanges(eventId: string): Promise<PendingChange[]>;
   approveChange(eventId: string, changeId: string): Promise<Event>;
@@ -290,7 +304,54 @@ export function createStaffStore(
       }),
     );
 
+    if (next.isFeatured) await keepOnlyFeatured(next.id);
+
     return next;
+  }
+
+  /**
+   * One event on the cover, and only one.
+   *
+   * The app draws the featured event of a block large, at the top, and a
+   * calendar with three of them has no cover at all — it has a list with three
+   * shouty rows. So featuring an event un-features whatever was there, and that
+   * happens here rather than in the panel: a rule the client enforces is a rule
+   * that holds until somebody opens a second tab.
+   *
+   * A query of the town's own events, which is a partition read of a few dozen
+   * rows, and it only runs when something is being put on the cover — a handful
+   * of times a year in a municipality.
+   */
+  async function keepOnlyFeatured(eventId: string): Promise<void> {
+    const result = await client.send(
+      new QueryCommand({
+        TableName: tableName,
+        KeyConditionExpression: 'pk = :pk and begins_with(sk, :prefix)',
+        FilterExpression: 'isFeatured = :featured',
+        ExpressionAttributeValues: {
+          ':pk': municipalityPk(municipalityId),
+          ':prefix': SK_PREFIX.event,
+          ':featured': true,
+        },
+        ProjectionExpression: 'id',
+      }),
+    );
+
+    for (const item of result.Items ?? []) {
+      const other = String(item['id']);
+
+      if (other === eventId) continue;
+
+      await client.send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: eventKey(municipalityId, other),
+          UpdateExpression: 'SET isFeatured = :featured',
+          ExpressionAttributeValues: { ':featured': false },
+          ConditionExpression: 'attribute_exists(pk)',
+        }),
+      );
+    }
   }
 
   /**
@@ -455,8 +516,14 @@ export function createStaffStore(
         audienceTags: [],
         status,
         rejectionReason: null,
-        isFeatured: input.isFeatured ?? false,
+        // The cover belongs to the town hall. An association asking for it gets
+        // the same answer as one asking to publish: nothing happens, quietly.
+        isFeatured: isMunicipal(actor) && (input.isFeatured ?? false),
         liveTrackingEnabled: false,
+        // A new event has no audience yet, and neither number is ever an
+        // author's to set: both belong to the residents from here on.
+        interestCount: 0,
+        viewCount: 0,
         createdAt: now,
         updatedAt: now,
         publishedAt: status === 'published' ? now : null,
@@ -471,6 +538,8 @@ export function createStaffStore(
         }),
       );
 
+      if (event.isFeatured) await keepOnlyFeatured(event.id);
+
       return event;
     },
 
@@ -479,13 +548,20 @@ export function createStaffStore(
       if (event === null) throw notFound('Ese evento no existe en este municipio.');
       if (!canEdit(event)) throw forbidden('Ese evento es de otra asociación.');
 
+      // Same rule as on creation, and it has to be here too: an association
+      // editing its own published event could otherwise put itself on the cover
+      // through the back door.
+      const asked: EventPatch = { ...patch };
+
+      if (!isMunicipal(actor)) delete asked.isFeatured;
+
       if (await needsReview(event)) {
-        return { kind: 'queued', change: await queueChange(event, patch) };
+        return { kind: 'queued', change: await queueChange(event, asked) };
       }
 
       return {
         kind: 'applied',
-        event: await writeEvent({ ...event, ...patch, updatedAt: new Date() }),
+        event: await writeEvent({ ...event, ...asked, updatedAt: new Date() }),
       };
     },
 
@@ -539,6 +615,54 @@ export function createStaffStore(
       if (!canEdit(event)) throw forbidden('Ese evento es de otra asociación.');
 
       return writeStatus(eventId, 'cancelled');
+    },
+
+    async deleteEvent(eventId) {
+      const event = await readEvent(eventId);
+      if (event === null) throw notFound('Ese evento no existe en este municipio.');
+      if (!canEdit(event)) throw forbidden('Ese evento es de otra asociación.');
+
+      if (!isMunicipal(actor) && (event.status === 'published' || event.status === 'cancelled')) {
+        throw forbidden(
+          'Este evento ya lo han visto los vecinos. Pídele al ayuntamiento que lo borre.',
+        );
+      }
+
+      // The changes first. An event deleted with a pending change still in the
+      // review index leaves a row in the town hall's inbox pointing at nothing,
+      // and the inbox is the one screen that must never show a ghost.
+      const changes = await client.send(
+        new QueryCommand({
+          TableName: tableName,
+          KeyConditionExpression: 'pk = :pk and begins_with(sk, :prefix)',
+          ExpressionAttributeValues: { ':pk': `EVT#${eventId}`, ':prefix': CHANGE_PREFIX },
+          ProjectionExpression: 'pk, sk',
+        }),
+      );
+
+      for (const item of changes.Items ?? []) {
+        await client.send(
+          new DeleteCommand({
+            TableName: tableName,
+            Key: { pk: String(item['pk']), sk: String(item['sk']) },
+          }),
+        );
+      }
+
+      await client.send(
+        new DeleteCommand({
+          TableName: tableName,
+          Key: eventKey(municipalityId, eventId),
+          ConditionExpression: 'attribute_exists(pk)',
+        }),
+      );
+
+      // What is deliberately left alone: the marks residents made on it. They
+      // live under the devices that made them, reachable only through the index
+      // this role is denied (D-032), so this function could not reach them if it
+      // wanted to — and should not: they are somebody else's rows. An event that
+      // is gone is never read, never reminded and never listed, so they sit
+      // there inert until the phone is forgotten.
     },
 
     async listChanges(eventId) {

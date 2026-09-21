@@ -2,6 +2,7 @@ import {
   formatLongDate,
   formatTime,
   publicEventUrl,
+  reportableCount,
   type Event,
   type EventCategory,
   type Organization,
@@ -26,6 +27,7 @@ import {
 } from '../../components/ui';
 import { PUBLIC_SITE_URL } from '../../lib/config';
 import { dataSource } from '../../lib/data';
+import { recordView } from '../../lib/devices';
 import { useApp } from '../../providers/app-provider';
 
 /**
@@ -45,6 +47,16 @@ export default function EventDetailScreen() {
   const [category, setCategory] = useState<EventCategory | undefined>();
   const [organization, setOrganization] = useState<Organization | undefined>();
   const [loading, setLoading] = useState(true);
+  /**
+   * This phone's own effect on the count, since the page loaded.
+   *
+   * The number came with the event and the mark is written in the background,
+   * so without this a neighbour taps "Me interesa", the heart fills and the
+   * count next to it does not move — which reads as the tap not having worked.
+   * Re-reading the event instead would be a round trip to say something the
+   * phone already knows.
+   */
+  const [ownDelta, setOwnDelta] = useState(0);
 
   useEffect(() => {
     if (!municipality || !id) return;
@@ -64,6 +76,10 @@ export default function EventDetailScreen() {
     }
 
     void load(municipality.id, id);
+
+    // Counted once per phone per day, and not awaited: the page is already on
+    // screen and a statistic must never be something the neighbour waits for.
+    void recordView(municipality.id, id);
 
     return () => {
       active = false;
@@ -200,6 +216,11 @@ export default function EventDetailScreen() {
 
           {event.description ? <Body>{event.description}</Body> : null}
 
+          <Audience
+            interested={Math.max(0, event.interestCount + ownDelta)}
+            views={event.viewCount}
+          />
+
           {/* The thumbnail is a door, not a map: at this size it cannot be
               panned or zoomed, so tapping it opens the real thing. */}
           {event.location.latitude !== null && event.location.longitude !== null ? (
@@ -239,7 +260,10 @@ export default function EventDetailScreen() {
             <Button
               label={interested ? t('event.interestedDone') : t('event.interested')}
               variant={interested ? 'secondary' : 'primary'}
-              onPress={() => void toggleInterest(event.id)}
+              onPress={() => {
+                setOwnDelta((current) => current + (interested ? -1 : 1));
+                void toggleInterest(event.id);
+              }}
             />
             <Button
               label={t('event.addToCalendar')}
@@ -255,6 +279,41 @@ export default function EventDetailScreen() {
         </View>
       </ScreenScroll>
     </Screen>
+  );
+}
+
+/**
+ * What the town thinks of this event: how many marked it, how many opened it.
+ *
+ * Two numbers and nothing else. Neither can be traced back to a phone, let
+ * alone to a neighbour — the index that would answer it belongs to the reminder
+ * job alone (D-032) — and the second is counted once per phone per day, so it
+ * is openings and not taps.
+ *
+ * Shown to residents and not only to the town hall on purpose: a full calendar
+ * is worth more when you can see which things the town is actually going to.
+ * Both go through the same floor the panel applies to its own figures, so a
+ * number too small to be a statistic is left out rather than printed under the
+ * event for the whole town to read.
+ */
+function Audience({ interested, views }: { interested: number; views: number }) {
+  const { t, theme } = useApp();
+
+  const marks = reportableCount(interested);
+  const opens = reportableCount(views);
+
+  if (marks === null && opens === null) return null;
+
+  const parts = [
+    marks === null ? null : t('event.interestedCount', { count: marks }),
+    opens === null ? null : t('event.viewsCount', { count: opens }),
+  ].filter((part): part is string => part !== null);
+
+  return (
+    <View style={[styles.row, { gap: theme.spacing(2) }]}>
+      <Ionicons name="heart-outline" size={18} color={theme.colors.textMuted} />
+      <Subtitle style={styles.grow}>{parts.join(' · ')}</Subtitle>
+    </View>
   );
 }
 

@@ -2,7 +2,7 @@ import { filterEvents, groupEvents, type Event, type EventCategory } from '@agor
 import { Redirect, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { EventCard } from '../../components/event-card';
@@ -21,7 +21,7 @@ import { FONTS } from '../../theme/theme';
  */
 export default function CalendarScreen() {
   const { municipality, ready, t, theme } = useApp();
-  const { loading, events, categories } = useMunicipalityData();
+  const { loading, refreshing, refresh, events, categories } = useMunicipalityData();
   const router = useRouter();
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -70,7 +70,16 @@ export default function CalendarScreen() {
       {/* Masthead. The town name is the control that changes town, the way a
           location picker is its own title in every app that has one — a
           separate "Cambiar" button was a second row for nothing. */}
-      <View style={{ gap: theme.spacing(3), paddingHorizontal: theme.spacing(5) }}>
+      <View
+        style={{
+          gap: theme.spacing(3),
+          paddingHorizontal: theme.spacing(5),
+          // Above the safe area, not instead of it: on a phone with no notch the
+          // town name otherwise starts flush against the status bar, and the
+          // screen opens looking cramped.
+          paddingTop: theme.spacing(4),
+        }}
+      >
         <View style={[styles.row, { gap: theme.spacing(3) }]}>
           <Pressable
             onPress={() => router.push('/welcome')}
@@ -146,6 +155,19 @@ export default function CalendarScreen() {
             // The grid wants the wider canvas; the list reads better inset.
             paddingHorizontal: theme.spacing(view === 'month' ? 3 : 5),
           }}
+          // Pull down to read the calendar again. The town hall changes the
+          // time of a verbena an hour before it starts, and a neighbour who
+          // already has the screen open should not have to close the app to
+          // find out.
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => void refresh()}
+              tintColor={theme.colors.textMuted}
+              colors={[theme.colors.primary]}
+              progressBackgroundColor={theme.colors.surface}
+            />
+          }
         >
           {view === 'month' ? (
             <Animated.View key="month" entering={FadeIn.duration(220)}>

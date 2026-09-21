@@ -252,6 +252,21 @@ const ROUTES: readonly Route<RequestContext>[] = [
     },
   },
 
+  {
+    method: 'DELETE',
+    pattern: 'municipalities/:municipalityId/events/:eventId',
+    run: async ({ eventId }, { panel }) => {
+      await panel.events.deleteEvent(eventId!);
+
+      // Audited before anything else is said about it: this is the one action
+      // on an event that leaves nothing behind to look at afterwards, so the
+      // log line is the only record that it was ever there.
+      await panel.audit.record({ action: 'event.delete', entity: 'event', entityId: eventId! });
+
+      return noContent();
+    },
+  },
+
   // --- the review inbox ----------------------------------------------------
   {
     method: 'GET',
