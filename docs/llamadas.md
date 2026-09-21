@@ -17,13 +17,24 @@ mientras marcas.
 
 Esto es lo único que hay que tener delante mientras marcas. Lo demás del documento es el porqué.
 
-**1. Te coge la centralita:**
+**1. Te coge la centralita.** Casi siempre es alguien en prácticas que no sabe quién es «el técnico
+de Cultura». Por eso hay tres frases y se usan en este orden:
 
-> «Buenos días. ¿Me pasa con el técnico de Cultura, por favor?»
+> **Si tienes el nombre** (columna `concejal_cultura` del CSV):
+> «Buenos días, ¿está Rubén? Rubén Melgarejo, de Cultura.»
+>
+> **Si no lo tienes**, pide el sitio y no el cargo:
+> «Buenos días, ¿me pasa con la Casa de la Cultura, por favor?»
+>
+> **Y si se queda en blanco**, bájalo a palabras normales:
+> «Con quien lleva las actividades culturales y las fiestas del pueblo, ¿sabes quién es?»
 
 Si preguntan de qué se trata: _«Es por la agenda de eventos del municipio.»_
 Si preguntan de qué empresa: _«Soy María, somos de Granada. Es un tema de la agenda de eventos, ¿me
 lo pasa un momento?»_
+
+Si dice que no está: **no cuelgues con eso**. _«¿Y a qué hora suele estar?»_ — eso sí lo sabe
+contestar, y te da una hora a la que volver a llamar diciendo «me dijeron que sobre las diez».
 
 **2. Te pasan con el técnico:**
 
@@ -93,18 +104,18 @@ con quien lo usaría.
 
 | Municipio | Hab. | Teléfono | Por qué esta |
 | --- | ---: | --- | --- |
-| **La Zubia** | 20.389 | 958 59 01 11 | La demo está cargada con su programación y ya era la puerta de entrada que se contemplaba desde Talaria. Es la única donde puedes decir «ya lo tengo montado con vuestros datos» |
+| **La Zubia** | 20.389 | **958 59 00 79** | **Centro Cultural Carlos Cano**, que es donde está el técnico. La demo está cargada con su programación y ya era la puerta de entrada que se contemplaba desde Talaria: es la única donde puedes decir «ya lo tengo montado con vuestros datos» |
 | **Ogíjares** | 15.239 | 676 33 80 09 | **Cultura la lleva el propio alcalde**, y su móvil está publicado. Menos capas que en ningún otro sitio |
-| **Huétor Vega** | 12.285 | 958 30 05 11 | El concejal de Cultura lleva también **Smart City e Innovación**: es el perfil que entiende esto en una frase. Ojo, ver la nota de abajo |
-| **Churriana de la Vega** | 16.878 | 958 55 08 74 | Cinturón, tamaño justo, y Festejos va con Juventud y Turismo, que es quien más partido le saca al directo |
+| **Huétor Vega** | 12.285 | **958 30 10 87** | Biblioteca municipal. El concejal de Cultura lleva también **Smart City e Innovación**: es el perfil que entiende esto en una frase. Ojo, ver la nota de abajo |
+| **Churriana de la Vega** | 16.878 | **958 57 34 78** | **Centro Municipal de Cultura**. Festejos va con Juventud y Turismo, que es quien más partido le saca al directo |
 
 ### 11:00 — Las grandes del cinturón, que son el ticket alto
 
 | Municipio | Hab. | Teléfono | Qué es ese número |
 | --- | ---: | --- | --- |
 | **Armilla** | 25.300 | 958 57 80 37 | **Directo de la Concejalía de Cultura** |
-| **Atarfe** | 20.914 | 958 43 60 11 | Centralita. Cultura la lleva la primera teniente de alcalde |
-| **Las Gabias** | 23.584 | 958 58 02 61 | Centralita |
+| **Atarfe** | 20.914 | **958 43 96 97** | **Centro Cultural Medina Elvira**. Cultura la lleva la primera teniente de alcalde |
+| **Las Gabias** | 23.584 | **958 58 20 04** | **Centro Cultural Siglo XXI** |
 | **Maracena** | 22.294 | 958 42 13 95 | **Casa de la Cultura**, que es donde está el técnico |
 
 Más presupuesto y más vida asociativa, pero también más capas antes de llegar a quien firma. Por eso
@@ -178,6 +189,34 @@ Y **te callas**. El silencio lo tiene que romper la otra persona.
 - **Si dice que no es su área:** pregunta el nombre y la extensión de quien sí lo lleva. Un nombre
   vale la llamada entera.
 - **Si dice «mándame un correo»:** ver la sección siguiente, que es la que importa.
+
+### Cuando la centralita no sabe de qué le hablas
+
+Es lo normal, no la excepción: quien coge el teléfono suele ser la persona más nueva de la casa, a
+veces en prácticas, y su trabajo no es saber quién organiza el Corpus. Su trabajo es no molestar a
+nadie sin motivo, y ante la duda hace lo único que no le puede salir mal: darte el correo de
+información general. **Ese correo es el registro, y el registro es donde tu propuesta se muere.**
+
+Cuatro cosas que sí funcionan con esa persona, de más a menos:
+
+**1. Di un nombre.** No puede traducir «el técnico de Cultura» a una persona, pero sí puede buscar
+«Rubén Melgarejo» en su lista de extensiones. Y además cambia quién eres: quien dice un nombre
+conoce la casa. Los nombres están en el CSV, columna `concejal_cultura`, para diez municipios.
+
+**2. Pide un sitio, no un cargo.** En un pueblo la cultura vive en un edificio con nombre: la Casa de
+la Cultura, el Centro Cultural, la biblioteca. Eso es una línea de su listado y te pasa sin pensarlo.
+Mejor todavía: **llama directamente a ese edificio** y sáltate la centralita entera. En el CSV hay
+cinco de esos números.
+
+**3. Habla como habla ella.** «Técnico de Cultura» es jerga nuestra. _«Quien lleva las actividades
+culturales y las fiestas del pueblo»_ lo entiende cualquiera.
+
+**4. Pregunta la hora, no el nombre.** Si no sabe pasarte, _«¿a qué hora suele estar?»_ es una
+pregunta que sí sabe contestar, y te deja volver a llamar con una frase que abre puertas: «me
+dijeron que sobre las diez estaría».
+
+Y lo que **no** hay que hacer: pelearte, insistir dos veces o dejarle un mensaje. Un mensaje escrito
+por alguien que no ha entendido de qué va no llega nunca.
 
 ---
 
