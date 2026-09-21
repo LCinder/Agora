@@ -57,7 +57,25 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - uses: android-actions/setup-android@v3
+      # No android-actions/setup-android here, on purpose.
+      #
+      # Its default `cmdline-tools-version` stopped matching what the runner
+      # image preinstalls, so it downloaded a second copy of the tools into a
+      # fresh directory — and the licences accepted in the image do not apply
+      # there. `sdkmanager --licenses` then found six unaccepted, asked an
+      # interactive question, and the job died at the prompt.
+      #
+      # The image already ships the SDK with its licences accepted, which is all
+      # a prebuild and a gradle assemble need. One fewer action to break.
+      - name: Check the SDK is there and its licences are accepted
+        run: |
+          set -euo pipefail
+          test -d "${ANDROID_HOME:?ANDROID_HOME is not set on this runner}"
+          echo "Android SDK: $ANDROID_HOME"
+          # Gradle finds it through ANDROID_HOME on its own; nothing to write.
+          # This only makes sure that if the build needs a platform the image
+          # does not carry, sdkmanager can fetch it without stopping to ask.
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
 
       - uses: gradle/actions/setup-gradle@v4
 
