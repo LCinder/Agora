@@ -13,6 +13,48 @@ mientras marcas.
 
 ---
 
+## 0. La chuleta
+
+Esto es lo único que hay que tener delante mientras marcas. Lo demás del documento es el porqué.
+
+**1. Te coge la centralita:**
+
+> «Buenos días. ¿Me pasa con el técnico de Cultura, por favor?»
+
+Si preguntan de qué se trata: _«Es por la agenda de eventos del municipio.»_
+Si preguntan de qué empresa: _«Soy María, somos de Granada. Es un tema de la agenda de eventos, ¿me
+lo pasa un momento?»_
+
+**2. Te pasan con el técnico:**
+
+> «Buenos días, soy María, desarrolladora, y soy de aquí, de Granada.
+>
+> Os llamo porque estamos trabajando con ayuntamientos de la provincia en la agenda de eventos del
+> municipio. Lo que nos cuentan siempre es lo mismo: lo que pasa en el pueblo está repartido entre la
+> web, el Facebook, los carteles y los grupos de WhatsApp, y quien lo publica lo publica tres veces.
+>
+> Nosotros hacemos dos cosas distintas: que las hermandades y las peñas suban sus propios eventos y
+> vosotros solo aprobéis, y que en una procesión o en la cabalgata el vecino vea por dónde va, en
+> directo, desde el móvil.
+>
+> ¿Tenéis veinte minutos la semana que viene para que os lo enseñe? Es una demo en el móvil, no una
+> presentación.»
+
+Y te callas.
+
+**3. Te contestan una de estas tres:**
+
+| Te dicen | Contestas |
+| --- | --- |
+| **«Vale, cuándo»** | _«¿El martes 29 a las 10:00 os viene bien?»_ — día y hora ya, no «os llamo» |
+| **«Mándame un correo»** | _«Perfecto, se lo mando ahora mismo. ¿Le va bien que le llame el jueves a media mañana y me dice qué le ha parecido?»_ — y luego: _«¿Me da su correo directamente o se lo mando al registro general?»_ |
+| **«Eso no lo llevo yo»** | _«¿Y quién lo lleva? ¿Me dice su nombre y le paso?»_ |
+
+**4. Antes de colgar, siempre:** su **nombre**, su **correo directo** y una **fecha**. Si cuelgas con
+menos de eso, la llamada se ha perdido.
+
+---
+
 ## 1. Cuándo
 
 **Martes, miércoles o jueves, de 9:30 a 11:30.** El lunes están despachando lo del fin de semana y
