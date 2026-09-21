@@ -1219,3 +1219,23 @@ Lo que sí está en el `Deny`, que es donde hay que mirar al revisarlo: no puede
 **Verificado renderizando la política, no solo validándola.** `allowed_account_ids` obliga a una llamada a STS, así que un `plan` necesita credenciales de verdad; para leer el JSON exacto que va a recibir AWS hice el plan en una copia con los ARN puestos a mano. Las nueve sentencias salen como se pretendía y la condición `iam:PolicyARN` está donde debe. Lo que no se ha ejecutado nunca, y hay que decirlo, es un `apply` en una cuenta real.
 
 La guía de todo esto, paso a paso y para una persona, está en [`docs/primer-despliegue.md`](primer-despliegue.md).
+
+---
+
+## D-067 — El `sub` de GitHub no es lo que yo creía, dos veces
+
+**Fecha:** 2026-09-21 · **Estado:** aceptada
+
+La confianza de D-066 no funcionó en la primera ejecución contra una cuenta de verdad: `Not authorized to perform sts:AssumeRoleWithWebIdentity`, desde `main`, con todo lo demás correcto. Dos errores a la vez, y los dos en una sola línea de la política.
+
+**Un trabajo que declara un `environment:` recibe un sujeto que nombra el entorno, no la rama.** Es `repo:owner/name:environment:dev`, sin rama dentro. Así que una condición que pide `ref:refs/heads/main` **no puede** coincidir nunca con un trabajo que tiene entorno, se ejecute en la rama que sea. Y el workflow declara uno a propósito: es lo que hace que GitHub pida un revisor antes de producción.
+
+Eso mueve la restricción de rama a otro sitio, y hay que decirlo claro porque es un control de seguridad que cambia de dueño: ahora vive en la **regla de ramas del entorno** en GitHub, que se comprueba **antes** de emitir el testigo. Una rama que el entorno no admite no consigue credenciales que nombren ese entorno. Es igual de fuerte y está en otro panel, lo que significa que hay que configurarla —y en un repositorio público, sin ella, cualquier rama que pueda lanzar el workflow despliega—. La guía la marca como no opcional.
+
+**Y el formato del sujeto había cambiado por debajo.** Los repositorios creados después del **15 de julio de 2026** mandan un sujeto inmutable con los identificadores numéricos: `repo:LCinder@50793953/Agora@1366332619:environment:dev`. El motivo es bueno: un nombre de usuario o de repositorio se puede reciclar, y con el formato viejo otro dueño podía llegar a producir el mismo sujeto. Este repositorio se creó el 11 de septiembre de 2026, seis semanas después del cambio, así que le aplica. Los ids son dos variables; sin ellas se usa el formato antiguo, que es lo que sigue mandando un repositorio anterior.
+
+**Y de paso, `StringEquals` en lugar de `StringLike`.** Ya no hay nada que necesite un comodín, y un comodín en una política de confianza es cómo un repositorio llamado `Agora-evil` acaba coincidiendo con `Agora*`. Los sujetos son literales y se comparan como literales.
+
+Lo que esto enseña, y es la razón de escribirlo entero en vez de arreglarlo y callar: **la mitad de una integración con un proveedor de identidad no se puede verificar sin el proveedor**. Los tres stacks validaban, la política renderizaba con sus nueve sentencias, los tests pasaban — y el sujeto estaba mal en dos dimensiones distintas. Lo único que lo dijo fue un `apply` en una cuenta real. Es exactamente el hueco que sigue abierto para el circuito completo de la aplicación.
+
+Ahora la comprobación de que coincide se puede hacer sin ejecutar nada: el sujeto que espera el rol está en IAM → *Trust relationships*, y el que manda GitHub se calcula con los dos ids. Si las dos cadenas no son idénticas carácter a carácter, no hay despliegue, y el mensaje de error no lo va a decir.
