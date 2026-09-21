@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 
 import { usePanel } from '../lib/panel-store';
-import { type PosterReading, imagePayload, posterEndpoint } from '../lib/poster-contract';
+import { type PosterReading, callPoster, imagePayload, posterError } from '../lib/poster-contract';
 import { Button } from './ui';
 
 /**
@@ -30,20 +30,14 @@ export function PosterImport({ onRead }: { onRead: (reading: PosterReading) => v
     setState({ status: 'reading' });
 
     try {
-      const response = await fetch(posterEndpoint('read'), {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(await imagePayload(file)),
-      });
+      const response = await callPoster('read', await imagePayload(file));
       const payload: unknown = await response.json();
 
       if (!response.ok) {
-        const message =
-          typeof payload === 'object' && payload !== null && 'message' in payload
-            ? String((payload as { message: unknown }).message)
-            : 'No hemos podido leer el cartel.';
-
-        setState({ status: 'error', message });
+        setState({
+          status: 'error',
+          message: posterError(response, payload, 'No hemos podido leer el cartel.'),
+        });
         return;
       }
 

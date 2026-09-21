@@ -15,6 +15,10 @@ export type PosterFailure =
   | 'missing_key'
   | 'bad_key'
   | 'rate_limited'
+  /** The provider is up but overloaded. Free tiers answer this a lot. */
+  | 'busy'
+  /** It did not answer in the time there was. See the timeouts in `gemini.ts`. */
+  | 'timed_out'
   | 'unreachable'
   /** The model answered, but not with something usable. */
   | 'refused'
@@ -31,6 +35,9 @@ export function statusFor(failure: PosterFailure): number {
       return 503;
     case 'rate_limited':
       return 429;
+    case 'busy':
+    case 'timed_out':
+      return 503;
     case 'refused':
     case 'no_image':
       return 422;
@@ -63,7 +70,15 @@ export function messageFor(failure: PosterFailure, what: string): string {
     case 'bad_key':
       return `La clave de API para ${what} no es válida.`;
     case 'rate_limited':
-      return 'Se ha agotado la cuota gratuita por hoy. Vuelve a intentarlo mañana.';
+      // Deliberately not "por hoy": the free tier answers 429 for the
+      // per-minute limit as well as the daily one, and telling somebody to come
+      // back tomorrow when the answer is to wait forty seconds is a feature
+      // they stop using.
+      return 'Se ha alcanzado el límite del plan gratuito. Espera un minuto y vuelve a intentarlo; si sigue igual, es la cuota del día.';
+    case 'busy':
+      return 'El servicio de inteligencia artificial está saturado ahora mismo. Vuelve a intentarlo en un minuto.';
+    case 'timed_out':
+      return `El servicio ha tardado demasiado en ${what}. Vuelve a intentarlo.`;
     case 'unreachable':
       return 'No hemos podido conectar con el servicio de inteligencia artificial.';
     case 'refused':

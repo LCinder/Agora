@@ -6,6 +6,8 @@
  * the types are re-exported here rather than described a second time.
  */
 
+import { currentIdToken } from './auth';
+
 export type { PosterBrief, PosterDrawing, PosterReading } from '@agora/poster';
 
 /**
@@ -23,6 +25,67 @@ export function posterEndpoint(what: 'read' | 'draw'): string {
   const path = what === 'read' ? '/poster' : '/poster/generate';
 
   return BASE === '' ? `/api${path}` : `${BASE.replace(/\/$/, '')}${path}`;
+}
+
+/**
+ * Calls one of them, signed in.
+ *
+ * The signature is the whole point of this function existing. In development the
+ * panel's own route handlers answer and nobody is asked for anything; deployed,
+ * the same two paths are routes on the HTTP API behind the Cognito authorizer,
+ * and a request with no token is refused before the function runs. That is
+ * exactly what happened: reading and drawing worked on a laptop and answered
+ * "Unauthorized" in the cloud, with a poster Lambda whose log group was empty
+ * because it had never been invoked once.
+ *
+ * Both calls cost real money at somebody else's meter — Gemini reads the poster,
+ * Workers AI draws it — so the authorizer is right and the missing header was
+ * the bug.
+ *
+ * The token is asked for on every call rather than held: a panel left open all
+ * afternoon in a town hall office has an expired one, and `currentIdToken`
+ * refreshes it. It is left out when there is none, which is the development
+ * build and the demo, where the endpoint does not want one.
+ */
+export async function callPoster(what: 'read' | 'draw', body: unknown): Promise<Response> {
+  let token: string | null = null;
+
+  try {
+    token = await currentIdToken();
+  } catch {
+    // No pool configured, or a session that cannot be refreshed. Send it
+    // unsigned and let the endpoint answer: the caller already knows how to
+    // show a refusal, and it is a better message than one invented here.
+  }
+
+  return fetch(posterEndpoint(what), {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(token === null ? {} : { authorization: `Bearer ${token}` }),
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * What to tell somebody when a poster call is refused.
+ *
+ * API Gateway answers a missing or expired token with `{"message":"Unauthorized"}`,
+ * and printing that word into a Spanish panel is how a session that simply timed
+ * out looks like a broken feature.
+ */
+export function posterError(response: Response, payload: unknown, fallback: string): string {
+  if (response.status === 401 || response.status === 403) {
+    return 'Tu sesión ha caducado. Vuelve a entrar y prueba otra vez.';
+  }
+
+  const message =
+    typeof payload === 'object' && payload !== null && 'message' in payload
+      ? String((payload as { message: unknown }).message)
+      : '';
+
+  return message === '' || message === 'Unauthorized' ? fallback : message;
 }
 
 /**

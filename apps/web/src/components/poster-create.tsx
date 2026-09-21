@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 import { usePanel } from '../lib/panel-store';
 import { composePoster } from '../lib/poster-canvas';
-import { type PosterDrawing, posterEndpoint } from '../lib/poster-contract';
+import { type PosterDrawing, callPoster, posterError } from '../lib/poster-contract';
 import { Button, Field, Select, TextArea } from './ui';
 
 /**
@@ -67,31 +67,25 @@ export function PosterCreate({ subject }: { subject: PosterSubject }) {
     const { dateLabel, timeLabel } = labels();
 
     try {
-      const response = await fetch(posterEndpoint('draw'), {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          description: description.trim(),
-          mode,
-          event: {
-            title: subject.title,
-            dateLabel,
-            timeLabel,
-            locationName: subject.locationName,
-            municipalityName: municipality?.name ?? '',
-          },
-        }),
+      const response = await callPoster('draw', {
+        description: description.trim(),
+        mode,
+        event: {
+          title: subject.title,
+          dateLabel,
+          timeLabel,
+          locationName: subject.locationName,
+          municipalityName: municipality?.name ?? '',
+        },
       });
 
       const payload: unknown = await response.json();
 
       if (!response.ok) {
-        const message =
-          typeof payload === 'object' && payload !== null && 'message' in payload
-            ? String((payload as { message: unknown }).message)
-            : 'No hemos podido dibujar el cartel.';
-
-        setState({ status: 'error', message });
+        setState({
+          status: 'error',
+          message: posterError(response, payload, 'No hemos podido dibujar el cartel.'),
+        });
         return;
       }
 

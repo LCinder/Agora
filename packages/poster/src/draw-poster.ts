@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import type { PosterResult } from './failure';
-import { failureForStatus, geminiJson } from './gemini';
+import { IMAGE_TIMEOUT_MS, failureForStatus, geminiJson, wasAborted } from './gemini';
 
 /**
  * Draws an event poster from a one-line description.
@@ -149,10 +149,11 @@ ${details === '' ? 'Todavía no hay datos del evento.' : `Datos del evento:\n${d
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${apiToken}` },
         body: JSON.stringify({ prompt: brief.value.imagePrompt, steps: IMAGE_STEPS }),
+        signal: AbortSignal.timeout(IMAGE_TIMEOUT_MS),
       },
     );
-  } catch {
-    return { ok: false, failure: 'unreachable' };
+  } catch (error) {
+    return { ok: false, failure: wasAborted(error) ? 'timed_out' : 'unreachable' };
   }
 
   const failure = failureForStatus(drawn.status);

@@ -62,9 +62,10 @@ export async function geminiJson<T>({
         contents: [{ role: 'user', parts }],
         generationConfig: { responseMimeType: 'application/json', responseSchema: schema },
       }),
+      signal: AbortSignal.timeout(BRIEF_TIMEOUT_MS),
     });
-  } catch {
-    return { ok: false, failure: 'unreachable' };
+  } catch (error) {
+    return { ok: false, failure: wasAborted(error) ? 'timed_out' : 'unreachable' };
   }
 
   const failure = failureForStatus(response.status);
@@ -99,9 +100,38 @@ export async function geminiJson<T>({
 export function failureForStatus(status: number): PosterFailure | null {
   if (status === 401 || status === 403) return 'bad_key';
   if (status === 429) return 'rate_limited';
+  // A free tier answers 500, 502, 503 and 504 for "too many people are asking
+  // right now", and it does it often enough to be worth its own message: the
+  // answer is to press the button again in a minute, not to call somebody.
+  if (status >= 500) return 'busy';
   if (status < 200 || status >= 300) return 'unknown';
 
   return null;
+}
+
+/**
+ * How long a provider gets before we stop waiting.
+ *
+ * There is a hard ceiling above this that nothing here can raise: API Gateway
+ * gives an integration 30 seconds and the poster function is set to 29, so a
+ * call that runs past it does not come back as an error — the gateway times out
+ * and the panel gets a 503 with no message in it. This budget keeps the failure
+ * ours, with a sentence in Spanish attached to it.
+ *
+ * The two numbers are what the providers actually take: writing the brief is a
+ * few seconds of a Flash model and has been seen at fourteen, drawing with FLUX
+ * schnell at four steps is two or three. Both leave room inside the 29.
+ */
+export const BRIEF_TIMEOUT_MS = 18_000;
+export const IMAGE_TIMEOUT_MS = 20_000;
+
+/**
+ * True when a fetch rejected because we stopped waiting, rather than because the
+ * provider could not be reached. They are different things to tell somebody:
+ * one means try again, the other means check the network.
+ */
+export function wasAborted(error: unknown): boolean {
+  return error instanceof Error && error.name === 'AbortError';
 }
 
 /**

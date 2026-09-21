@@ -98,7 +98,13 @@ describe('reading a poster', () => {
       [429, 'rate_limited'],
       [401, 'bad_key'],
       [403, 'bad_key'],
-      [500, 'unknown'],
+      // A free tier answers these for "too many people are asking right now",
+      // which is a different thing to tell somebody than "something broke": the
+      // answer is to press the button again in a minute.
+      [500, 'busy'],
+      [503, 'busy'],
+      [504, 'busy'],
+      [418, 'unknown'],
     ];
 
     for (const [status, failure] of cases) {
@@ -121,6 +127,24 @@ describe('reading a poster', () => {
     expect(await readPoster({ ...KEYS, image: IMAGE })).toEqual({
       ok: false,
       failure: 'unreachable',
+    });
+  });
+
+  it('tells a provider that never answered from one that could not be reached', async () => {
+    // What `AbortSignal.timeout` throws when the budget runs out. The two have
+    // to be told apart: past the gateway's own 30 seconds the failure stops
+    // being ours and the panel gets an empty 503, so this is the last point at
+    // which anybody can say what happened.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new DOMException('The operation was aborted.', 'AbortError');
+      }),
+    );
+
+    expect(await readPoster({ ...KEYS, image: IMAGE })).toEqual({
+      ok: false,
+      failure: 'timed_out',
     });
   });
 
