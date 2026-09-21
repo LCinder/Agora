@@ -72,6 +72,9 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
           <Stack.Screen name="event/[id]" options={{ presentation: 'card' }} />
+          {/* The poster, whole. It fades rather than slides: it is the same
+              image getting bigger, not another page. */}
+          <Stack.Screen name="poster/[id]" options={{ presentation: 'card', animation: 'fade' }} />
           {/* The live map is something you drop into and out of, not a page
               you navigate to: it comes up from the bottom. */}
           <Stack.Screen
