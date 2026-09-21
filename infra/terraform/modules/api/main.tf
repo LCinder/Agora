@@ -595,9 +595,27 @@ resource "aws_apigatewayv2_route" "device" {
   authorizer_id      = aws_apigatewayv2_authorizer.device.id
 }
 
+# One route per method rather than ANY, and the reason is the browser.
+#
+# `ANY` matches OPTIONS too, so the CORS preflight hit the JWT authorizer —
+# and a preflight never carries an Authorization header, because the spec says
+# it must not. The authorizer answered 401. API Gateway still attached the CORS
+# headers, so the response looked right at a glance, but a preflight has to
+# return a 2xx: "Response to preflight request doesn't pass access control
+# check: It does not have HTTP ok status."
+#
+# Listing the methods leaves OPTIONS unmatched, which is what lets the API's own
+# CORS configuration answer it — before any authorizer runs. The device routes
+# never had this because they were always spelled out one method at a time.
+locals {
+  panel_methods = ["GET", "POST", "PUT", "PATCH", "DELETE"]
+}
+
 resource "aws_apigatewayv2_route" "panel" {
+  for_each = toset(local.panel_methods)
+
   api_id             = aws_apigatewayv2_api.main.id
-  route_key          = "ANY /panel/{proxy+}"
+  route_key          = "${each.value} /panel/{proxy+}"
   target             = "integrations/${aws_apigatewayv2_integration.panel_api.id}"
   authorization_type = "JWT"
   authorizer_id      = aws_apigatewayv2_authorizer.staff.id

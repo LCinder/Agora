@@ -267,7 +267,15 @@ function toApiInput(draft: NewEvent, municipality: Municipality | null): NewEven
 }
 
 export function PanelProvider({ children }: { children: ReactNode }) {
-  const config = panelConfig();
+  // Memoised, and that one word is load-bearing. `panelConfig()` builds a new
+  // object every call, so calling it in the render body gave every callback
+  // below a new identity on every render, which made the effect that loads the
+  // panel re-run on every render, which called the API again, which set state,
+  // which rendered. It only showed up once the API started refusing requests:
+  // the retries went out fast enough to trip the gateway's own rate limit.
+  //
+  // The values come from the build, so reading them once is all there is to do.
+  const config = useMemo(() => panelConfig(), []);
   const demo = config === null;
 
   const [loading, setLoading] = useState(true);
