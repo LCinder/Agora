@@ -27,6 +27,16 @@ locals {
     TABLE_NAME  = var.table_name
     ENVIRONMENT = var.environment
   }
+
+  # Every method any route here uses, in one place because the two times this
+  # broke it was two lists disagreeing. The CORS configuration reads it and so
+  # do the panel routes: a method added to one is added to both.
+  #
+  # A method missing from the CORS list does not fail politely. API Gateway
+  # answers the preflight with no Access-Control-Allow-Origin at all, and the
+  # browser reports it as though the whole origin were refused — which sends
+  # whoever is reading the console looking at the origin instead of the verb.
+  api_methods = ["GET", "POST", "PUT", "PATCH", "DELETE"]
 }
 
 # ---------------------------------------------------------------------------
@@ -425,7 +435,7 @@ resource "aws_apigatewayv2_api" "main" {
 
   cors_configuration {
     allow_origins = var.allowed_origins
-    allow_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allow_methods = concat(local.api_methods, ["OPTIONS"])
     allow_headers = ["content-type", "authorization"]
     max_age       = 3600
   }
@@ -607,12 +617,8 @@ resource "aws_apigatewayv2_route" "device" {
 # Listing the methods leaves OPTIONS unmatched, which is what lets the API's own
 # CORS configuration answer it — before any authorizer runs. The device routes
 # never had this because they were always spelled out one method at a time.
-locals {
-  panel_methods = ["GET", "POST", "PUT", "PATCH", "DELETE"]
-}
-
 resource "aws_apigatewayv2_route" "panel" {
-  for_each = toset(local.panel_methods)
+  for_each = toset(local.api_methods)
 
   api_id             = aws_apigatewayv2_api.main.id
   route_key          = "${each.value} /panel/{proxy+}"
