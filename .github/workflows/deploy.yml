@@ -103,20 +103,34 @@ jobs:
       # is written here from the repository's variables. The profile is empty: the
       # identity is the assumed role.
       - name: Write the tfvars from the repository's variables
+        env:
+          # Through the environment rather than interpolated into the script.
+          # `echo "x = ${{ vars.V }}"` lets the shell parse the value: a JSON
+          # array arrives as ["a"] and is echoed as [a], because bash eats the
+          # inner quotes when it parses the line. A shell variable inside double
+          # quotes is not re-parsed, so the quotes survive.
+          #
+          # It is also what keeps a value containing a quote from breaking out of
+          # the script altogether.
+          TF_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+          TF_REGION: ${{ vars.AWS_REGION || 'eu-central-1' }}
+          TF_SITE_URL: ${{ vars.SITE_URL }}
+          TF_ALERT_EMAIL: ${{ vars.ALERT_EMAIL }}
+          TF_ALLOWED_ORIGINS: ${{ vars.ALLOWED_ORIGINS || '[]' }}
+          TF_METRIC_ALARMS: ${{ inputs.environment == 'prod' && 'true' || 'false' }}
         run: |
           set -euo pipefail
           file="infra/terraform/envs/${{ inputs.environment }}/terraform.tfvars"
 
           {
-            echo "aws_profile    = \"\""
-            echo "aws_account_id = \"${{ vars.AWS_ACCOUNT_ID }}\""
-            echo "region         = \"${{ vars.AWS_REGION || 'eu-central-1' }}\""
-            echo "site_url       = \"${{ vars.SITE_URL }}\""
-            echo "alert_email    = \"${{ vars.ALERT_EMAIL }}\""
-            # A JSON array is valid HCL, which saves quoting a list in a shell
-            # inside a YAML string. ALLOWED_ORIGINS holds it verbatim.
-            echo "allowed_origins = ${{ vars.ALLOWED_ORIGINS || '[]' }}"
-            echo "metric_alarms   = ${{ inputs.environment == 'prod' && 'true' || 'false' }}"
+            echo "aws_profile     = \"\""
+            echo "aws_account_id  = \"$TF_ACCOUNT_ID\""
+            echo "region          = \"$TF_REGION\""
+            echo "site_url        = \"$TF_SITE_URL\""
+            echo "alert_email     = \"$TF_ALERT_EMAIL\""
+            # A JSON array is valid HCL, so the variable holds one verbatim.
+            echo "allowed_origins = $TF_ALLOWED_ORIGINS"
+            echo "metric_alarms   = $TF_METRIC_ALARMS"
           } > "$file"
 
           # Printed so a failed run can be read without guessing what it applied.
