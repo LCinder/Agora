@@ -148,9 +148,16 @@ export const IMAGE_TIMEOUT_MS = 20_000;
  * True when a fetch rejected because we stopped waiting, rather than because the
  * provider could not be reached. They are different things to tell somebody:
  * one means try again, the other means check the network.
+ *
+ * Both names, and the second one is the one that actually happens:
+ * `AbortSignal.timeout` rejects with a `TimeoutError`, not an `AbortError` — its
+ * reason is a TimeoutError by specification. Checking only for `AbortError`
+ * reported the deadline running out as "no hemos podido conectar", which sends
+ * somebody to look at their network over a provider that was simply slow. Seen
+ * in the logs as an 18.2 second invocation answering `unreachable`.
  */
 export function wasAborted(error: unknown): boolean {
-  return error instanceof Error && error.name === 'AbortError';
+  return error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError');
 }
 
 /**

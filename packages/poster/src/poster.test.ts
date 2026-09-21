@@ -135,17 +135,21 @@ describe('reading a poster', () => {
     // to be told apart: past the gateway's own 30 seconds the failure stops
     // being ours and the panel gets an empty 503, so this is the last point at
     // which anybody can say what happened.
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => {
-        throw new DOMException('The operation was aborted.', 'AbortError');
-      }),
-    );
+    // Both names. `AbortSignal.timeout` rejects with the first one, which is the
+    // case that happens here; the second is what an explicit abort would throw.
+    for (const name of ['TimeoutError', 'AbortError']) {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => {
+          throw new DOMException('The operation was aborted.', name);
+        }),
+      );
 
-    expect(await readPoster({ ...KEYS, image: IMAGE })).toEqual({
-      ok: false,
-      failure: 'timed_out',
-    });
+      expect(await readPoster({ ...KEYS, image: IMAGE })).toEqual({
+        ok: false,
+        failure: 'timed_out',
+      });
+    }
   });
 
   it('treats an answer it cannot use as a refusal, not as a crash', async () => {
