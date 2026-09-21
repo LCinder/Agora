@@ -74,9 +74,12 @@ resource "aws_iam_role_policy" "logs" {
   })
 }
 
+# No `count` guarding this, deliberately. The policy document is built from
+# resource ARNs that only exist after apply, so any condition on it is unknown
+# at plan time and Terraform refuses to plan at all. Making the policy required
+# is also the honest shape: every function in this system declares what it may
+# touch, and one that declared nothing would be a bug, not a default.
 resource "aws_iam_role_policy" "custom" {
-  count = var.policy_json == null ? 0 : 1
-
   name   = "access"
   role   = aws_iam_role.this.id
   policy = var.policy_json

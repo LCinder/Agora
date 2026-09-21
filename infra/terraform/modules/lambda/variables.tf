@@ -30,9 +30,8 @@ variable "environment_variables" {
 }
 
 variable "policy_json" {
-  description = "What this function is allowed to touch. Null means nothing beyond its own logs."
+  description = "What this function is allowed to touch, beyond writing its own logs. Required: a function that declares nothing is a mistake, not a default."
   type        = string
-  default     = null
 }
 
 variable "log_retention_days" {
