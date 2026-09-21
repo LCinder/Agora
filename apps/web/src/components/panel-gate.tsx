@@ -18,7 +18,32 @@ import { Empty } from './ui';
  * regardless of what this component decides (D-026).
  */
 export function PanelGate({ children }: { children: ReactNode }) {
-  const { demo, identity, loading, municipality } = usePanel();
+  const { demo, identity, loadError, loading, municipality } = usePanel();
+
+  // Before the spinner, because a failure that leaves `loading` true would
+  // otherwise never be seen. This is the screen that was missing the first time
+  // the panel went up against an API that refused its origin.
+  if (!demo && loadError !== null) {
+    return (
+      <main className="mx-auto w-full max-w-lg px-4 py-16">
+        <Empty>
+          <span className="font-medium">No hemos podido cargar el panel.</span>
+          <br />
+          {loadError}
+          <br />
+          <button
+            type="button"
+            onClick={() => {
+              window.location.reload();
+            }}
+            className="mt-4 underline"
+          >
+            Reintentar
+          </button>
+        </Empty>
+      </main>
+    );
+  }
 
   if (!demo && loading) {
     return <p className="p-8 text-sm text-neutral-500">Cargando…</p>;

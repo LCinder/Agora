@@ -291,6 +291,7 @@ do_infra() {
 
   check_secrets
   check_site_url
+  check_allowed_origins
 }
 
 # Reports which parameters are still empty, and how to fill each one. It never
@@ -340,6 +341,32 @@ check_secrets() {
 # The public event page needs its own absolute address for the Open Graph tags,
 # and it cannot be read from the distribution because the page is one of its
 # origins. So the first apply leaves it empty and this says so, once.
+# The same shape of problem as site_url, and the one that actually bit: CORS is
+# configured on the API, the panel is served from CloudFront, and the CloudFront
+# domain does not exist until the first apply. So the first environment comes up
+# allowing only localhost, and the deployed panel freezes on sign-in — the
+# browser blocks every call, the promise never settles and nothing says why.
+#
+# Cheap to check, expensive to debug.
+check_allowed_origins() {
+  local file url
+  file="$(environment_dir "${ENVIRONMENT}")/terraform.tfvars"
+  url="$(output_of site_url)"
+
+  [[ -n "${url}" ]] || return 0
+
+  if grep -qF "${url}" "${file}"; then
+    return 0
+  fi
+
+  step "Origen del panel"
+  warn "allowed_origins no incluye ${url}."
+  warn "El panel desplegado no podrá llamar a la API: el navegador cortará cada petición."
+  info "Añádelo a ${file}:"
+  info "  allowed_origins = [\"${url}\", \"http://localhost:3000\"]"
+  info "Y si despliegas desde GitHub, a la variable ALLOWED_ORIGINS del repositorio."
+}
+
 check_site_url() {
   local file url
   file="$(environment_dir "${ENVIRONMENT}")/terraform.tfvars"

@@ -43,7 +43,10 @@ export function SignIn() {
     const result = asking ? await completeNewPassword(fresh) : await signIn(email.trim(), password);
 
     if (result.status === 'signed-in') {
-      await refreshIdentity();
+      // If loading the panel fails, the gate shows why. Catching here is about
+      // this form: an unhandled rejection would leave the button on "Entrando…"
+      // for ever, which is what a frozen screen actually looks like.
+      await refreshIdentity().catch(() => undefined);
 
       return;
     }

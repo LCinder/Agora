@@ -81,6 +81,16 @@ export type PanelRole = Membership['role'];
 
 export interface PanelState {
   loading: boolean;
+  /**
+   * Why the panel could not load, if it could not.
+   *
+   * It exists because the alternative is what happened the first time this was
+   * deployed: the API refused the browser's origin, every call was blocked
+   * before it left, `loadRemote` threw on the way to `setLoading(false)`, and
+   * the panel sat on "Cargando…" for ever with nothing anywhere saying why. A
+   * spinner that never stops is the worst failure mode available here.
+   */
+  loadError: string | null;
   /** True when this build runs on the seed in the browser, with no API. */
   demo: boolean;
   /** Who is signed in. Always null in the demo, which has no accounts. */
@@ -261,6 +271,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
   const demo = config === null;
 
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [identity, setIdentity] = useState<PanelIdentity | null>(null);
   const [membership, setMembership] = useState<Membership | null>(null);
   const [client, setClient] = useState<PanelClient | null>(null);
@@ -334,7 +345,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
   // The real one: the API, as whoever signed in
   // -------------------------------------------------------------------------
 
-  const loadRemote = useCallback(async () => {
+  const loadRemoteOrThrow = useCallback(async () => {
     if (config === null) return;
 
     const who = await currentIdentity();
@@ -384,6 +395,24 @@ export function PanelProvider({ children }: { children: ReactNode }) {
     setStats(loadedStats);
     setLoading(false);
   }, [config]);
+
+  const loadRemote = useCallback(async () => {
+    if (config === null) return;
+
+    try {
+      await loadRemoteOrThrow();
+      setLoadError(null);
+    } catch (error) {
+      // Whatever went wrong, the one thing that must not happen is staying on
+      // the spinner. Say something and stop.
+      setLoadError(
+        error instanceof Error && error.message !== ''
+          ? error.message
+          : 'No hemos podido conectar con el servidor.',
+      );
+      setLoading(false);
+    }
+  }, [config, loadRemoteOrThrow]);
 
   useEffect(() => {
     // The seed and the API are both external systems as far as React is
@@ -876,6 +905,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
   const value = useMemo<PanelState>(
     () => ({
       loading,
+      loadError,
       demo,
       identity,
       // The demo is the town hall's panel: that is what gets shown in a meeting.
@@ -940,6 +970,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       loadRemote,
       loadSeed,
       loading,
+      loadError,
       membership,
       municipality,
       notices,
