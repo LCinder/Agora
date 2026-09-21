@@ -384,7 +384,102 @@ abandona a la tercera llamada.
 
 ---
 
-## 8. Notas sueltas que valen dinero
+## 8. Dos llamadas enteras, como van a ir
+
+Inventadas, pero con las respuestas que de verdad da la gente. Léelas en voz alta una vez antes de
+marcar: lo que hay que tener cogido no son las palabras, es el ritmo.
+
+### Llamada 1 — Gójar, 9:34. El caso limpio
+
+Marcas **958 50 91 52**, que es el directo del técnico. No hay centralita.
+
+> — Cultura y Deportes, dígame.
+>
+> — Buenos días, ¿hablo con el técnico de cultura?
+>
+> — Sí, soy yo, dime.
+>
+> — Mira, soy María, soy desarrolladora y soy de aquí, de Granada. Te llamo porque estamos trabajando
+> con ayuntamientos de la provincia en la agenda de eventos del municipio. Lo que nos cuentan siempre
+> es lo mismo: lo que pasa en el pueblo está repartido entre la web, el Facebook, los carteles y los
+> grupos de WhatsApp, y el que lo publica lo publica tres veces. Nosotros hacemos dos cosas distintas:
+> que las hermandades y las peñas suban sus propios eventos y vosotros solo aprobéis, y que en una
+> procesión o en la cabalgata el vecino vea por dónde va, en directo, desde el móvil. ¿Tenéis veinte
+> minutos la semana que viene para que os lo enseñe? Es una demo en el móvil, no una presentación.
+>
+> — _(silencio)_ Hombre… ¿y eso cuánto cuesta?
+>
+> — Depende del tamaño del municipio. Para Gójar estaríamos entre 900 y 1.200 al año, y por debajo del
+> contrato menor, o sea que lo podéis firmar vosotros sin licitación. Pero antes de eso, cuéntame una
+> cosa: ¿quién mete hoy los eventos, y cuánto tiempo te lleva?
+>
+> — Pues los meto yo. En la web y en el Facebook. Diez minutos cada uno, más o menos.
+>
+> — ¿Y cuántos tuvisteis el año pasado, entre fiestas y actividades?
+>
+> — Uf… ochenta o así.
+>
+> — Trece horas, entonces. Eso es parte de lo que te quitamos, y la otra parte es que la mitad de esos
+> ochenta no los metes tú: los meten las asociaciones y tú solo apruebas. ¿Te viene mejor el martes 29
+> a las 10, o por la tarde?
+>
+> — El martes por la mañana me va bien.
+>
+> — Perfecto. ¿Me das tu correo y te mando ahora mismo la confirmación? Y tu nombre completo, para
+> ponerlo.
+
+**Fíjate en lo que ha pasado ahí:** no has contestado al precio y ya está, has contestado y has
+devuelto una pregunta. Y las trece horas no las has dicho tú, las ha calculado él. Ese número es
+suyo y por eso se lo cree.
+
+### Llamada 2 — La Zubia, 10:10. La que se tuerce
+
+Marcas **958 59 00 79**, el Centro Cultural Carlos Cano.
+
+> — Centro de Promoción Cultural, buenos días.
+>
+> — Buenos días, ¿está el técnico de cultura?
+>
+> — ¿De parte?
+>
+> — Soy María, es por la agenda de eventos del municipio.
+>
+> — Un momentito… pues ahora mismo no está, se ha ido al ayuntamiento.
+>
+> — Vale. ¿Y a qué hora suele estar por ahí?
+>
+> — Por las mañanas, de nueve a dos.
+>
+> — Perfecto. ¿Cómo se llama?, para preguntar por él mañana.
+>
+> — Paco. Francisco.
+>
+> — Genial, muchas gracias. Le llamo mañana sobre las diez.
+
+Treinta segundos y **no has vendido nada**. Pero mañana llamas diciendo _«buenos días, ¿está Paco?»_,
+que es otra llamada completamente distinta: esa la pasan sin preguntar de parte de quién.
+
+Y si te lo pasan y te sale lo de siempre:
+
+> — Mira, mándame un correo con la información y lo vemos.
+>
+> — Perfecto, te lo mando ahora mismo, en cinco minutos lo tienes. ¿Te va bien que te llame el jueves
+> a media mañana y me dices qué te ha parecido?
+>
+> — Sí, hombre, llámame.
+>
+> — Genial. ¿Me lo mando a tu correo directamente o al registro general?
+>
+> — No, no, al mío, es paco.algo@…
+>
+> — Apuntado. Y tu apellido, ¿cómo era?
+
+**Tres cosas en quince segundos**, sin discutir con él ni una vez: una fecha, su correo y su nombre.
+Eso es lo que convierte un «mándame un correo» en algo. Y el jueves llamas. De verdad.
+
+---
+
+## 9. Notas sueltas que valen dinero
 
 **Huétor Vega ya tiene app propia**, publicada por el propio ayuntamiento y en las dos tiendas desde
 hace más de una década: noticias, agenda, callejero, listín de teléfonos y horarios de autobús. No es
