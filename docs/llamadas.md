@@ -205,8 +205,16 @@ conoce la casa. Los nombres están en el CSV, columna `concejal_cultura`, para d
 
 **2. Pide un sitio, no un cargo.** En un pueblo la cultura vive en un edificio con nombre: la Casa de
 la Cultura, el Centro Cultural, la biblioteca. Eso es una línea de su listado y te pasa sin pensarlo.
-Mejor todavía: **llama directamente a ese edificio** y sáltate la centralita entera. En el CSV hay
-cinco de esos números.
+Mejor todavía: **llama directamente a ese edificio** y sáltate la centralita entera.
+
+Y que quede claro por qué, porque es fácil leerlo al revés: **la Casa de la Cultura no es a quien hay
+que convencer, es donde está sentado el técnico.** En un ayuntamiento de esta talla el técnico de
+cultura no tiene su mesa en el edificio del ayuntamiento, la tiene ahí, con la programación encima.
+Ese número es su mesa o la de al lado.
+
+Y en el peor caso —que el técnico esté en el ayuntamiento y en la Casa de la Cultura coja el teléfono
+un conserje o un monitor— sigues ganando: **esa persona trabaja en cultura**. Sabe cómo se llama el
+técnico, sabe si está hoy y sabe su extensión. La de la centralita no sabe ninguna de las tres.
 
 **3. Habla como habla ella.** «Técnico de Cultura» es jerga nuestra. _«Quien lleva las actividades
 culturales y las fiestas del pueblo»_ lo entiende cualquiera.
@@ -217,6 +225,33 @@ dijeron que sobre las diez estaría».
 
 Y lo que **no** hay que hacer: pelearte, insistir dos veces o dejarle un mensaje. Un mensaje escrito
 por alguien que no ha entendido de qué va no llega nunca.
+
+### Con quién hay que acabar hablando, que no es lo mismo en todos
+
+**Decide el técnico.** No la Casa de la Cultura, no la centralita y, en la práctica, tampoco el
+concejal: el concejal firma, pero pregunta al técnico antes, y si el técnico dice que le da trabajo
+la respuesta es no. Por eso todo lo de arriba son rutas para llegar a él, no destinos.
+
+Pero **no en todos los pueblos hay técnico**, y eso cambia a quién llamas:
+
+| Tamaño | Quién lleva la programación | A quién llamas |
+| --- | --- | --- |
+| **15.000 hab. en adelante** | Hay técnico de cultura, con su mesa en el centro cultural | Al centro cultural, preguntando por él |
+| **Menos de 10.000** | Muchas veces no hay: lo lleva el concejal con alguien de administración | Al concejal, directamente |
+
+De los de mañana: en **Gójar** el técnico existe y publica su propio directo (958 50 91 52), que es
+el mejor número de toda la lista. En **Cájar** y **Ogíjares** no busques técnico — llama al móvil del
+concejal, que en Ogíjares además es el alcalde. Y en La Zubia, Atarfe, Las Gabias, Churriana, Huétor
+Vega, Armilla y Maracena hay técnico y lo que tienes es el teléfono del sitio donde trabaja.
+
+Cuando te coja alguien del centro cultural, ahí la pregunta por el cargo **sí** funciona, porque esa
+persona está en cultura:
+
+> «Buenos días, ¿está el técnico de cultura?»
+
+o, si no sabes si hay uno:
+
+> «Buenos días, ¿quién lleva la programación de eventos del municipio?»
 
 ---
 
