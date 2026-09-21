@@ -14,6 +14,7 @@ import {
   badRequest,
   error,
   handle,
+  json,
   noContent,
   notFound,
   ok,
@@ -24,6 +25,13 @@ import type { Identities } from '../lib/identities';
 import { createCognitoIdentities } from '../lib/identities';
 import { scopedStoreClient } from '../lib/panel-credentials';
 import { definedOnly } from '../lib/json';
+import {
+  MAX_POSTER_BYTES,
+  isStorableImage,
+  removePoster,
+  sizeOfBase64,
+  storePoster,
+} from '../lib/media';
 import { type PanelContext, buildContext, callerSubject } from '../lib/panel-context';
 import { type Route, matchRoute, pathExists, routedPath } from '../lib/router';
 
@@ -72,9 +80,20 @@ const eventPatchSchema = z.object({
   priceInfo: z.string().nullable().optional(),
   isFree: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
+  imageUrl: z.string().nullable().optional(),
 });
 
 const reasonSchema = z.object({ reason: z.string().min(1) });
+
+/**
+ * A poster on its way to the bucket: the same shape the poster reader takes, so
+ * the panel sends what it already has whichever of the two it is doing.
+ */
+const posterSchema = z.object({
+  mimeType: z.string().min(1),
+  /** Base64, without the `data:` prefix. */
+  data: z.string().min(1),
+});
 
 const liveScheduleSchema = z.object({
   /** The route the town hall drew, or nothing. */
@@ -249,6 +268,93 @@ const ROUTES: readonly Route<RequestContext>[] = [
       await panel.audit.record({ action: 'event.cancel', entity: 'event', entityId: eventId! });
 
       return ok(cancelled);
+    },
+  },
+
+  // --- the poster of an event ----------------------------------------------
+  //
+  // Its own pair of routes rather than a field on the edit, because what travels
+  // is a megabyte of image and what comes back is a URL. The event keeps only
+  // the URL, which is what the app, the public page and its Open Graph card all
+  // read.
+  {
+    method: 'PUT',
+    pattern: 'municipalities/:municipalityId/events/:eventId/image',
+    run: async ({ municipalityId, eventId }, { event, panel }) => {
+      const bucket = process.env['MEDIA_BUCKET'];
+      const siteUrl = process.env['SITE_URL'];
+
+      if (bucket === undefined || bucket === '' || siteUrl === undefined || siteUrl === '') {
+        return error(503, 'no_media_storage', 'Este entorno no guarda carteles todavía.');
+      }
+
+      const input = body(event, posterSchema);
+
+      if (!isStorableImage(input.mimeType)) {
+        return json(415, {
+          error: 'unsupported_type',
+          message: 'El cartel tiene que ser una imagen JPG, PNG o WEBP.',
+        });
+      }
+
+      if (sizeOfBase64(input.data) > MAX_POSTER_BYTES) {
+        return json(413, {
+          error: 'too_large',
+          message: 'El cartel es demasiado grande. Máximo 4 MB.',
+        });
+      }
+
+      // Read through the store first, so that whether this event is this
+      // person's to touch is answered by the same rules as an edit — before
+      // anything is written to the bucket.
+      const before = await panel.events.getEvent(eventId!);
+
+      if (before === null) return notFound('Ese evento no existe en este municipio.');
+
+      const stored = await storePoster({
+        bucket,
+        siteUrl,
+        municipalityId: municipalityId!,
+        eventId: eventId!,
+        mimeType: input.mimeType,
+        data: input.data,
+      });
+
+      const result = await panel.events.updateEvent(eventId!, { imageUrl: stored.url });
+
+      // The old one goes only once the new one is on the event. The other order
+      // leaves an event pointing at an object that is not there any more if the
+      // write fails, which shows up as a broken poster on every phone in the
+      // town.
+      if (result.kind === 'applied') await removePoster(bucket, before.imageUrl);
+
+      await panel.audit.record({ action: 'event.image', entity: 'event', entityId: eventId! });
+
+      return ok(result);
+    },
+  },
+  {
+    method: 'DELETE',
+    pattern: 'municipalities/:municipalityId/events/:eventId/image',
+    run: async ({ eventId }, { panel }) => {
+      const before = await panel.events.getEvent(eventId!);
+
+      if (before === null) return notFound('Ese evento no existe en este municipio.');
+
+      const result = await panel.events.updateEvent(eventId!, { imageUrl: null });
+      const bucket = process.env['MEDIA_BUCKET'];
+
+      if (result.kind === 'applied' && bucket !== undefined && bucket !== '') {
+        await removePoster(bucket, before.imageUrl);
+      }
+
+      await panel.audit.record({
+        action: 'event.image_removed',
+        entity: 'event',
+        entityId: eventId!,
+      });
+
+      return ok(result);
     },
   },
 

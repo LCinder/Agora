@@ -36,11 +36,18 @@ const MODE_LABELS: Record<Mode, string> = {
   complete: 'Cartel entero dibujado, texto incluido',
 };
 
-export function PosterCreate({ subject }: { subject: PosterSubject }) {
+export function PosterCreate({
+  subject,
+  onPoster,
+}: {
+  subject: PosterSubject;
+  onPoster: (image: { mimeType: string; data: string }) => void;
+}) {
   const { municipality } = usePanel();
   const [description, setDescription] = useState('');
   const [mode, setMode] = useState<Mode>('background');
   const [state, setState] = useState<State>({ status: 'idle' });
+  const [used, setUsed] = useState(false);
 
   const timeZone = municipality?.timeZone ?? 'Europe/Madrid';
 
@@ -63,6 +70,7 @@ export function PosterCreate({ subject }: { subject: PosterSubject }) {
     }
 
     setState({ status: 'drawing' });
+    setUsed(false);
 
     const { dateLabel, timeLabel } = labels();
 
@@ -192,6 +200,23 @@ export function PosterCreate({ subject }: { subject: PosterSubject }) {
           ) : null}
 
           <div className="mt-4 flex flex-wrap gap-3">
+            <Button
+              brand={municipality?.branding.primaryColor}
+              onClick={() => {
+                // What is on screen, not what came back from the model: in
+                // "background" mode the panel has drawn the title, the date and
+                // the place over it, and that composed image is the poster.
+                const [prefix, data] = state.image.split(',');
+                const mimeType = /data:([^;]+)/.exec(prefix ?? '')?.[1] ?? 'image/jpeg';
+
+                if (data !== undefined) {
+                  onPoster({ mimeType, data });
+                  setUsed(true);
+                }
+              }}
+            >
+              {used ? 'Puesto en el evento' : 'Usar en el evento'}
+            </Button>
             <a
               href={state.image}
               download={fileName}

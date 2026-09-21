@@ -21,7 +21,13 @@ type State =
   | { status: 'done'; confidence: PosterReading['confidence'] }
   | { status: 'error'; message: string };
 
-export function PosterImport({ onRead }: { onRead: (reading: PosterReading) => void }) {
+export function PosterImport({
+  onRead,
+  onPoster,
+}: {
+  onRead: (reading: PosterReading) => void;
+  onPoster: (image: { mimeType: string; data: string }) => void;
+}) {
   const { municipality } = usePanel();
   const input = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<State>({ status: 'idle' });
@@ -30,7 +36,8 @@ export function PosterImport({ onRead }: { onRead: (reading: PosterReading) => v
     setState({ status: 'reading' });
 
     try {
-      const response = await callPoster('read', await imagePayload(file));
+      const payloadImage = await imagePayload(file);
+      const response = await callPoster('read', payloadImage);
       const payload: unknown = await response.json();
 
       if (!response.ok) {
@@ -43,6 +50,10 @@ export function PosterImport({ onRead }: { onRead: (reading: PosterReading) => v
 
       const reading = payload as PosterReading;
       onRead(reading);
+      // The photo they just uploaded is the poster. Asking them to choose it a
+      // second time, in another control, to say the thing they have already
+      // said, is the kind of step that makes a feature go unused.
+      onPoster(payloadImage);
       setState({ status: 'done', confidence: reading.confidence });
     } catch {
       setState({ status: 'error', message: 'No hemos podido conectar para leer el cartel.' });

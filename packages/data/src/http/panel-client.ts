@@ -202,6 +202,20 @@ export interface PanelClient {
    * refuses this one to an association once it is published.
    */
   deleteEvent(eventId: string): Promise<void>;
+  /**
+   * Puts a poster on an event, or takes it off.
+   *
+   * The image travels as base64 and what comes back is an edit result, like any
+   * other change to the event: an association without trust gets `queued` here
+   * too, because a poster is what a neighbour looks at first and swapping it on
+   * a published event is not a small edit.
+   *
+   * The bytes go to a bucket and the event keeps the URL. Replacing one deletes
+   * the old object, so a town hall that redraws a poster four times is not
+   * paying to keep the first three.
+   */
+  setEventImage(eventId: string, image: { mimeType: string; data: string }): Promise<EditResult>;
+  removeEventImage(eventId: string): Promise<EditResult>;
   approveEvent(eventId: string): Promise<Event>;
   rejectEvent(eventId: string, reason: string): Promise<Event>;
 
@@ -290,6 +304,14 @@ export function createPanelClient(options: PanelClientOptions): PanelClient {
 
     async deleteEvent(eventId) {
       await api.send('DELETE', at(eventId));
+    },
+
+    async setEventImage(eventId, image) {
+      return editResultSchema.parse(await api.send('PUT', `${at(eventId)}/image`, image));
+    },
+
+    async removeEventImage(eventId) {
+      return editResultSchema.parse(await api.send('DELETE', `${at(eventId)}/image`));
     },
 
     async approveEvent(eventId) {

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 
 import { usePanel, type NewEvent } from '../lib/panel-store';
+import { EventCoverField, type PendingPoster } from './event-cover-field';
 import { PosterPanel } from './poster-panel';
 import { Button, Card, Checkbox, Field, Input, Select, TextArea } from './ui';
 
@@ -23,7 +24,9 @@ export function EventForm({ event }: { event?: Event }) {
     municipality,
     organizationId: ownOrganizationId,
     organizations,
+    removeEventImage,
     role,
+    setEventImage,
     updateEvent,
   } = usePanel();
   const router = useRouter();
@@ -54,6 +57,26 @@ export function EventForm({ event }: { event?: Event }) {
   const [organizationId, setOrganizationId] = useState(event?.organizationId ?? '');
   const [error, setError] = useState<string | null>(null);
   const [queued, setQueued] = useState<'new' | 'edit' | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  /**
+   * The poster, which is not saved the way the other fields are.
+   *
+   * It is held here until the event is written because a new event has no id to
+   * attach an image to, and uploading on pick would leave a poster in the bucket
+   * for an event somebody then abandoned. `null` means "leave whatever is there",
+   * and `'remove'` means take it off.
+   */
+  const [poster, setPoster] = useState<PendingPoster>(null);
+
+  /**
+   * The id a new event will have, decided here rather than by the API.
+   *
+   * It is what lets the poster be attached in the same action that creates the
+   * event: without it the form would have to create, re-read the list to find
+   * out what it just made, and then upload.
+   */
+  const [newEventId] = useState(() => crypto.randomUUID());
 
   const titleRef = useRef<HTMLInputElement>(null);
 
@@ -87,28 +110,62 @@ export function EventForm({ event }: { event?: Event }) {
     };
   }
 
+  /** The poster, once there is an event to hang it on. */
+  async function savePoster(eventId: string) {
+    if (poster === null) return;
+
+    if (poster === 'remove') {
+      await removeEventImage(eventId);
+
+      return;
+    }
+
+    await setEventImage(eventId, poster);
+  }
+
   async function submit() {
     const draft = buildDraft();
     if (!draft) return;
 
+    setSaving(true);
+
     // The list is only left once the write has landed: with a real backend behind
     // this, navigating first would show the previous calendar for a second and
     // hide any refusal the API sent back.
-    if (event) {
-      const result = await updateEvent(event.id, draft);
+    try {
+      if (event) {
+        const result = await updateEvent(event.id, draft);
 
-      // An untrusted association editing something already published does not
-      // change what the neighbours see: the change waits for the town hall, and
-      // saying so here is what stops them editing it again tomorrow.
-      if (result === 'queued') {
-        setQueued('edit');
+        await savePoster(event.id);
 
-        return;
+        // An untrusted association editing something already published does not
+        // change what the neighbours see: the change waits for the town hall, and
+        // saying so here is what stops them editing it again tomorrow.
+        if (result === 'queued') {
+          setQueued('edit');
+
+          return;
+        }
+      } else {
+        const result = await createEvent({ ...draft, id: newEventId });
+
+        // The poster goes on either way. A new event waiting for review exists
+        // and is the association's own, so its poster is not a change to
+        // anything a neighbour has seen.
+        await savePoster(newEventId);
+
+        if (result === 'queued') {
+          setQueued('new');
+
+          return;
+        }
       }
-    } else if ((await createEvent(draft)) === 'queued') {
-      setQueued('new');
+    } catch (thrown) {
+      setError(thrown instanceof Error ? thrown.message : 'No se ha podido guardar.');
 
       return;
+    } finally {
+      setSaving(false);
     }
 
     router.push('/eventos');
@@ -207,6 +264,12 @@ export function EventForm({ event }: { event?: Event }) {
             <Checkbox label="Entrada gratuita" checked={isFree} onChange={setIsFree} />
           </div>
 
+          <EventCoverField
+            current={event?.imageUrl ?? null}
+            pending={poster}
+            onChange={setPoster}
+          />
+
           {isFree ? null : (
             <Field label="Precio">
               <Input
@@ -239,12 +302,16 @@ export function EventForm({ event }: { event?: Event }) {
           ) : null}
 
           <div className="flex flex-wrap gap-3">
-            <Button type="submit" brand={municipality?.branding.primaryColor}>
-              {event
-                ? 'Guardar cambios'
-                : publishesDirectly
-                  ? 'Publicar evento'
-                  : 'Enviar al ayuntamiento'}
+            <Button type="submit" disabled={saving} brand={municipality?.branding.primaryColor}>
+              {/* The poster travels with the event, so saving one is no longer
+                  instant: a megabyte goes up after the fields do. */}
+              {saving
+                ? 'Guardando…'
+                : event
+                  ? 'Guardar cambios'
+                  : publishesDirectly
+                    ? 'Publicar evento'
+                    : 'Enviar al ayuntamiento'}
             </Button>
             <Button variant="secondary" onClick={() => router.push('/eventos')}>
               Cancelar
@@ -255,6 +322,7 @@ export function EventForm({ event }: { event?: Event }) {
 
       <PosterPanel
         subject={{ title, date, startTime, locationName }}
+        onPoster={setPoster}
         onRead={(reading) => {
           if (reading.title) setTitle(reading.title);
           if (reading.description) setDescription(reading.description);

@@ -24,9 +24,18 @@ const TABS: { id: Tab; label: string }[] = [
 
 export function PosterPanel({
   onRead,
+  onPoster,
   subject,
 }: {
   onRead: (reading: PosterReading) => void;
+  /**
+   * The image to put on the event, from whichever tab produced it.
+   *
+   * Both do: the photo of a real poster is the poster, and a drawn one is the
+   * poster for an event that never had one. The form holds it until the event
+   * is saved, because a new event has nothing to attach it to yet.
+   */
+  onPoster: (image: { mimeType: string; data: string }) => void;
   subject: PosterSubject;
 }) {
   const [tab, setTab] = useState<Tab>('read');
@@ -55,7 +64,11 @@ export function PosterPanel({
       </div>
 
       <div className="mt-4">
-        {tab === 'read' ? <PosterImport onRead={onRead} /> : <PosterCreate subject={subject} />}
+        {tab === 'read' ? (
+          <PosterImport onRead={onRead} onPoster={onPoster} />
+        ) : (
+          <PosterCreate subject={subject} onPoster={onPoster} />
+        )}
       </div>
     </Card>
   );

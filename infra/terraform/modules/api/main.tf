@@ -259,6 +259,12 @@ module "panel_api" {
     MEDIA_BUCKET = var.media_bucket_name
     USER_POOL_ID = var.user_pool_id
 
+    # Where a poster ends up being served from. The bucket is private and
+    # CloudFront serves it at /media/*, so what the event stores is a URL on the
+    # site and not on the bucket. Empty until there is a site, and the upload
+    # route refuses rather than writing a URL nobody can open.
+    SITE_URL = var.site_url
+
     # What to assume, and what the session policy is written against. Both, or
     # the function falls back to its own credentials and the fourth layer of
     # isolation quietly is not there.

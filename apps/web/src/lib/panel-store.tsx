@@ -141,6 +141,24 @@ export interface PanelState {
    * and say which of the two they are doing.
    */
   deleteEvent: (id: string) => Promise<void>;
+  /**
+   * Puts the poster on an event, or takes it off.
+   *
+   * The image goes to a bucket and the event keeps a URL, so this is the one
+   * call in the panel that sends a megabyte. It answers like any other edit:
+   * an association without trust gets "queued", because the poster is the first
+   * thing a neighbour looks at and swapping it on a published event is not a
+   * small change.
+   *
+   * In the demo there is no bucket, so the image stays in the browser as a data
+   * URL. That is also what makes the demo's poster survive a reload in a meeting
+   * room with no wifi.
+   */
+  setEventImage: (
+    id: string,
+    image: { mimeType: string; data: string },
+  ) => Promise<'applied' | 'queued'>;
+  removeEventImage: (id: string) => Promise<'applied' | 'queued'>;
   approveEvent: (id: string) => Promise<void>;
   rejectEvent: (id: string, reason: string) => Promise<void>;
   addNotice: (notice: Omit<EventNotice, 'id' | 'createdAt'>) => Promise<void>;
@@ -197,6 +215,12 @@ export interface PanelState {
 }
 
 export interface NewEvent {
+  /**
+   * Chosen by the form when it creates one, so the poster can be attached in the
+   * same breath. The API accepts it and invents one when it is missing, which is
+   * what every other caller relies on.
+   */
+  id?: string;
   title: string;
   description: string;
   categoryId: string;
@@ -209,6 +233,8 @@ export interface NewEvent {
   priceInfo: string | null;
   isFeatured: boolean;
   organizationId: string | null;
+  /** Set by `setEventImage`, not typed into the form. */
+  imageUrl?: string | null;
 }
 
 const PanelContext = createContext<PanelState | null>(null);
@@ -257,6 +283,7 @@ function writeStored(state: StoredState): void {
 /** A draft as the API takes it. The panel's form shape is older than the API's. */
 function toApiInput(draft: NewEvent, municipality: Municipality | null): NewEventInput {
   return {
+    ...(draft.id === undefined ? {} : { id: draft.id }),
     title: draft.title,
     description: draft.description,
     categoryId: draft.categoryId,
@@ -488,7 +515,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
 
       const now = new Date();
       const event: Event = {
-        id: `evt-${now.getTime().toString(36)}`,
+        id: draft.id ?? `evt-${now.getTime().toString(36)}`,
         municipalityId: DEMO_MUNICIPALITY_ID,
         organizationId: draft.organizationId,
         title: draft.title,
@@ -542,6 +569,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
           ...(changes.isFree === undefined ? {} : { isFree: changes.isFree }),
           ...(changes.priceInfo === undefined ? {} : { priceInfo: changes.priceInfo }),
           ...(changes.isFeatured === undefined ? {} : { isFeatured: changes.isFeatured }),
+          ...(changes.imageUrl === undefined ? {} : { imageUrl: changes.imageUrl }),
           ...(changes.locationName === undefined
             ? {}
             : {
@@ -570,6 +598,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
                 ...(changes.isFree === undefined ? {} : { isFree: changes.isFree }),
                 ...(changes.priceInfo === undefined ? {} : { priceInfo: changes.priceInfo }),
                 ...(changes.isFeatured === undefined ? {} : { isFeatured: changes.isFeatured }),
+                ...(changes.imageUrl === undefined ? {} : { imageUrl: changes.imageUrl }),
                 ...(changes.locationName === undefined
                   ? {}
                   : {
@@ -642,6 +671,55 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       await reload(client);
     },
     [client, events, noteDemo, notices, persist, reload],
+  );
+
+  /** The demo's poster, and the real one's, through one shape. */
+  const putImage = useCallback(
+    (id: string, imageUrl: string | null) => {
+      persist(
+        events.map((event) =>
+          event.id === id ? { ...event, imageUrl, updatedAt: new Date() } : event,
+        ),
+        notices,
+      );
+    },
+    [events, notices, persist],
+  );
+
+  const setEventImage = useCallback(
+    async (id: string, image: { mimeType: string; data: string }) => {
+      if (client === null) {
+        putImage(id, `data:${image.mimeType};base64,${image.data}`);
+        noteDemo('event.image', 'event', id);
+
+        return 'applied' as const;
+      }
+
+      const result = await client.setEventImage(id, image);
+
+      await reload(client);
+
+      return result.kind === 'queued' ? ('queued' as const) : ('applied' as const);
+    },
+    [client, noteDemo, putImage, reload],
+  );
+
+  const removeEventImage = useCallback(
+    async (id: string) => {
+      if (client === null) {
+        putImage(id, null);
+        noteDemo('event.image_removed', 'event', id);
+
+        return 'applied' as const;
+      }
+
+      const result = await client.removeEventImage(id);
+
+      await reload(client);
+
+      return result.kind === 'queued' ? ('queued' as const) : ('applied' as const);
+    },
+    [client, noteDemo, putImage, reload],
   );
 
   const approveEvent = useCallback(
@@ -960,6 +1038,8 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       updateEvent,
       cancelEvent,
       deleteEvent,
+      setEventImage,
+      removeEventImage,
       approveEvent,
       rejectEvent,
       addNotice,
@@ -1018,7 +1098,9 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       organizations,
       refreshNotices,
       rejectEvent,
+      removeEventImage,
       revokeStaff,
+      setEventImage,
       runLive,
       scheduleLive,
       setOrganizationStatus,

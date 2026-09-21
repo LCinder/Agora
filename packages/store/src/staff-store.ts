@@ -88,6 +88,15 @@ export interface EventPatch {
   priceInfo?: string | null;
   isFree?: boolean;
   isFeatured?: boolean;
+  /**
+   * Where the poster is, or null for none.
+   *
+   * Set by the route that uploads one, which has already put the bytes in the
+   * bucket: what an event carries is a URL and never an image. An association
+   * may change its own event's poster like any other field, and the same review
+   * rules apply — a new poster on a published event goes to the town hall.
+   */
+  imageUrl?: string | null;
 }
 
 /**
@@ -189,6 +198,13 @@ function revivePatch(raw: unknown): EventPatch {
 
     if (typeof value === 'boolean') patch[field] = value;
   }
+
+  // Nullable, so it needs its own two lines rather than joining the strings
+  // above: null is what taking the poster off an event looks like, and a change
+  // that lost it on the way through the queue would silently put the old poster
+  // back when the town hall approved it.
+  if (stored['imageUrl'] === null) patch.imageUrl = null;
+  else if (typeof stored['imageUrl'] === 'string') patch.imageUrl = stored['imageUrl'];
 
   if (typeof stored['startAt'] === 'string') patch.startAt = new Date(stored['startAt']);
 

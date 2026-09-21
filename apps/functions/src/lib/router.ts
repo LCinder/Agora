@@ -15,7 +15,7 @@ import type { ApiEvent, ApiResult } from './http';
  * cleverness nobody asked for.
  */
 export interface Route<Context> {
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   pattern: string;
   run: (parameters: Record<string, string>, context: Context) => Promise<ApiResult>;
 }

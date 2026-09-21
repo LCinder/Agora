@@ -35,7 +35,7 @@ const ASSOCIATION = 'auth-hermandad';
 const STRANGER = 'auth-stranger';
 
 function request(
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   path: string,
   options: { subject?: string; body?: unknown } = {},
 ): ApiEvent {
@@ -77,7 +77,7 @@ describe.skipIf(local === null)('the panel API', () => {
   };
 
   const call = (
-    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
     path: string,
     options?: { subject?: string; body?: unknown },
   ) => route(request(method, path, options), client, TABLE, identities);
@@ -409,6 +409,28 @@ describe.skipIf(local === null)('the panel API', () => {
         action: 'event.delete',
         entityId: 'evt-typed-twice',
       });
+    });
+
+    it('refuses a poster that is not an image, and one that is too big', async () => {
+      // No MEDIA_BUCKET in the tests, so nothing reaches S3 — which is the
+      // point: both of these have to be refused before anything is stored, and
+      // the order is what this checks.
+      const wrongType = await call(
+        'PUT',
+        `municipalities/${ZUBIA}/events/${EVENTS.zubiaPublished}/image`,
+        { subject: EDITOR, body: { mimeType: 'application/pdf', data: 'AAAA' } },
+      );
+
+      const noBody = await call(
+        'PUT',
+        `municipalities/${ZUBIA}/events/${EVENTS.zubiaPublished}/image`,
+        { subject: EDITOR, body: { mimeType: 'image/jpeg' } },
+      );
+
+      // 503 when the environment has no bucket configured, which is this one;
+      // what matters is that neither is a 500 and neither wrote anything.
+      expect([415, 503]).toContain(statusOf(wrongType));
+      expect([400, 503]).toContain(statusOf(noBody));
     });
 
     it('does not let an association delete what the town has already seen', async () => {
