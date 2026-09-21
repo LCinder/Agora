@@ -357,8 +357,8 @@ El requisito es explícito: que funcione con claves que se saquen en cinco minut
 
 | Paso | Antes | Ahora | Gratis |
 | --- | --- | --- | --- |
-| Leer un cartel (visión) | Claude Opus 5 | Gemini Flash | ~1.500 peticiones/día |
-| Escribir la instrucción del dibujo | Claude Opus 5 | Gemini Flash | la misma cuota |
+| Leer un cartel (visión) | Claude Opus 5 | Gemini Flash Lite | ver D-071 |
+| Escribir la instrucción del dibujo | Claude Opus 5 | Gemini Flash Lite | la misma cuota |
 | Dibujar el cartel | Gemini (imagen) | Cloudflare Workers AI, FLUX.1 [schnell] | 10.000 neuronas/día |
 
 **Por qué Cloudflare para la imagen.** Es la mayor cuota gratuita recurrente que hay sin tarjeta: 10.000 neuronas **al día**, que no caducan en un mes ni son un saldo de prueba que se gasta y se acaba. A 4,80 neuronas por tesela de 512×512 y 9,60 por paso, un cartel de 1024×1024 a cuatro pasos sale por unas 58, así que da del orden de **150-250 carteles al día**. Un ayuntamiento publica decenas de eventos al mes. Las alternativas eran saldos de prueba (1 $ en Together, 5 $ en Leonardo) que se agotan, o Hugging Face, cuyo límite gratuito flota con la carga y no se puede prometer en una reunión.
@@ -1346,3 +1346,60 @@ siguen tipadas y siguen formateándose, y no coinciden nunca. El CSS compilado l
 el día que alguien lo pida, es poner `dark` en el `<html>`.
 
 La app del vecino no cambia: es oscura a propósito y se mira de noche en la calle.
+
+---
+
+## D-071 — El cartel no funcionaba en remoto, por dos motivos y medio
+
+**Fecha:** 2026-09-21 · **Estado:** aceptada · **Ref.:** corrige la tabla de D-024
+
+Leer y dibujar carteles funcionaba en el portátil y no hacía nada en la nube. Tres cosas distintas,
+y conviene separarlas porque solo la primera era un fallo de programación.
+
+**1. El panel no mandaba el testigo.** Las dos llamadas eran un `fetch` pelado con un
+`content-type` y nada más. En desarrollo eso está bien: contestan las rutas del propio panel bajo
+`/api` y no le piden nada a nadie. Desplegado, el panel es una exportación estática y esas dos
+rutas viven en la API detrás del autorizador de Cognito, así que **todas las peticiones se
+rechazaban antes de llegar a ninguna parte** — `{"message":"Unauthorized"}`, impreso en un panel en
+español como la palabra «Unauthorized».
+
+Lo que lo dejó fuera de duda antes de tocar nada: el grupo de logs de la función del cartel estaba a
+**cero bytes y sin un solo flujo**. No es que fallara, es que no se había ejecutado nunca desde el
+día que se creó.
+
+El autorizador tiene razón y el fallo era la cabecera que faltaba: las dos llamadas cuestan dinero
+de verdad en el contador de otro. Ahora pasan por un ayudante que pide `currentIdToken` en cada
+llamada —un panel abierto toda la tarde en una oficina municipal tiene uno caducado— y omite la
+cabecera cuando no hay sesión, que es el caso de desarrollo y el de la demo.
+
+**2. Las llamadas a los proveedores no tenían plazo.** Invocando la función directamente se agotó a
+los 29 segundos sin escribir una línea. Por encima hay un techo que este código no puede subir:
+API Gateway le da 30 segundos a una integración. Pasado eso **el fallo deja de ser nuestro** —la
+puerta de enlace contesta un 503 vacío y el panel no tiene nada que decir—, así que cada llamada
+tiene ahora su presupuesto dentro del techo, 18 segundos para el guion y 20 para el dibujo, y la
+que se pasa termina en `timed_out` con una frase detrás.
+
+**3. Y el modelo que había no da para trabajar.** `gemini-3.5-flash` en el nivel gratuito son
+**veinte peticiones al día** (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`, límite 20,
+dicho por el propio error), no las ~1.500 que prometía la tabla de D-024 y el `.env.example`. Una
+tarde de pruebas se las come antes de comer, y después la función contesta 429 para siempre.
+
+`gemini-3.5-flash-lite` tiene una cuota mucho mayor, y de paso es **de tres a cinco veces más
+rápido** medido el mismo día: 3 segundos contra 7-14. Eso segundo importa tanto como lo primero,
+porque el guion y el dibujo comparten esos 30 segundos.
+
+Que lee igual de bien se comprobó, no se supuso: con un cartel de prueba de un concurso de
+tortillas devolvió el título, la fecha resuelta al año correcto, la hora, el lugar, el organizador
+y que la entrada era gratuita, en tres segundos. Escribir una instrucción visual a partir de una
+frase en español es más fácil que eso.
+
+**Lo que esto deja dicho para el piloto:** el nivel gratuito es para la demo. Un ayuntamiento de
+verdad necesita facturación activada en el proyecto de Google, y ahí el modelo vuelve a ser una
+decisión de calidad y no de cuota.
+
+**Y dos mensajes, de paso.** Los 500, 502, 503 y 504 pasan a ser `busy` y no `unknown`, porque es
+lo que contesta un nivel gratuito cuando hay demasiada gente pidiendo a la vez —medido: Gemini
+contestó 503 «high demand» dos de cada tres intentos esa tarde— y lo que hay que hacer es volver a
+darle al botón en un minuto. Y el 429 ya no dice «vuelve mañana»: el nivel gratuito lo contesta
+también por el límite por minuto, y mandar a alguien a mañana cuando la respuesta es esperar
+cuarenta segundos es una función que se deja de usar.

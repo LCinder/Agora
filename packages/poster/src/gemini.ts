@@ -19,10 +19,29 @@ import type { PosterFailure, PosterResult } from './failure';
 const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 /**
- * A Flash model, because those are the ones on the free tier. Flash is
- * multimodal, so the same id reads a poster and writes a brief.
+ * A Flash Lite model, because of the free tier, and measured rather than assumed.
+ *
+ * `gemini-3.5-flash` was here first, on the understanding that a Flash model
+ * gives about 1,500 requests a day. It does not: the free tier allows **twenty
+ * a day** for that model, `GenerateRequestsPerDayPerProjectPerModel-FreeTier`,
+ * which an afternoon of testing spends before lunch. Lite has a far larger
+ * allowance and is the difference between a feature that works in a meeting and
+ * one that answers 429.
+ *
+ * It is also three to five times quicker — 3 seconds against 7 to 14 measured
+ * on the same day — and that matters for more than patience: API Gateway gives
+ * the poster function 30 seconds for the brief and the drawing together.
+ *
+ * And it is good enough at the only two jobs here. Reading a municipal poster it
+ * returned the title, the date resolved to the right year, the time, the place,
+ * the organiser and that it was free. Writing a visual brief from one Spanish
+ * sentence is easier than that.
+ *
+ * Lite is still multimodal, so the same id reads a poster and writes a brief. A
+ * town hall in a real pilot needs billing enabled on the project whichever model
+ * this is; the free tier is for the demo (D-024).
  */
-export const GEMINI_MODEL = 'gemini-3.5-flash';
+export const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
 export type GeminiPart = { text: string } | { inlineData: { mimeType: string; data: string } };
 
