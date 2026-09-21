@@ -95,7 +95,23 @@ cp ../terraform.tfvars.example terraform.tfvars
 aws_profile       = "hoyq"                # el nombre que le diste en `aws configure`
 aws_account_id    = "123456789012"        # el tuyo, de 1.5
 github_repository = "LCinder/Agora"       # owner/nombre, tal cual
+
+# Los dos identificadores numéricos del repositorio. Hacen falta para cualquier
+# repositorio creado después del 15 de julio de 2026, porque desde entonces el
+# testigo de GitHub los lleva en lugar de los nombres: un nombre se puede reciclar
+# y suplantar, un id no.
+github_owner_id      = "50793953"
+github_repository_id = "1366332619"
 ```
+
+Si no los sabes:
+
+```bash
+gh api repos/LCinder/Agora --jq '.owner.id, .id'
+```
+
+Si el repositorio es anterior a esa fecha, déjalos vacíos: entonces el testigo manda los
+nombres y la configuración usa ese formato.
 
 **2.3. Aplícalo:**
 
@@ -168,12 +184,24 @@ crea estas:
 Son **variables y no secretos** a propósito: ninguna es una llave, y verlas en el log de
 un workflow fallido ayuda en vez de preocupar.
 
-**3.2. Pon una revisión a producción.** *Settings* → *Environments* → *New environment* →
-`prod` → marca *Required reviewers* y ponte a ti y a tu socio. Crea también `dev`, sin
-revisores.
+**3.2. Los dos entornos, y la regla de rama.** Esta es la parte que **no es opcional**:
+es donde vive la restricción de qué ramas pueden desplegar.
 
-Eso es lo que sustituye al «escribe `prod` para seguir» que pide el script en local: la
-misma pregunta, hecha antes y por escrito.
+*Settings* → *Environments* → *New environment*, dos veces:
+
+- **`dev`**: sin revisores. En *Deployment branches and tags* elige
+  **Selected branches and tags** y añade la regla `main`.
+- **`prod`**: marca *Required reviewers* y ponte a ti y a tu socio. La misma regla de
+  rama: solo `main`.
+
+Los revisores de `prod` son lo que sustituye al «escribe `prod` para seguir» del script:
+la misma pregunta, hecha antes y por escrito.
+
+Y la regla de rama es lo que sustituye a nombrar la rama en la política de confianza de
+AWS, que **no se puede hacer**: un trabajo que declara un entorno recibe un testigo cuyo
+sujeto nombra el entorno y no la rama. GitHub comprueba la regla **antes** de emitir el
+testigo, así que una rama que el entorno no admite no consigue credenciales. Sin esa
+regla, en un repositorio público, cualquier rama que pueda lanzar el workflow despliega.
 
 **3.3. Comprueba que la confianza funciona**, antes de desplegar nada. En GitHub →
 *Actions* → *Deploy* → *Run workflow* → entorno `dev`, «what» = `status`. Debe terminar
@@ -292,7 +320,7 @@ adb shell pm get-app-links com.hoyq.app
 
 | Síntoma | Casi siempre es |
 | --- | --- |
-| `Not authorized to perform sts:AssumeRoleWithWebIdentity` | El `github_repository` del bootstrap no coincide con el repositorio, o estás ejecutando desde una rama que no es la que permite `github_deploy_refs`. |
+| `Not authorized to perform sts:AssumeRoleWithWebIdentity` | El `sub` del testigo no coincide con ninguno de los que confía el rol. Mira el rol en IAM → *Trust relationships*: tiene que decir `repo:<owner>@<ownerId>/<nombre>@<repoId>:environment:dev`. Las tres causas, por frecuencia: faltan los dos ids numéricos (3.2 de la Parte 2), el entorno del workflow no está en `github_deploy_environments`, o el repositorio no es el que dice `github_repository`. |
 | `AccessDenied` a mitad de un apply | Al rol le falta un permiso. Añádelo al `Allow` de `infra/terraform/bootstrap/github.tf`, aplica el bootstrap otra vez y repite. **No** añadas `AdministratorAccess`. |
 | `Error acquiring the state lock` | Un despliegue anterior se cortó. Espera cinco minutos; si sigue, `terraform force-unlock <id>` con el id que dice el error. |
 | `InvalidClientTokenId` en local | Tus claves o tu perfil. `aws sts get-caller-identity --profile hoyq`. |

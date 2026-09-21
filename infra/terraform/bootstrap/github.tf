@@ -38,6 +38,51 @@ locals {
   prefix = var.infra_name
 }
 
+/**
+ * The exact `sub` claims that may assume the deploy role.
+ *
+ * Two things about this claim cost an afternoon each, and both are written here
+ * rather than learned again:
+ *
+ * **A job that declares an `environment:` gets a subject naming the environment,
+ * never the ref.** It reads `repo:owner/name:environment:dev`, with no branch in
+ * it at all — so a trust policy that asks for `ref:refs/heads/main` can never
+ * match a job that has an environment, whatever branch it runs on. The deploy
+ * workflow declares one, because that is what makes GitHub ask a reviewer before
+ * production.
+ *
+ * The branch restriction therefore does not live here any more. It lives in the
+ * environment's own **deployment branch rule** in GitHub, which is enforced
+ * before the token is minted: a ref that the environment does not allow never
+ * gets a token naming that environment. That rule is not optional — without it,
+ * on a public repository, any branch that can start the workflow can deploy. It
+ * is step 3.2 of docs/primer-despliegue.md.
+ *
+ * **And the subject format changed.** Repositories created after 15 July 2026 use
+ * an immutable subject that carries the numeric owner and repository ids:
+ * `repo:owner@50793953/name@1366332619:environment:dev`. The old format used
+ * names alone, so a recycled namespace could be impersonated. Set the two ids and
+ * this uses the new format; leave them empty and it uses the old one, which is
+ * what an older repository still sends.
+ */
+locals {
+  immutable = var.github_owner_id != "" && var.github_repository_id != ""
+
+  owner = split("/", var.github_repository)[0]
+  name  = split("/", var.github_repository)[1]
+
+  repository_claim = (
+    local.immutable
+    ? "repo:${local.owner}@${var.github_owner_id}/${local.name}@${var.github_repository_id}"
+    : "repo:${var.github_repository}"
+  )
+
+  deploy_subjects = [
+    for environment in var.github_deploy_environments :
+    "${local.repository_claim}:environment:${environment}"
+  ]
+}
+
 resource "aws_iam_openid_connect_provider" "github" {
   url             = "https://token.actions.githubusercontent.com"
   client_id_list  = ["sts.amazonaws.com"]
@@ -63,13 +108,13 @@ data "aws_iam_policy_document" "github_trust" {
       values   = ["sts.amazonaws.com"]
     }
 
-    # The repository and the ref. `sub` looks like
-    # `repo:owner/name:ref:refs/heads/main`, so naming the branch is what stops a
-    # pull request from a fork from deploying anything.
+    # Exactly which jobs of which repository. `StringEquals` and not `StringLike`:
+    # every subject here is a literal, and a wildcard in a trust policy is how a
+    # repository called `Agora-evil` ends up matching `Agora*`.
     condition {
-      test     = "StringLike"
+      test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = [for ref in var.github_deploy_refs : "repo:${var.github_repository}:${ref}"]
+      values   = local.deploy_subjects
     }
   }
 }

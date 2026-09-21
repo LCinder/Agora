@@ -43,17 +43,37 @@ variable "github_repository" {
   }
 }
 
-variable "github_deploy_refs" {
+variable "github_deploy_environments" {
   description = <<-EOT
-    Which refs of that repository may assume the deploy role.
+    Which GitHub environments may assume the deploy role.
 
-    The default is the default branch and nothing else. A pull request from a
-    fork runs with `pull_request` as its ref, so leaving this as it is means a
-    fork cannot deploy — which is the entire point of naming the ref at all.
-
-    Add `environment:prod` here if you set up a GitHub environment with reviewers,
-    which is how you make production wait for a human.
+    Not branches: a job that declares an environment gets a token whose subject
+    names the environment and not the ref, so the branch is restricted in the
+    environment's own settings in GitHub and not here. See the comment in
+    github.tf, and step 3.2 of docs/primer-despliegue.md — that rule is what
+    stops any branch from deploying, and it is not optional.
   EOT
   type        = list(string)
-  default     = ["ref:refs/heads/main"]
+  default     = ["dev", "prod"]
+}
+
+variable "github_owner_id" {
+  description = <<-EOT
+    Numeric id of the repository's owner, for the immutable subject format.
+
+    Repositories created after 15 July 2026 send a subject carrying the numeric
+    owner and repository ids instead of their names, because a name can be
+    recycled and impersonated. Both this and `github_repository_id` must be set to
+    use it; leaving both empty keeps the older, name-only format.
+
+      gh api repos/OWNER/NAME --jq '.owner.id, .id'
+  EOT
+  type        = string
+  default     = ""
+}
+
+variable "github_repository_id" {
+  description = "Numeric id of the repository. See github_owner_id."
+  type        = string
+  default     = ""
 }
