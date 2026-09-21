@@ -72,7 +72,20 @@ environment_dir() {
 }
 
 tf() {
-  terraform -chdir="$(environment_dir "${ENVIRONMENT}")" "$@"
+  # The backend block cannot read a variable, so the profile reaches it the only
+  # way it can: through the environment. Without this, `terraform init` locally
+  # would talk to the state bucket with whatever default credentials the machine
+  # has — which on a laptop with several accounts is the wrong one, silently.
+  #
+  # Empty in CI, where the identity is the assumed role and there is no profile.
+  local profile
+  profile="$(aws_profile)"
+
+  if [[ -n "${profile}" ]]; then
+    AWS_PROFILE="${profile}" terraform -chdir="$(environment_dir "${ENVIRONMENT}")" "$@"
+  else
+    terraform -chdir="$(environment_dir "${ENVIRONMENT}")" "$@"
+  fi
 }
 
 output_of() {

@@ -15,15 +15,21 @@ terraform {
     }
   }
 
-  # Filled in from the outputs of the bootstrap stack. Terraform does not allow
-  # variables here, so the bucket name is written by hand, once.
+  # From the outputs of the bootstrap stack. Terraform allows no variables in a
+  # backend block, so these were written by hand once and do not change again.
+  # The account number in the bucket name is not a secret: it opens nothing.
+  #
+  # There is deliberately no `profile` here. A backend reads no variables, so it
+  # would have to be a literal — which would name one person's local profile in a
+  # shared repository and fail outright in CI, where the identity is an assumed
+  # role. `infra/deploy.sh` exports AWS_PROFILE from the environment's tfvars
+  # instead, which the backend honours and which is empty in CI.
   backend "s3" {
-    key     = "dev/terraform.tfstate"
-    region  = "eu-central-1"
-    encrypt = true
-    # bucket         = "agora-tfstate-<cuenta>"
-    # dynamodb_table = "agora-tfstate-lock"
-    # profile        = "<perfil>"
+    key            = "dev/terraform.tfstate"
+    region         = "eu-central-1"
+    encrypt        = true
+    bucket         = "agora-tfstate-858351789763"
+    dynamodb_table = "agora-tfstate-lock"
   }
 }
 

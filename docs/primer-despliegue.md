@@ -92,7 +92,7 @@ cp ../terraform.tfvars.example terraform.tfvars
 Ábrelo y pon:
 
 ```hcl
-aws_profile       = "hoyq"
+aws_profile       = "hoyq"                # el nombre que le diste en `aws configure`
 aws_account_id    = "123456789012"        # el tuyo, de 1.5
 github_repository = "LCinder/Agora"       # owner/nombre, tal cual
 ```
@@ -104,8 +104,12 @@ cd ../../..          # a la raíz del repositorio
 infra/deploy.sh bootstrap
 ```
 
-Te muestra el plan y pregunta. Di `s`. Al terminar imprime seis valores. **Cópialos a
-un sitio**, los necesitas en los dos pasos siguientes:
+Te muestra el plan y pregunta. Di `s`. Debe crear **diez recursos**: el bucket del
+estado con sus cuatro ajustes, la tabla de bloqueo, el proveedor OIDC, el rol de
+despliegue y sus dos políticas. Si el plan quiere borrar algo, no sigas.
+
+Al terminar imprime seis valores. **Cópialos a un sitio**, los necesitas en los dos
+pasos siguientes:
 
 ```
 bucket          = "agora-tfstate-123456789012"
@@ -117,22 +121,27 @@ TF_LOCK_TABLE   = agora-tfstate-lock
 ```
 
 **2.4. Escribe el bucket en los dos entornos.** Terraform no acepta variables en un
-bloque `backend`, así que esto va a mano una vez. En `infra/terraform/envs/dev/main.tf` y
-en `envs/prod/main.tf`, descomenta y rellena:
+bloque `backend`, así que va a mano una vez. En `infra/terraform/envs/dev/main.tf` y en
+`envs/prod/main.tf`:
 
 ```hcl
   backend "s3" {
     key            = "dev/terraform.tfstate"   # o prod/, según el fichero
     region         = "eu-central-1"
     encrypt        = true
-    bucket         = "agora-tfstate-123456789012"
+    bucket         = "agora-tfstate-858351789763"
     dynamodb_table = "agora-tfstate-lock"
-    profile        = "hoyq"
   }
 ```
 
-Commitea ese cambio. El nombre del bucket lleva tu número de cuenta y **eso no es un
-secreto**: un número de cuenta no abre nada por sí solo.
+**Ya está hecho en el repositorio** para la cuenta actual; solo hay que rehacerlo si
+algún día se despliega en otra. El número de cuenta en el nombre del bucket **no es un
+secreto**: no abre nada por sí solo.
+
+No pongas `profile` ahí. Un bloque `backend` no lee variables, así que sería un literal:
+nombraría el perfil local de una persona en un repositorio compartido y fallaría en la
+CI, donde la identidad es un rol asumido. `infra/deploy.sh` exporta `AWS_PROFILE` desde
+el tfvars del entorno, que es lo que el backend sí respeta.
 
 ---
 
@@ -174,6 +183,15 @@ variable, y no has tocado infraestructura.
 ---
 
 ## Parte 4 — El primer despliegue de verdad
+
+**4.0. El tfvars del entorno**, si vas a aplicar desde tu máquina. La CI lo escribe
+sola desde las variables del repositorio; en local hace falta el fichero:
+
+```bash
+cd infra/terraform/envs/dev
+cp terraform.tfvars.example terraform.tfvars
+# y pon aws_profile = "hoyq", tu aws_account_id y tu alert_email
+```
 
 **4.1. Aplica la infraestructura.** *Actions* → *Deploy* → `dev` / `infra`.
 
