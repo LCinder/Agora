@@ -158,24 +158,18 @@ module "api" {
     aws_ssm_parameter.cloudflare_token.arn,
   ]
 
+  site_url        = var.site_url
   allowed_origins = var.allowed_origins
 }
 
 module "web" {
   source = "../web"
 
-  infra_name         = var.infra_name
-  app_name           = local.app_name
-  environment        = var.environment
-  lambda_source_root = local.lambda_source_root
-
-  table_name          = module.data.table_name
-  table_arn           = module.data.table_arn
-  review_index_arn    = module.data.review_index_arn
-  reminders_index_arn = module.data.reminders_index_arn
+  infra_name  = var.infra_name
+  app_name    = local.app_name
+  environment = var.environment
 
   api_host = module.api.api_host
-  site_url = var.site_url
 
   media_bucket_name   = module.storage.media_bucket_name
   media_bucket_arn    = module.storage.media_bucket_arn
@@ -211,7 +205,6 @@ module "observability" {
   # adding up whatever else lives in the account.
   function_names = concat(
     module.api.function_names,
-    module.web.function_names,
     module.jobs.function_names,
   )
 

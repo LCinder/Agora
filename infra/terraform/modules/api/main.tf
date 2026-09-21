@@ -349,6 +349,73 @@ module "volunteer" {
 }
 
 # ---------------------------------------------------------------------------
+# The public event page
+#
+# The one thing in the product that needs HTML from a server, and only because
+# of the Open Graph tags: without them a link shared on WhatsApp is a bare URL
+# instead of a card with the title, the date and the town. That preview is the
+# growth loop, so it earns its Lambda.
+#
+# It was a Lambda function URL, on the reasoning that a public page needs no
+# gateway in front of it. That URL answered 403 from the first request: an
+# account can refuse public function URLs outright, whatever the auth type and
+# resource policy say, and this account does.
+#
+# A route on the API that already exists is the better shape anyway. One fewer
+# public surface, one fewer CloudFront origin, and the same path every other
+# handler takes.
+# ---------------------------------------------------------------------------
+
+data "aws_iam_policy_document" "event_page" {
+  statement {
+    effect    = "Allow"
+    actions   = ["dynamodb:GetItem", "dynamodb:Query"]
+    resources = [var.table_arn]
+  }
+
+  # A link shared on WhatsApp reaches this page, so it is the most exposed thing
+  # in the system. It gets the table and nothing else: not the review queue, not
+  # who is interested.
+  statement {
+    effect    = "Deny"
+    actions   = ["dynamodb:*"]
+    resources = [var.review_index_arn, var.reminders_index_arn]
+  }
+}
+
+module "event_page" {
+  source = "../lambda"
+
+  name        = "${local.prefix}-event-page"
+  source_dir  = "${var.lambda_source_root}/event-page"
+  policy_json = data.aws_iam_policy_document.event_page.json
+
+  environment_variables = {
+    TABLE_NAME  = var.table_name
+    ENVIRONMENT = var.environment
+    # Where the page is served from, for its canonical and Open Graph URLs.
+    # Until there is a domain it is the CloudFront one, and while it is empty
+    # the page leaves those two tags out rather than writing them wrong.
+    SITE_URL = var.site_url
+  }
+}
+
+resource "aws_apigatewayv2_integration" "event_page" {
+  api_id                 = aws_apigatewayv2_api.main.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.event_page.invoke_arn
+  payload_format_version = "2.0"
+}
+
+# The handler reads the slug and the id out of the raw path, so the route only
+# has to deliver the shape.
+resource "aws_apigatewayv2_route" "event_page" {
+  api_id    = aws_apigatewayv2_api.main.id
+  route_key = "GET /e/{slug}/{eventId}"
+  target    = "integrations/${aws_apigatewayv2_integration.event_page.id}"
+}
+
+# ---------------------------------------------------------------------------
 # The API itself
 # ---------------------------------------------------------------------------
 
@@ -559,6 +626,7 @@ locals {
     device_api        = module.device_api.function_name
     panel_api         = module.panel_api.function_name
     poster            = module.poster.function_name
+    event_page        = module.event_page.function_name
     volunteer         = module.volunteer.function_name
     device_authorizer = module.device_authorizer.function_name
   }

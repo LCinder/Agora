@@ -11,8 +11,3 @@ output "distribution_id" {
 output "panel_bucket" {
   value = aws_s3_bucket.panel.id
 }
-
-output "function_names" {
-  description = "The public event page, for the error alarms."
-  value       = [module.event_page.function_name]
-}

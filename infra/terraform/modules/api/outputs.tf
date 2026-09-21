@@ -20,5 +20,6 @@ output "function_names" {
     module.panel_api.function_name,
     module.poster.function_name,
     module.volunteer.function_name,
+    module.event_page.function_name,
   ]
 }

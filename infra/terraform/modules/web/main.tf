@@ -44,60 +44,6 @@ resource "aws_s3_bucket_public_access_block" "panel" {
 }
 
 # ---------------------------------------------------------------------------
-# The public event page
-#
-# The one thing here that needs a server, and only because of the Open Graph
-# tags: without them a link shared on WhatsApp is a bare URL instead of a card
-# with the title, the date and the town. That preview is the product's growth
-# loop, so it earns its Lambda.
-#
-# A function URL rather than an API Gateway route: one fewer moving part, and
-# the page is public anyway, so there is no secret for the open URL to leak.
-# ---------------------------------------------------------------------------
-
-data "aws_iam_policy_document" "event_page" {
-  statement {
-    effect    = "Allow"
-    actions   = ["dynamodb:GetItem", "dynamodb:Query"]
-    resources = [var.table_arn]
-  }
-
-  # A link shared on WhatsApp reaches this page, so it is the most exposed thing
-  # in the system. It gets the table and nothing else: not the review queue, not
-  # who is interested.
-  statement {
-    effect    = "Deny"
-    actions   = ["dynamodb:*"]
-    resources = [var.review_index_arn, var.reminders_index_arn]
-  }
-}
-
-module "event_page" {
-  source = "../lambda"
-
-  name        = "${local.prefix}-event-page"
-  source_dir  = "${var.lambda_source_root}/event-page"
-  policy_json = data.aws_iam_policy_document.event_page.json
-
-  environment_variables = {
-    TABLE_NAME  = var.table_name
-    ENVIRONMENT = var.environment
-    # Where the page is served from, for its canonical and Open Graph URLs. It
-    # cannot be read from the distribution below: this function is one of that
-    # distribution's origins, so Terraform would be chasing its own tail. Set it
-    # to the CloudFront domain after the first apply, or to the real domain the
-    # day there is one; until then the page leaves those two tags out rather than
-    # writing them wrong.
-    SITE_URL = var.site_url
-  }
-}
-
-resource "aws_lambda_function_url" "event_page" {
-  function_name      = module.event_page.function_name
-  authorization_type = "NONE"
-}
-
-# ---------------------------------------------------------------------------
 # CloudFront
 # ---------------------------------------------------------------------------
 
@@ -204,17 +150,6 @@ resource "aws_cloudfront_distribution" "main" {
     }
   }
 
-  origin {
-    origin_id   = "event-page"
-    domain_name = replace(aws_lambda_function_url.event_page.function_url, "/^https?://([^/]*).*$/", "$1")
-
-    custom_origin_config {
-      http_port              = 80
-      https_port             = 443
-      origin_protocol_policy = "https-only"
-      origin_ssl_protocols   = ["TLSv1.2"]
-    }
-  }
 
   # The panel: a static export, one file per page.
   default_cache_behavior {
@@ -264,7 +199,7 @@ resource "aws_cloudfront_distribution" "main" {
 
   ordered_cache_behavior {
     path_pattern           = "/e/*"
-    target_origin_id       = "event-page"
+    target_origin_id       = "api"
     viewer_protocol_policy = "redirect-to-https"
     allowed_methods        = ["GET", "HEAD"]
     cached_methods         = ["GET", "HEAD"]

@@ -90,3 +90,8 @@ variable "user_pool_arn" {
   description = "Scope of the panel's permission to create an account."
   type        = string
 }
+
+variable "site_url" {
+  description = "Where the public pages are served from, for their canonical and Open Graph URLs. Empty until there is a domain, and the page then omits those tags rather than writing them wrong."
+  type        = string
+}
