@@ -128,6 +128,23 @@ contratar para decenas de municipios a la vez y el ciclo es de seis meses, así 
 cuando haga falta. **No pidas nada:** pregunta quién lleva los servicios digitales que se ofrecen a
 los municipios, y apunta el nombre.
 
+### Cuando se acaben estos
+
+El CSV tiene los cuarenta, y **todos tienen ya teléfono**. Diecisiete de ellos no son la centralita
+sino la línea del sitio donde está el técnico — la Casa de la Cultura, el centro cultural, la
+biblioteca — que es la que de verdad ahorra la pelea con la centralita. Los que más me llaman la
+atención de la segunda tanda:
+
+| Municipio | Hab. | Teléfono | Qué es |
+| --- | ---: | --- | --- |
+| **Monachil** | 8.664 | 958 50 18 21 | Casa de la Cultura, con su propio correo |
+| **Cúllar Vega** | 7.947 | 958 57 40 07 | Casa de la Cultura |
+| **Albolote** | 19.768 | 958 46 51 15 | Centralita, pero con el nombre de la concejala |
+| **Loja** | 20.951 | 958 32 23 13 | **Tiene director de Cultura con nombre**, Juan Alonso Sánchez |
+| **Almuñécar** | 27.544 | 958 83 86 26 | Casa de la Cultura, y mucha programación de verano |
+| **Santa Fe** | 15.494 | 958 44 06 06 | Casa de la Cultura José Rodríguez Tabasco |
+| **Huétor Tájar** | 10.749 | 958 33 42 61 | Casa de la Cultura, con biblioteca y escuela de música dentro |
+
 ### Lo que dejaría para otro día
 
 **Baza y Guadix (el Cascamorras)** son el mejor caso del mundo para el seguimiento en directo —una

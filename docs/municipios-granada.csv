@@ -1,41 +1,41 @@
-municipio;habitantes;grupo;concejal_cultura;concejal_fiestas;tecnico_cultura;telefono;que_es_ese_telefono;email;web;verificado;fuente
-La Zubia;20389;A;Pablo Manuel Melgarejo Cordón;Natalia Arregui Barragán;;958 59 01 11;Centralita;;lazubia.es;21/09/2026;https://lazubia.es/gobierno-ayuntamiento-de-la-zubia/
-Armilla;25300;A;Pablo Arturo Cano Cobo;;;958 57 80 37;Directo de la Concejalía de Cultura;pablo.cano@armilla.es;armilla.es;21/09/2026;https://armilla.es/el-ayuntamiento/concejalias/concejalia-de-cultura/
-Las Gabias;23584;A;Cristina María Moreno Ayuso;Sebastián Pertíñez Reyes;;958 58 02 61;Centralita;;lasgabias.es;21/09/2026;https://www.lasgabias.es/lasgabias/equipo-de-gobierno/
-Maracena;22294;A;Antonio Segovia Ganivet;Amabel Adarve Anguita (Eventos);;958 42 13 95;Casa de la Cultura;;maracena.es;21/09/2026;https://maracena.es/equipo-de-gobierno/
-Atarfe;20914;A;Jennifer García Moreno;Víctor Almohano González;;958 43 60 11;Centralita;;atarfe.es;21/09/2026;https://www.atarfe.es/equipo-de-gobierno-3
-Churriana de la Vega;16878;A;Mª Esther López Lara;Sara Mª Sánchez Morente;;958 55 08 74;Centralita;info@churrianadelavega.org;ayuntamientochurrianadelavega.org;21/09/2026;https://ayuntamientochurrianadelavega.org/concejalias/
-Ogíjares;15239;A;Estefano Polo Segura (es el alcalde);Ana María Segura Ruíz;;676 33 80 09;Móvil directo del concejal de Cultura;estefanopolo@ogijares.org;ogijares.es;21/09/2026;https://ogijares.es/ayuntamiento/equipo-de-gobierno
-Huétor Vega;12285;A;Ángel Luis Moreno del Paso;Carolina Higueras Moyano;;958 30 05 11;Centralita;;huetorvega.org;21/09/2026;https://huetorvega.org/corporacion/
-Gójar;6371;A;Rubén Melgarejo Fernández;María Isabel Yáñez Martín;;958 50 91 52;Directo del técnico de Cultura y Deporte;info@gojar.es;gojar.es;21/09/2026;https://gojar.es/cultura/
-Alfacar;5834;A;;;;958 54 30 02;Centralita;;ayuntamientodealfacar.es;21/09/2026;https://ayuntamientodealfacar.es/
-Cájar;5511;A;Juan Antonio Carrillo Jiménez;;;623 25 88 31;Móvil directo del concejal de Cultura;j.carrillo@cajar.es;cajar.es;21/09/2026;https://cajar.es/corporacion-municipal-2/
-Albolote;19768;A;;;;;;;;;
-Vegas del Genil;12424;A;;;;;;;;;
-Peligros;11725;A;;;;;;;;;
-Alhendín;10475;A;;;;;;;;;
-Monachil;8664;A;;;;;;;;;
-Cenes de la Vega;8254;A;;;;;;;;;
-Cúllar Vega;7947;A;;;;;;;;;
-Villa de Otura;7696;A;;;;;;;;;
-Pulianas;5659;A;;;;;;;;;
-Motril;59862;B;;;;;;;;;
-Almuñécar;27544;B;;;;;;;;;
-Loja;20951;B;;;;;;;;;
-Baza;20587;B;;;;;;;;;
-Guadix;18881;B;;;;;;;;;
-Santa Fe;15494;B;;;;;;;;;
-Salobreña;12760;B;;;;;;;;;
-Huétor Tájar;10749;B;;;;;;;;;
-Íllora;9923;B;;;;;;;;;
-Pinos Puente;9807;B;;;;;;;;;
-Padul;9667;B;;;;;;;;;
-Albuñol;7388;B;;;;;;;;;
-Huéscar;7241;B;;;;;;;;;
-Dúrcal;7234;B;;;;;;;;;
-Chauchina;5817;B;;;;;;;;;
-Órgiva;5728;B;;;;;;;;;
-Alhama de Granada;5544;B;;;;;;;;;
-Gualchos;5284;B;;;;;;;;;
-Montefrío;5283;B;;;;;;;;;
-Diputación de Granada;;Diputación;;;;958 24 75 00;Centralita;dipgra@dipgra.es;dipgra.es;21/09/2026;https://www.dipgra.es/servicios/areas/cultura/
+municipio;habitantes;grupo;concejal_cultura;concejal_fiestas;telefono;que_es_ese_telefono;email;web;verificado;fuente;tecnico_cultura
+Armilla;25300;A;Pablo Arturo Cano Cobo;;958 57 80 37;Directo de la Concejalía de Cultura;pablo.cano@armilla.es;armilla.es;21/09/2026;https://armilla.es/el-ayuntamiento/concejalias/concejalia-de-cultura/;
+Las Gabias;23584;A;Cristina María Moreno Ayuso;Sebastián Pertíñez Reyes;958 58 20 04;Centro Cultural Siglo XXI (la centralita es 958 58 02 61);;lasgabias.es;22/09/2026;https://www.lasgabias.es/lasgabias/telefonos-de-interes/;
+Maracena;22294;A;Antonio Segovia Ganivet;Amabel Adarve Anguita (Eventos);958 42 13 95;Casa de la Cultura;;maracena.es;21/09/2026;https://maracena.es/equipo-de-gobierno/;
+Atarfe;20914;A;Jennifer García Moreno;Víctor Almohano González;958 43 96 97;Centro Cultural Medina Elvira (la centralita es 958 43 60 11);;atarfe.es;22/09/2026;https://www.atarfe.es/directorio;
+La Zubia;20389;A;Pablo Manuel Melgarejo Cordón;Natalia Arregui Barragán;958 59 00 79;Centro de Promoción Cultural Carlos Cano (la centralita es 958 59 01 11);;lazubia.es;22/09/2026;https://lazubia.es/telefonos-y-direcciones-de-contacto/;
+Albolote;19768;A;María Rosario Ramírez Rivera;;958 46 51 15;Centralita;ayuntamiento@albolote.com;albolote.org;22/09/2026;https://albolote.org/directorio/telefonos-de-interes/;
+Churriana de la Vega;16878;A;Mª Esther López Lara;Sara Mª Sánchez Morente;958 57 34 78;Centro Municipal de Cultura (la centralita es 958 55 08 74);info@churrianadelavega.org;ayuntamientochurrianadelavega.org;22/09/2026;https://ayuntamientochurrianadelavega.org/concejalias/;
+Ogíjares;15239;A;Estefano Polo Segura (es el alcalde);Ana María Segura Ruíz;676 33 80 09;Móvil directo del concejal de Cultura;estefanopolo@ogijares.org;ogijares.es;21/09/2026;https://ogijares.es/ayuntamiento/equipo-de-gobierno;
+Vegas del Genil;12424;A;;;958 43 20 51;Centralita (biblioteca 958 44 55 77);ayuntamiento@vegasdelgenil.es;vegasdelgenil.es;22/09/2026;https://www.vegasdelgenil.es/municipio/telefonos-de-interes/;
+Huétor Vega;12285;A;Ángel Luis Moreno del Paso;Carolina Higueras Moyano;958 30 10 87;Biblioteca municipal Ángel Ganivet (la centralita es 958 30 05 11);;huetorvega.org;22/09/2026;https://huetorvega.org/corporacion/;
+Peligros;11725;A;;;958 40 00 65;Centralita;info@ayuntamientopeligros.es;ayuntamientopeligros.es;22/09/2026;https://ayuntamientopeligros.es/contacto/;
+Alhendín;10475;A;;;958 57 61 36;Centralita (teatro 958 55 85 13);;alhendin.es;22/09/2026;https://alhendin.es/telefonos-de-interes/;
+Monachil;8664;A;;;958 50 18 21;Casa de la Cultura;casadelacultura@monachil.es;monachil.es;22/09/2026;https://monachil.es/directorio-municipal;
+Cenes de la Vega;8254;A;;;958 48 60 01;Centralita;registro@cenesdelavega.es;cenesdelavega.es;22/09/2026;https://www.cenesdelavega.es/contactar-areas-gobierno;
+Cúllar Vega;7947;A;;;958 57 40 07;Casa de la Cultura (la centralita es 958 58 54 80);cultura@cullarvega.com;cullarvega.com;22/09/2026;https://cullarvega.com/casa-cultura/;
+Villa de Otura;7696;A;;;958 55 51 01;Centralita;info@ayuntamientodeotura.es;ayuntamientodeotura.es;22/09/2026;https://ayuntamientodeotura.es/;
+Gójar;6371;A;Rubén Melgarejo Fernández;María Isabel Yáñez Martín;958 50 91 52;Directo del técnico de Cultura y Deporte;info@gojar.es;gojar.es;21/09/2026;https://gojar.es/cultura/;
+Alfacar;5834;A;;;958 54 30 02;Centralita;;ayuntamientodealfacar.es;21/09/2026;https://ayuntamientodealfacar.es/;
+Pulianas;5659;A;;;958 42 60 01;Centralita;info@ayuntamientopulianas.com;pulianas.es;22/09/2026;https://www.pulianas.es/contacto/;
+Cájar;5511;A;Juan Antonio Carrillo Jiménez;;623 25 88 31;Móvil directo del concejal de Cultura;j.carrillo@cajar.es;cajar.es;21/09/2026;https://cajar.es/corporacion-municipal-2/;
+Motril;59862;B;;;958 83 83 02;Centralita (biblioteca 958 60 47 11);;motril.es;22/09/2026;https://motril.es/informacion-y-contacto/telefonos-de-interes/;
+Almuñécar;27544;B;Alberto Manuel García Gilabert;;958 83 86 26;Casa de la Cultura (la centralita es 958 83 86 00);culturalmunecar@almunecar.es;almunecar.es;22/09/2026;https://www.almunecar.es/ciudad/telefonos-de-interes/;
+Loja;20951;B;Matilde Ortiz Arca;;958 32 23 13;Centro de Iniciativas Culturales El Pósito (la centralita es 958 32 11 56);cultura@aytoloja.org;aytoloja.org;22/09/2026;http://www.aytoloja.org/cultura/directorio.htm;Juan Alonso Sánchez Martínez (director de Cultura)
+Baza;20587;B;Maribel Cano Ruiz;Maribel Cano Ruiz (Cultura y Festejos);958 70 03 95;Centralita (la concejala atiende con cita previa);maribel.cano@ayuntamientodebaza.es;ayuntamientodebaza.es;22/09/2026;https://ayuntamientodebaza.es/ayuntamiento/areas-de-gobierno/gobernacion-y-personal/concejala-de-cultura/;
+Guadix;18881;B;Encarnación Pérez Rodríguez;;958 66 93 00;Centralita;;guadix.es;22/09/2026;https://guadix.es/corporacion-municipal/;
+Santa Fe;15494;B;;;958 44 06 06;Casa de la Cultura José Rodríguez Tabasco (la centralita es 958 44 00 00);casacultura@santafe.es;santafe.es;22/09/2026;https://www.bibliotecaspublicas.es/santafe/Localizacion-Horarios.html;
+Salobreña;12760;B;;;958 61 06 30;Casa de la Cultura (la centralita es 958 61 00 11);ayto-salobrena@ayto-salobrena.org;ayto-salobrena.es;22/09/2026;https://www.ayto-salobrena.es/web/telefonos-de-interes/;
+Huétor Tájar;10749;B;;;958 33 42 61;Casa de la Cultura (la centralita es 958 33 21 11);cultura@huetortajar.org;huetortajar.org;22/09/2026;https://huetortajar.org/servicios/casa-de-la-cultura/;
+Íllora;9923;B;;;958 43 39 26;Centralita;info@illora.com;illora.com;22/09/2026;https://illora.com/telefonos/;
+Pinos Puente;9807;B;;;958 45 01 36;Centralita;ayuntamiento@pinos-puente.org;pinos-puente.org;22/09/2026;https://pinos-puente.org/ayuntamiento/telefonos-de-interes/;
+Padul;9667;B;;;958 79 00 12;Centralita;ayuntamiento@padul.org;padul.org;22/09/2026;https://www.padul.org/ayuntamiento/contacto-institucional/;
+Albuñol;7388;B;;;958 82 60 60;Centralita;registro@albunol.es;albunol.es;22/09/2026;https://www.albunol.es/municipio/informacion;
+Huéscar;7241;B;;;958 74 00 36;Centralita;huescar@dipgra.es;aytohuescar.es;22/09/2026;https://www.aytohuescar.es/;
+Dúrcal;7234;B;;;958 78 00 13;Centralita;secretario@adurcal.com;adurcal.com;22/09/2026;https://www.adurcal.com/telefonos/;
+Chauchina;5817;B;;;958 45 51 20;Centralita;;chauchina.es;22/09/2026;https://chauchina.es/;
+Órgiva;5728;B;;;958 78 52 12;Centralita;registro@aytoorgiva.org;ayuntamientodeorgiva.es;22/09/2026;https://www.ayuntamientodeorgiva.es/telefonos-de-interes/;
+Alhama de Granada;5544;B;;;958 35 01 61;Centralita;ayuntamiento@alhama.org;alhama.org;22/09/2026;https://news.alhamadegranada.info/ayuntamiento/;
+Gualchos;5284;B;;;958 65 62 37;Centralita;ayuntamiento@gualchos.es;gualchos.es;22/09/2026;https://www.gualchos.es/ayuntamiento/;
+Montefrío;5283;B;;;958 33 61 36;Centralita (turismo 958 33 60 04);jacv@montefrio.org;montefrio.org;22/09/2026;http://www.montefrio.org/paginas/telefonos.htm;
+Diputación de Granada;;Diputación;;;958 24 75 00;Centralita;dipgra@dipgra.es;dipgra.es;21/09/2026;https://www.dipgra.es/servicios/areas/cultura/;
