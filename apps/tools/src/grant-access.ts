@@ -316,7 +316,12 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log('');
+  // Only when something was listed above it. Re-running this against a table
+  // where everybody already has everything is the normal case — it is how you
+  // check that nobody is missing — and it should not print two empty lines to
+  // say so.
+  if (granted > 0 || failed > 0) console.log('');
+
   console.log(
     args.dryRun
       ? `Would grant ${granted}. ${already} already had access. Nothing was written.`
