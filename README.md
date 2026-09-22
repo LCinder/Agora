@@ -21,6 +21,7 @@ cambia la app, el panel, el APK y los correos del panel a la vez. Ver
 - **Primer despliegue, paso a paso: [`docs/primer-despliegue.md`](docs/primer-despliegue.md)**
 - Desplegar: [`infra/deploy.sh`](infra/deploy.sh) y [`infra/terraform/README.md`](infra/terraform/README.md)
 - Dar de alta un ayuntamiento: `pnpm --filter @agora/tools create-municipality -- --help`
+- Quién entra a qué panel: `pnpm --filter @agora/tools grant-access -- --list`
 - Cómo renombrar la aplicación: [`docs/renombrar-la-app.md`](docs/renombrar-la-app.md)
 
 ## Qué hay dentro
