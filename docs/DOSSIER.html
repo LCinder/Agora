@@ -1,0 +1,1484 @@
+<meta charset="utf-8" />
+<title>Dossier HoyQ</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Black&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap"
+/>
+
+<style>
+  /* ──────────────────────────────────────────────────────────────────────
+     Los colores son los de la aplicación, no unos elegidos para el papel:
+     el índigo es el color municipal por defecto, y la franja de seis tonos
+     de la cabecera son las seis categorías de eventos que trae de serie.
+     ────────────────────────────────────────────────────────────────────── */
+  :root {
+    --ink: #15141b;
+    --indigo: #4f46e5;
+    --violet: #6d28d9;
+    --ember: #c2410c;
+    --pine: #047857;
+
+    --paper: #ffffff;
+    --mist: #f3f2f8;
+    --line: #e7e5f0;
+    --slate: #66647a;
+    --slate-soft: #8a879c;
+
+    --cat-fiestas: #c2410c;
+    --cat-cultura: #6d28d9;
+    --cat-deporte: #047857;
+    --cat-infantil: #0369a1;
+    --cat-mayores: #a16207;
+    --cat-religioso: #7c2d12;
+
+    --display: 'Archivo Black', 'Archivo', system-ui, sans-serif;
+    --sans: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    background: var(--mist);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .doc {
+    max-width: 880px;
+    margin: 0 auto;
+    background: var(--paper);
+  }
+
+  @media screen and (min-width: 900px) {
+    .doc {
+      margin: 36px auto;
+      box-shadow: 0 6px 44px rgba(21, 20, 27, 0.13);
+    }
+  }
+
+  /* ── tipografía ─────────────────────────────────────────────────────── */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--sans);
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-size: clamp(34px, 6vw, 50px);
+    line-height: 1.02;
+    letter-spacing: -1.4px;
+  }
+
+  h2 {
+    font-size: clamp(22px, 3.4vw, 28px);
+    font-weight: 700;
+    letter-spacing: -0.7px;
+    line-height: 1.16;
+  }
+
+  h3 {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.25px;
+  }
+
+  h4 {
+    font-size: 13.5px;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+  }
+
+  p {
+    margin: 0;
+    color: var(--slate);
+  }
+
+  strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .lead {
+    font-size: 17.5px;
+    line-height: 1.55;
+  }
+
+  .eyebrow {
+    font-family: var(--sans);
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.8px;
+    color: var(--violet);
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+
+  .eyebrow::before {
+    content: '';
+    width: 20px;
+    height: 2px;
+    background: currentColor;
+    flex: none;
+  }
+
+  /* ── cabecera ───────────────────────────────────────────────────────── */
+  .hero {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 54px 52px 44px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 13px;
+    margin-bottom: 46px;
+  }
+
+  .brand .mark {
+    font-family: var(--display);
+    font-size: 27px;
+    letter-spacing: -1px;
+  }
+
+  .brand .tagline {
+    font-family: var(--sans);
+    font-size: 12.5px;
+    color: rgba(244, 243, 240, 0.62);
+    letter-spacing: 0.2px;
+  }
+
+  .hero h1 {
+    color: var(--paper);
+  }
+
+  .hero h1 .soft {
+    color: rgba(244, 243, 240, 0.58);
+  }
+
+  .hero-sub {
+    margin-top: 20px;
+    max-width: 30em;
+    font-size: 17px;
+    color: rgba(244, 243, 240, 0.86);
+  }
+
+  .hero-meta {
+    margin-top: 38px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 40px;
+    font-family: var(--sans);
+  }
+
+  .hero-meta div span {
+    display: block;
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: rgba(244, 243, 240, 0.5);
+    margin-bottom: 3px;
+  }
+
+  .hero-meta div b {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: rgba(244, 243, 240, 0.95);
+  }
+
+  /* Las seis categorías que la aplicación trae de serie, en su orden y con
+     su color. Es la firma visual del producto y no un adorno. */
+  .spectrum {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    height: 7px;
+  }
+
+  .spectrum span {
+    display: block;
+  }
+
+  /* ── secciones ──────────────────────────────────────────────────────── */
+  section {
+    padding: 44px 52px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  section:last-of-type {
+    border-bottom: none;
+  }
+
+  section.tint {
+    background: var(--mist);
+    border-bottom-color: var(--paper);
+  }
+
+  section > h2 {
+    margin-top: 11px;
+  }
+
+  section > p,
+  section > .lead {
+    margin-top: 14px;
+    max-width: 62ch;
+  }
+
+  /* ── fichas de cabecera ─────────────────────────────────────────────── */
+  .chips {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 11px;
+    margin-top: 28px;
+  }
+
+  .chip {
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    padding: 16px 15px;
+    background: var(--paper);
+  }
+
+  .chip .k {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .chip .v {
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: var(--slate);
+    margin-top: 4px;
+  }
+
+  /* ── el problema, en columnas ───────────────────────────────────────── */
+  .pains {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 26px;
+    margin-top: 28px;
+  }
+
+  .pain h4 {
+    color: var(--ink);
+    padding-top: 13px;
+    border-top: 2px solid var(--ember);
+    margin-bottom: 6px;
+  }
+
+  .pain p {
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+
+  /* ── las tres diferencias ───────────────────────────────────────────── */
+  .pillars {
+    margin-top: 30px;
+    display: grid;
+    gap: 18px;
+  }
+
+  .pillar {
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    gap: 22px;
+    align-items: start;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--indigo);
+    border-radius: 0 15px 15px 0;
+    padding: 24px 26px;
+    break-inside: avoid;
+  }
+
+  .pillar:nth-child(2) {
+    border-left-color: var(--violet);
+  }
+
+  .pillar:nth-child(3) {
+    border-left-color: var(--ember);
+  }
+
+  .pillar .n {
+    font-family: var(--display);
+    font-size: 40px;
+    line-height: 0.85;
+    color: var(--line);
+    letter-spacing: -2px;
+  }
+
+  .pillar h3 {
+    margin-bottom: 7px;
+  }
+
+  .pillar p {
+    font-size: 14px;
+  }
+
+  .pillar .who {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--indigo);
+    margin-bottom: 8px;
+  }
+
+  .pillar:nth-child(2) .who {
+    color: var(--violet);
+  }
+
+  .pillar:nth-child(3) .who {
+    color: var(--ember);
+  }
+
+  /* ── dos panorámicas: panel y app ───────────────────────────────────── */
+  .split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 26px;
+  }
+
+  .split ul {
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 9px;
+  }
+
+  .split li {
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: var(--slate);
+    padding-left: 19px;
+    position: relative;
+  }
+
+  .split li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 8px;
+    width: 7px;
+    height: 7px;
+    border-radius: 2px;
+    background: var(--indigo);
+  }
+
+  .split .app li::before {
+    background: var(--violet);
+  }
+
+  /* ── datos ──────────────────────────────────────────────────── */
+
+  /* Una reproducción de la pantalla «Datos» del panel: las seis cifras de
+     arriba y los dos gráficos que las acompañan, con los rótulos que salen en
+     el panel de verdad. Las cifras son inventadas y el pie lo dice dos veces:
+     un concejal no debe poder confundirlas con las de su pueblo. */
+  .panel {
+    margin: 28px 0 0;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 17px;
+    padding: 22px 23px 18px;
+    break-inside: avoid;
+  }
+
+  .panel .head {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.3px;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink);
+  }
+
+  .panel .head .sample {
+    color: var(--ember);
+  }
+
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .tile {
+    background: var(--paper);
+    padding: 15px 4px 16px;
+  }
+
+  .tile .v {
+    font-family: var(--display);
+    font-size: 25px;
+    line-height: 1;
+    letter-spacing: -1px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tile .l {
+    font-family: var(--sans);
+    font-size: 10.5px;
+    line-height: 1.3;
+    color: var(--slate);
+    margin-top: 6px;
+  }
+
+  /* El panel lleva estas dos aclaraciones debajo de la cifra, y son justo las
+     dos que un concejal preguntaría: qué cuenta una visita, y cómo se sabe
+     cuántos vecinos hay si nadie se registra. */
+  .tile .h {
+    font-family: var(--sans);
+    font-size: 9px;
+    line-height: 1.3;
+    color: var(--slate-soft);
+    margin-top: 3px;
+  }
+
+  .charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 26px;
+    padding-top: 18px;
+  }
+
+  .charts h4 {
+    color: var(--ink);
+    margin-bottom: 13px;
+  }
+
+  .charts .wide {
+    grid-column: 1 / -1;
+  }
+
+  /* Eventos con más interesados. A lo ancho, porque lo que hay que poder leer
+     es el título del evento y no la barra. */
+  .ranking {
+    display: grid;
+    gap: 9px;
+  }
+
+  .rank {
+    display: grid;
+    grid-template-columns: 1fr 34px;
+    gap: 12px;
+    align-items: center;
+    font-family: var(--sans);
+    font-size: 11.5px;
+  }
+
+  .rank .name {
+    color: var(--ink);
+    font-weight: 500;
+    display: grid;
+    gap: 5px;
+  }
+
+  .rank .name span {
+    display: block;
+    height: 7px;
+    border-radius: 4px;
+    background: var(--indigo);
+  }
+
+  .rank .n {
+    text-align: right;
+    color: var(--slate);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Interés por tipo de actividad: cada barra con el color que esa categoría
+     tiene en la aplicación. */
+  .bars {
+    display: grid;
+    gap: 10px;
+  }
+
+  .bar {
+    display: grid;
+    grid-template-columns: 66px 1fr 32px;
+    gap: 9px;
+    align-items: center;
+    font-family: var(--sans);
+    font-size: 11px;
+  }
+
+  .bar .name {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .bar .track {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--mist);
+  }
+
+  .bar .track span {
+    display: block;
+    height: 100%;
+    border-radius: 4px;
+  }
+
+  .bar .pct {
+    text-align: right;
+    color: var(--slate);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Marcas nuevas por mes: doce columnas, que es la serie que el panel guarda
+     y contra la que se compara una memoria anual. */
+  .months {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 4px;
+    align-items: end;
+    height: 96px;
+  }
+
+  .month {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    height: 100%;
+    gap: 5px;
+  }
+
+  .month .col {
+    background: var(--indigo);
+    border-radius: 3px 3px 0 0;
+    min-height: 2px;
+  }
+
+  .month .l {
+    font-family: var(--sans);
+    font-size: 8.5px;
+    text-align: center;
+    color: var(--slate-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .panel figcaption {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+    font-family: var(--sans);
+    font-size: 10.5px;
+    line-height: 1.5;
+    color: var(--slate-soft);
+  }
+
+  /* Lo que la pantalla no enseña de un vistazo y hay que contar. */
+  .extras {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 21px;
+    margin-top: 30px;
+  }
+
+  .extra h4 {
+    color: var(--ink);
+    padding-top: 12px;
+    border-top: 2px solid var(--violet);
+    margin-bottom: 6px;
+  }
+
+  .extra p {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* ── garantías ──────────────────────────────────────────────────────── */
+  .guarantees {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 26px;
+  }
+
+  .g {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 19px 18px;
+    break-inside: avoid;
+  }
+
+  .g .tag {
+    font-family: var(--sans);
+    font-size: 9.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.3px;
+    color: var(--pine);
+    display: block;
+    margin-bottom: 9px;
+  }
+
+  .g h4 {
+    margin-bottom: 5px;
+  }
+
+  .g p {
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+
+  /* ── cómo empieza ───────────────────────────────────────────────────── */
+  .timeline {
+    margin-top: 28px;
+    padding-left: 28px;
+    position: relative;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 8px;
+    bottom: 10px;
+    width: 2px;
+    background: var(--line);
+  }
+
+  .tl {
+    position: relative;
+    padding-bottom: 22px;
+    break-inside: avoid;
+  }
+
+  .tl:last-child {
+    padding-bottom: 0;
+  }
+
+  .tl::before {
+    content: '';
+    position: absolute;
+    left: -28px;
+    top: 4px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--paper);
+    border: 3px solid var(--indigo);
+  }
+
+  .tl .when {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.3px;
+    color: var(--indigo);
+  }
+
+  .tl h3 {
+    margin: 2px 0 4px;
+    font-size: 15.5px;
+  }
+
+  .tl p {
+    font-size: 13.5px;
+    max-width: 56ch;
+  }
+
+  /* ── pie ────────────────────────────────────────────────────────────── */
+  .footer {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 38px 52px 34px;
+  }
+
+  .footer .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 28px;
+    flex-wrap: wrap;
+  }
+
+  .footer .mark {
+    font-family: var(--display);
+    font-size: 23px;
+    letter-spacing: -0.8px;
+  }
+
+  .footer .claim {
+    font-family: var(--sans);
+    font-size: 13px;
+    color: rgba(244, 243, 240, 0.62);
+    margin-top: 5px;
+  }
+
+  .footer .contact {
+    font-family: var(--sans);
+    font-size: 13.5px;
+    text-align: right;
+    line-height: 1.75;
+    color: rgba(244, 243, 240, 0.92);
+  }
+
+  .footer .contact .lbl {
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: rgba(244, 243, 240, 0.45);
+    margin-bottom: 4px;
+  }
+
+  .footer .rule {
+    height: 1px;
+    background: rgba(244, 243, 240, 0.14);
+    margin: 24px 0 15px;
+  }
+
+  .footer .fine {
+    font-family: var(--sans);
+    font-size: 10.5px;
+    color: rgba(244, 243, 240, 0.42);
+    max-width: 68ch;
+  }
+
+  /* ── móvil ──────────────────────────────────────────────────────────── */
+  @media (max-width: 720px) {
+    .hero,
+    section,
+    .footer {
+      padding-left: 22px;
+      padding-right: 22px;
+    }
+
+    .chips,
+    .pains,
+    .split,
+    .guarantees,
+    .charts,
+    .extras {
+      grid-template-columns: 1fr;
+    }
+
+    .tiles {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .months {
+      height: 76px;
+    }
+
+    .pillar {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+
+    .pillar .n {
+      font-size: 30px;
+    }
+  }
+
+  /* ── impresión: A4, a sangre, con los cortes puestos a mano ──────── */
+
+  /* Margen cero y el aire lo pone cada bloque por dentro. Así el negro de la
+     portada, la franja de categorías y los fondos tintados llegan al borde del
+     papel en vez de quedarse flotando en un marco blanco, que es lo que separa
+     un documento impreso de una página web impresa. */
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  @media print {
+    body {
+      background: var(--paper);
+      font-size: 9.2pt;
+      line-height: 1.38;
+    }
+
+    .doc {
+      box-shadow: none;
+      margin: 0;
+      max-width: none;
+    }
+
+    .hero {
+      padding: 24mm 15mm 16mm;
+    }
+
+    section {
+      padding: 10mm 15mm;
+    }
+
+    .footer {
+      padding: 11mm 15mm 13mm;
+    }
+
+    /* Dónde empieza cada hoja. Dejado al azar, el documento partía un pilar por
+       la mitad y mandaba el pie solo a una quinta página. */
+    section.sheet {
+      break-before: page;
+    }
+
+    h1 {
+      font-size: 25pt;
+    }
+
+    h2 {
+      font-size: 14.5pt;
+    }
+
+    h3 {
+      font-size: 11pt;
+    }
+
+    h4 {
+      font-size: 9.6pt;
+    }
+
+    .lead {
+      font-size: 10.6pt;
+    }
+
+    .brand {
+      margin-bottom: 20mm;
+    }
+
+    .hero-sub {
+      margin-top: 10px;
+      font-size: 10.4pt;
+    }
+
+    .hero-meta {
+      margin-top: 16px;
+      gap: 8px 26px;
+    }
+
+    section > p,
+    section > .lead {
+      margin-top: 8px;
+    }
+
+    .chips,
+    .pains,
+    .pillars,
+    .split,
+    .guarantees,
+    .timeline,
+    .extras {
+      margin-top: 11px;
+    }
+
+    .chips,
+    .guarantees {
+      gap: 9px;
+    }
+
+    .chip,
+    .g {
+      padding: 11px 12px;
+    }
+
+    .pillar {
+      padding: 12px 15px;
+      gap: 13px;
+    }
+
+    .pillars {
+      gap: 9px;
+    }
+
+    .pillar .n {
+      font-size: 23pt;
+    }
+
+    /* Los cuerpos de texto de las rejillas van en px, que en pantalla es lo
+       correcto y en papel los deja mas grandes que el texto corrido. */
+    .pillar p {
+      font-size: 9.6pt;
+    }
+
+    .pain p,
+    .split li {
+      font-size: 9.2pt;
+      line-height: 1.4;
+    }
+
+    .extra p,
+    .chip .v {
+      font-size: 8.8pt;
+      line-height: 1.4;
+    }
+
+    .split ul {
+      gap: 7px;
+    }
+
+    .panel {
+      margin-top: 11px;
+      padding: 14px 15px 12px;
+    }
+
+    .panel .head {
+      padding-bottom: 10px;
+    }
+
+    .tile {
+      padding: 10px 3px 11px;
+    }
+
+    .tile .v {
+      font-size: 17pt;
+    }
+
+    .charts {
+      padding-top: 13px;
+      gap: 19px;
+    }
+
+    .bars,
+    .ranking {
+      gap: 7px;
+    }
+
+    .months {
+      height: 62px;
+    }
+
+    .panel figcaption {
+      margin-top: 12px;
+      padding-top: 10px;
+    }
+
+    .tl {
+      padding-bottom: 13px;
+    }
+
+    .footer {
+      margin-top: 70px;
+    }
+
+    .footer .rule {
+      margin: 12px 0 8px;
+    }
+
+    /* Nada de esto debe partirse por la mitad, y ningún titular debe quedarse
+       solo al pie de una hoja. */
+    .chip,
+    .g,
+    .pain,
+    .tl,
+    .extra,
+    .panel,
+    .pillar,
+    .footer {
+      break-inside: avoid;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    .eyebrow {
+      break-after: avoid;
+    }
+  }
+</style>
+
+<div class="doc">
+  <header class="hero">
+    <div class="brand">
+      <span class="mark">HoyQ</span>
+      <span class="tagline">¿Hoy qué hacemos?</span>
+    </div>
+
+    <h1>La agenda de tu pueblo,<br /><span class="soft">en el móvil de tus vecinos</span></h1>
+
+    <p class="hero-sub">
+      Una aplicación para que todo lo que pasa en el municipio esté en un solo sitio — y un panel
+      para que mantenerla no le cueste una tarde a nadie.
+    </p>
+
+    <div class="hero-meta">
+      <div><span>Para</span><b>Concejalía de Cultura</b></div>
+      <div><span>Ámbito</span><b>Municipios de Andalucía</b></div>
+      <div><span>Documento</span><b>Presentación de producto</b></div>
+    </div>
+  </header>
+
+  <div class="spectrum" aria-hidden="true">
+    <span style="background: var(--cat-fiestas)"></span>
+    <span style="background: var(--cat-cultura)"></span>
+    <span style="background: var(--cat-deporte)"></span>
+    <span style="background: var(--cat-infantil)"></span>
+    <span style="background: var(--cat-mayores)"></span>
+    <span style="background: var(--cat-religioso)"></span>
+  </div>
+
+  <section class="tint">
+    <div class="eyebrow">En una línea</div>
+    <p class="lead">
+      HoyQ reúne en una sola aplicación <strong>todo lo que pasa en el municipio</strong>: lo que
+      publica el ayuntamiento y lo que suben sus asociaciones. El vecino lo ve sin registrarse; el
+      ayuntamiento ve, por primera vez, <strong>a cuánta gente le interesa cada cosa</strong>.
+    </p>
+
+    <div class="chips">
+      <div class="chip">
+        <div class="k">Sin registro</div>
+        <div class="v">El vecino no da nombre, ni correo, ni teléfono</div>
+      </div>
+      <div class="chip">
+        <div class="k">Lo llenan entre todos</div>
+        <div class="v">Hermandades, peñas y clubes suben lo suyo</div>
+      </div>
+      <div class="chip">
+        <div class="k">Datos de verdad</div>
+        <div class="v">Qué interesa, a cuántos, y en qué mes</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">El problema</div>
+    <h2>La programación existe. Lo que no existe es un sitio para todo</h2>
+
+    <div class="pains">
+      <div class="pain">
+        <h4>Está repartida en cinco sitios</h4>
+        <p>
+          La web municipal, el Facebook del ayuntamiento, los carteles, los grupos de WhatsApp y el
+          Instagram de cada hermandad. El vecino se entera tarde, o no se entera.
+        </p>
+      </div>
+      <div class="pain">
+        <h4>Alguien la publica tres veces</h4>
+        <p>
+          El mismo evento, escrito de nuevo en cada canal. Y lo que organizan las asociaciones no
+          llega nunca al calendario oficial, porque nadie tiene tiempo de copiarlo.
+        </p>
+      </div>
+      <div class="pain">
+        <h4>Y nadie sabe qué funcionó</h4>
+        <p>
+          A la hora de justificar la programación o de decidir la del año que viene, la concejalía
+          no tiene un solo dato: solo la impresión de cuánta gente había.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="tint sheet">
+    <div class="eyebrow">Lo que hacemos distinto</div>
+    <h2>Tres cosas que no hace ninguna aplicación municipal</h2>
+    <p>
+      El calendario lo tiene todo el mundo. Estas tres son la razón de cambiar, y están pensadas
+      para que el trabajo del técnico municipal <strong>baje</strong>, no suba.
+    </p>
+
+    <div class="pillars">
+      <article class="pillar">
+        <div class="n">1</div>
+        <div>
+          <div class="who">Lo llenan las asociaciones</div>
+          <h3>El calendario colaborativo</h3>
+          <p>
+            Cada hermandad, peña, club o AMPA entra con su propio acceso y sube sus eventos. El
+            ayuntamiento no los escribe: los <strong>aprueba</strong>, desde una bandeja, con un
+            clic — y a una asociación de confianza puede dejarla publicar directamente. Si edita algo
+            ya publicado, el cambio vuelve a revisión y lo que ve el vecino no se toca hasta que se
+            apruebe.
+          </p>
+        </div>
+      </article>
+
+      <article class="pillar">
+        <div class="n">2</div>
+        <div>
+          <div class="who">Por fin, datos</div>
+          <h3>«Me interesa», y lo que eso os cuenta</h3>
+          <p>
+            El vecino marca un evento con un toque y recibe un recordatorio la tarde antes. Si cambia
+            la hora, el lugar o se cancela, <strong>el aviso llega solo a quien lo marcó</strong>, en
+            menos de un minuto. Y la concejalía ve el interés por evento, por tipo de actividad y su
+            evolución mes a mes, con exportación a CSV y a PDF para la memoria anual.
+          </p>
+        </div>
+      </article>
+
+      <article class="pillar">
+        <div class="n">3</div>
+        <div>
+          <div class="who">El día grande</div>
+          <h3>Seguimiento en directo</h3>
+          <p>
+            Procesiones, cabalgatas, romerías y carreras populares. Un voluntario de la hermandad
+            activa la emisión desde su móvil con un código, y el vecino ve en el mapa
+            <strong>por dónde va</strong>, con el recorrido previsto y la hora de la última posición.
+            Es la función que hace que un pueblo entero se instale la aplicación en una tarde.
+          </p>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Cómo se usa</div>
+    <h2>Un panel para el ayuntamiento, una aplicación para el vecino</h2>
+
+    <div class="split">
+      <div>
+        <h3>El panel, en el navegador</h3>
+        <ul>
+          <li>
+            <strong>Crear un evento lleva menos de un minuto.</strong> Solo el título, la fecha y el
+            lugar son obligatorios.
+          </li>
+          <li>
+            <strong>El cartel, con inteligencia artificial.</strong> Se sube la foto del cartel y
+            rellena el formulario; si no hay cartel, lo dibuja.
+          </li>
+          <li>Bandeja de revisión con lo que han subido las asociaciones.</li>
+          <li>Avisos dirigidos: cambio de hora, corte de calle, cancelación por lluvia.</li>
+          <li>Datos y exportación, con el color y el escudo del municipio.</li>
+          <li>Registro de actividad: quién hizo qué y cuándo.</li>
+        </ul>
+      </div>
+      <div class="app">
+        <h3>La aplicación, para el vecino</h3>
+        <ul>
+          <li>
+            <strong>Se abre y ya está.</strong> Hoy, este fin de semana y lo que viene, sin
+            registrarse ni dar un correo.
+          </li>
+          <li>Vista de mes, filtros por tipo de actividad y por entrada gratuita.</li>
+          <li>Añadir al calendario del móvil y compartir por WhatsApp.</li>
+          <li>Categorías propias del pueblo: Semana Santa, Feria, Romería, Cruces de Mayo.</li>
+          <li>Funciona con el calendario ya descargado si no hay cobertura.</li>
+          <li>Textos grandes, buen contraste y lectores de pantalla.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+
+  <section class="sheet">
+    <div class="eyebrow">Datos para el ayuntamiento</div>
+    <h2>Por fin se puede contestar a «¿y cuánta gente fue?»</h2>
+    <p>
+      Hasta ahora, la respuesta era la impresión de quien estuvo allí. El panel la cambia por una
+      cifra, evento a evento, y guarda la serie entera del año para que la memoria anual se escriba
+      sola. Todo <strong>agregado</strong>: números, nunca vecinos con nombre.
+    </p>
+
+    <figure class="panel">
+      <div class="head">
+        <span>Datos del municipio</span>
+        <span class="sample">Cifras de ejemplo</span>
+      </div>
+
+      <div class="tiles">
+          <div class="tile">
+            <div class="v">128</div>
+            <div class="l">Eventos publicados</div>
+          </div>
+          <div class="tile">
+            <div class="v">9.412</div>
+            <div class="l">Visitas a los eventos</div>
+            <div class="h">Una por vecino y día</div>
+          </div>
+          <div class="tile">
+            <div class="v">1.264</div>
+            <div class="l">Marcas de «Me interesa»</div>
+          </div>
+          <div class="tile">
+            <div class="v">10</div>
+            <div class="l">Media por evento</div>
+          </div>
+          <div class="tile">
+            <div class="v">1.847</div>
+            <div class="l">Dispositivos activos</div>
+            <div class="h">Vecinos con la app, sin registrarse</div>
+          </div>
+          <div class="tile">
+            <div class="v">4</div>
+            <div class="l">Eventos en revisión</div>
+          </div>
+      </div>
+
+      <div class="charts">
+        <div class="wide">
+          <h4>Eventos con más interesados</h4>
+          <div class="ranking">
+            <div class="rank">
+              <div class="name">
+                Feria: noche del alumbrado
+                <span style="width: 100%"></span>
+              </div>
+              <div class="n">214</div>
+            </div>
+            <div class="rank">
+              <div class="name">
+                Cabalgata de Reyes Magos
+                <span style="width: 82%"></span>
+              </div>
+              <div class="n">176</div>
+            </div>
+            <div class="rank">
+              <div class="name">
+                Romería de San Isidro
+                <span style="width: 55%"></span>
+              </div>
+              <div class="n">118</div>
+            </div>
+            <div class="rank">
+              <div class="name">
+                Concierto de la banda municipal
+                <span style="width: 45%"></span>
+              </div>
+              <div class="n">97</div>
+            </div>
+            <div class="rank">
+              <div class="name">
+                Semana Santa: Jueves Santo
+                <span style="width: 39%"></span>
+              </div>
+              <div class="n">84</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h4>Interés por tipo de actividad</h4>
+          <div class="bars">
+            <div class="bar">
+              <div class="name">Fiestas</div>
+              <div class="track"><span style="width: 34%; background: var(--cat-fiestas)"></span></div>
+              <div class="pct">34%</div>
+            </div>
+            <div class="bar">
+              <div class="name">Cultura</div>
+              <div class="track"><span style="width: 22%; background: var(--cat-cultura)"></span></div>
+              <div class="pct">22%</div>
+            </div>
+            <div class="bar">
+              <div class="name">Religioso</div>
+              <div class="track"><span style="width: 16%; background: var(--cat-religioso)"></span></div>
+              <div class="pct">16%</div>
+            </div>
+            <div class="bar">
+              <div class="name">Deporte</div>
+              <div class="track"><span style="width: 13%; background: var(--cat-deporte)"></span></div>
+              <div class="pct">13%</div>
+            </div>
+            <div class="bar">
+              <div class="name">Infantil</div>
+              <div class="track"><span style="width: 9%; background: var(--cat-infantil)"></span></div>
+              <div class="pct">9%</div>
+            </div>
+            <div class="bar">
+              <div class="name">Mayores</div>
+              <div class="track"><span style="width: 6%; background: var(--cat-mayores)"></span></div>
+              <div class="pct">6%</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h4>Marcas nuevas por mes</h4>
+          <div class="months">
+            <div class="month">
+              <div class="col" style="height: 34%"></div>
+              <div class="l">E</div>
+            </div>
+            <div class="month">
+              <div class="col" style="height: 38%"></div>
+              <div class="l">F</div>
+            </div>
+            <div class="month">
+              <div class="col" style="height: 79%"></div>
+              <div class="l">M</div>
+            </div>
+            <div class="month">
+              <div class="col" style="height: 51%"></div>
+              <div class="l">A</div>
+            </div>
+            <div class="month">
+              <div class="col" style="height: 60%"></div>
+              <div class="l">M</div>
+            </div>
+            <div class="month">
+              <div class="col" style="height: 47%"></div>
+              <div class="l">J</div>
+            </div>
+            <div class="month">
+              <div class="col" style="height: 65%"></div>
+              <div class="l">J</div>
+            </div>
+            <div class="month">
+              <div class="col" style="height: 100%"></div>
+              <div class="l">A</div>
+            </div>
+            <div class="month">
+              <div class="col" style="height: 55%"></div>
+              <div class="l">S</div>
+            </div>
+            <div class="month">
+              <div class="col" style="height: 41%"></div>
+              <div class="l">O</div>
+            </div>
+            <div class="month">
+              <div class="col" style="height: 44%"></div>
+              <div class="l">N</div>
+            </div>
+            <div class="month">
+              <div class="col" style="height: 62%"></div>
+              <div class="l">D</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <figcaption>
+        Las cifras son inventadas; la pantalla no. Cada categoría lleva en el panel el mismo color
+        que en la aplicación, así que la gráfica y el calendario que ve el vecino se leen igual. Y la
+        serie de doce meses es la que contesta a la pregunta que de verdad hace un concejal: si esto
+        crece.
+      </figcaption>
+    </figure>
+
+    <div class="extras">
+      <div class="extra">
+        <h4>Evento a evento</h4>
+        <p>Una tabla con los interesados y las visitas de cada evento, de más a menos. Cuatrocientos miraron el concierto y once lo marcaron dice algo que ninguna de las dos cifras dice por separado.</p>
+      </div>
+      <div class="extra">
+        <h4>Para la memoria anual</h4>
+        <p>Un <strong>CSV</strong> para la hoja de cálculo y un <strong>informe en PDF</strong> con el resumen, los eventos con más interesados, el reparto por tipo de actividad y los doce meses. Sin copiar una cifra a mano.</p>
+      </div>
+      <div class="extra">
+        <h4>Nada más entrar</h4>
+        <p>
+          La pantalla de inicio ya dice cuántos eventos hay <strong>hoy y este finde</strong>,
+          cuántos están pendientes de revisar y cuántos vecinos siguen al municipio. Sin abrir un
+          informe.
+        </p>
+      </div>
+      <div class="extra">
+        <h4>Quién hizo qué</h4>
+        <p>Un registro de actividad que no se puede editar ni borrar: quién creó, editó, aprobó, rechazó o canceló cada evento, y cuándo. Útil el día que alguien pregunta.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="tint sheet">
+    <div class="eyebrow">Garantías</div>
+    <h2>Protección de datos</h2>
+
+    <div class="guarantees">
+      <div class="g">
+        <span class="tag">Sin registro</span>
+        <h4>No hay nada que filtrar</h4>
+        <p>
+          El vecino no se registra: no le pedimos nombre, correo, teléfono ni ubicación. La
+          aplicación identifica al teléfono con un código que nos inventamos nosotros y nada más.
+        </p>
+      </div>
+      <div class="g">
+        <span class="tag">RGPD</span>
+        <h4>Datos en la Unión Europea</h4>
+        <p>
+          El ayuntamiento es responsable del tratamiento y nosotros encargados, con el contrato del
+          artículo 28 firmado antes de empezar. Y el panel ve números, nunca personas.
+        </p>
+      </div>
+      <div class="g">
+        <span class="tag">RD 1112/2018</span>
+        <h4>Accesibilidad, desde el diseño</h4>
+        <p>
+          Obligatoria para cualquier servicio del sector público. Texto escalable, contraste
+          suficiente, lectores de pantalla y declaración de accesibilidad publicada.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Cómo empieza</div>
+    <h2>De la primera reunión a tenerlo funcionando</h2>
+
+    <div class="timeline">
+      <div class="tl">
+        <div class="when">Veinte minutos</div>
+        <h3>Una demostración, en el móvil</h3>
+        <p>
+          No una presentación. Se ve la aplicación funcionando y el panel por dentro, y salimos con
+          las dudas que tengáis anotadas.
+        </p>
+      </div>
+      <div class="tl">
+        <div class="when">Primera semana</div>
+        <h3>Vuestro municipio, configurado</h3>
+        <p>
+          Escudo, color, categorías propias del pueblo y la programación que ya tengáis publicada,
+          cargada por nosotros. No hay que teclear un año de eventos para empezar.
+        </p>
+      </div>
+      <div class="tl">
+        <div class="when">Desde el primer día</div>
+        <h3>Listo para usar</h3>
+        <p>
+          No hay formación que dar ni nada que instalar en el ayuntamiento. El panel se abre en el
+          navegador y crear un evento son tres campos; las asociaciones entran desde su móvil con el
+          enlace que les mandáis; y el vecino solo tiene que descargarse la aplicación.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="row">
+      <div>
+        <div class="mark">HoyQ</div>
+        <div class="claim">¿Hoy qué hacemos?</div>
+      </div>
+      <div class="contact">
+        <div class="lbl">Hablemos</div>
+        <div>boof.technologies@gmail.com</div>
+        <div>623 58 17 58</div>
+      </div>
+    </div>
+
+    <div class="rule"></div>
+
+    <p class="fine">
+      Documento de presentación de producto. Las condiciones del servicio se concretan en una
+      propuesta escrita tras la reunión. Desarrollado en Granada.
+    </p>
+  </footer>
+</div>
