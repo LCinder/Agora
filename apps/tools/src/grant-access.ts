@@ -1,6 +1,7 @@
 import { createPublicStore, createStoreClient } from '@agora/store';
 import { AlreadyAMember, NoSuchMunicipality, addAdministrator } from '@agora/store/onboarding';
 
+import { explain } from './aws-errors';
 import { ensureAccount } from './cognito';
 import { environmentOf, platformAdmins, platformAdminsParameter } from './platform-admins';
 
@@ -389,6 +390,6 @@ async function printAccess(args: Arguments, towns: readonly Town[]): Promise<voi
 // Not top-level await: the bundle is CommonJS, because the AWS SDK is, and
 // esbuild refuses one in the other.
 main().catch((error: unknown) => {
-  console.error(error instanceof Error ? error.message : String(error));
+  console.error(explain(error));
   process.exitCode = 1;
 });

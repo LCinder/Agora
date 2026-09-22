@@ -1,5 +1,6 @@
 import { createSeedDataSource } from '@agora/data';
 import { type MunicipalityBundle, createStoreClient, migrateSeed } from '@agora/store';
+import { explain } from './aws-errors';
 
 /**
  * Loads the municipalities under `content/` into a DynamoDB table.
@@ -182,6 +183,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  console.error(error instanceof Error ? error.message : String(error));
+  console.error(explain(error));
   process.exitCode = 1;
 });

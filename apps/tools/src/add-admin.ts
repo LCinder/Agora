@@ -2,6 +2,7 @@ import { createStoreClient, createPublicStore } from '@agora/store';
 import { AlreadyAMember, NoSuchMunicipality, addAdministrator } from '@agora/store/onboarding';
 
 import { ensureAccount } from './cognito';
+import { explain } from './aws-errors';
 
 /**
  * Gives an existing municipality its first person.
@@ -225,6 +226,6 @@ async function main(): Promise<void> {
 // Not top-level await: the bundle is CommonJS, because the AWS SDK is, and
 // esbuild refuses one in the other.
 main().catch((error: unknown) => {
-  console.error(error instanceof Error ? error.message : String(error));
+  console.error(explain(error));
   process.exitCode = 1;
 });
