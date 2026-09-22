@@ -44,6 +44,26 @@ import { DEMO_MUNICIPALITY_ID, DEMO_MUNICIPALITY_SLUG } from './demo';
 
 const STORAGE_KEY = 'agora.panel.state';
 
+/** Which town hall this browser was last working in. */
+const MUNICIPALITY_KEY = 'agora.panel.municipality';
+
+function rememberedMunicipality(): string | null {
+  try {
+    return window.localStorage.getItem(MUNICIPALITY_KEY);
+  } catch {
+    // Private browsing. The panel opens on the first membership instead.
+    return null;
+  }
+}
+
+function rememberMunicipality(municipalityId: string): void {
+  try {
+    window.localStorage.setItem(MUNICIPALITY_KEY, municipalityId);
+  } catch {
+    // Not worth interrupting anybody for: the choice lasts the session.
+  }
+}
+
 export interface EventNotice {
   id: string;
   eventId: string;
@@ -105,6 +125,26 @@ export interface PanelState {
   role: PanelRole;
   /** The association this person speaks for, when they are an `org_editor`. */
   organizationId: string | null;
+  /**
+   * Every municipality this person may work in, newest membership last.
+   *
+   * One entry for almost everybody. More than one for a technician who works
+   * for two neighbouring town halls, for a provincial officer at the
+   * Diputación, and for us.
+   */
+  memberships: Membership[];
+  /** Municipality id to name, for the switcher. Empty when there is nothing to switch. */
+  municipalityNames: Record<string, string>;
+  /**
+   * Changes which municipality the panel is working in.
+   *
+   * It reloads everything, because the panel client is built around one
+   * municipality and every path it calls is under it — which is the same
+   * property that makes a request unable to reach another town's data. The
+   * choice is remembered, so a reload does not drop somebody back into the
+   * first town on their list.
+   */
+  switchMunicipality: (municipalityId: string) => Promise<void>;
   municipality: Municipality | null;
   categories: EventCategory[];
   organizations: Organization[];
@@ -317,6 +357,24 @@ export function PanelProvider({ children }: { children: ReactNode }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [identity, setIdentity] = useState<PanelIdentity | null>(null);
   const [membership, setMembership] = useState<Membership | null>(null);
+  /**
+   * Every municipality this person may work in, not just the one on screen.
+   *
+   * Until this existed the panel read `memberships[0]` and ignored the rest, so
+   * somebody with access to four town halls saw one of them, always the same,
+   * with no way to reach the others. Granting the access worked; using it did
+   * not.
+   */
+  const [memberships, setMemberships] = useState<Membership[]>([]);
+  /**
+   * Names for the switcher, because a membership carries an id and `la-zubia`
+   * is not what anybody calls their town.
+   *
+   * From the public list of municipalities, which is public precisely because
+   * the app's welcome screen needs it, and only fetched when there is more than
+   * one membership — which is almost nobody.
+   */
+  const [municipalityNames, setMunicipalityNames] = useState<Record<string, string>>({});
   const [client, setClient] = useState<PanelClient | null>(null);
   const [municipality, setMunicipality] = useState<Municipality | null>(null);
   const [categories, setCategories] = useState<EventCategory[]>([]);
@@ -388,74 +446,112 @@ export function PanelProvider({ children }: { children: ReactNode }) {
   // The real one: the API, as whoever signed in
   // -------------------------------------------------------------------------
 
-  const loadRemoteOrThrow = useCallback(async () => {
-    if (config === null) return;
+  const loadRemoteOrThrow = useCallback(
+    async (wanted?: string) => {
+      if (config === null) return;
 
-    const who = await currentIdentity();
+      const who = await currentIdentity();
 
-    setIdentity(who);
+      setIdentity(who);
 
-    if (who === null) {
+      if (who === null) {
+        setLoading(false);
+
+        return;
+      }
+
+      const options = { baseUrl: config.apiBaseUrl, token: currentIdToken };
+      const session = await fetchPanelSession(options);
+
+      setMemberships(session.memberships);
+
+      // The one asked for, the one this browser was last in, or the first. The
+      // middle case is what stops a reload dropping somebody who works in four
+      // town halls back into whichever one the API happened to list first.
+      const asked = wanted ?? rememberedMunicipality();
+      const membership =
+        session.memberships.find((entry) => entry.municipalityId === asked) ??
+        session.memberships[0];
+
+      // Signed in, with no municipality: somebody whose access was revoked while
+      // they had the panel open, or an account invited and never granted anything.
+      if (membership === undefined) {
+        setLoading(false);
+
+        return;
+      }
+
+      const panel = createPanelClient({ ...options, municipalityId: membership.municipalityId });
+
+      setMembership(membership);
+      rememberMunicipality(membership.municipalityId);
+
+      if (session.memberships.length > 1) {
+        // Names for the switcher. Swallowed on purpose: a switcher that says
+        // `la-zubia` is worse than one that says La Zubia and better than a panel
+        // that did not load.
+        void createHttpDataSource({ baseUrl: config.apiBaseUrl })
+          .listMunicipalities()
+          .then((all) => {
+            setMunicipalityNames(Object.fromEntries(all.map((town) => [town.id, town.name])));
+          })
+          .catch(() => undefined);
+      }
+      const publicData = createHttpDataSource({ baseUrl: config.apiBaseUrl });
+
+      const [loadedMunicipality, loadedCategories, loadedOrganizations, loadedEvents, loadedStats] =
+        await Promise.all([
+          panel.getMunicipality(),
+          publicData.listCategories(membership.municipalityId),
+          panel.listOrganizations(),
+          panel.listEvents(),
+          // An association gets a refusal here, and that is not a failure: it sees
+          // its own events' numbers and not the municipality's.
+          panel.stats().catch(() => null),
+        ]);
+
+      setClient(panel);
+      setMunicipality(loadedMunicipality);
+      setCategories(loadedCategories);
+      setOrganizations(loadedOrganizations);
+      setEvents(loadedEvents);
+      setNotices([]);
+      setStats(loadedStats);
       setLoading(false);
+    },
+    [config],
+  );
 
-      return;
-    }
+  const loadRemote = useCallback(
+    async (wanted?: string) => {
+      if (config === null) return;
 
-    const options = { baseUrl: config.apiBaseUrl, token: currentIdToken };
-    const session = await fetchPanelSession(options);
-    const membership = session.memberships[0];
+      try {
+        await loadRemoteOrThrow(wanted);
+        setLoadError(null);
+      } catch (error) {
+        // Whatever went wrong, the one thing that must not happen is staying on
+        // the spinner. Say something and stop.
+        setLoadError(
+          error instanceof Error && error.message !== ''
+            ? error.message
+            : 'No hemos podido conectar con el servidor.',
+        );
+        setLoading(false);
+      }
+    },
+    [config, loadRemoteOrThrow],
+  );
 
-    // Signed in, with no municipality: somebody whose access was revoked while
-    // they had the panel open, or an account invited and never granted anything.
-    if (membership === undefined) {
-      setLoading(false);
+  const switchMunicipality = useCallback(
+    async (municipalityId: string) => {
+      if (demo) return;
 
-      return;
-    }
-
-    const panel = createPanelClient({ ...options, municipalityId: membership.municipalityId });
-
-    setMembership(membership);
-    const publicData = createHttpDataSource({ baseUrl: config.apiBaseUrl });
-
-    const [loadedMunicipality, loadedCategories, loadedOrganizations, loadedEvents, loadedStats] =
-      await Promise.all([
-        panel.getMunicipality(),
-        publicData.listCategories(membership.municipalityId),
-        panel.listOrganizations(),
-        panel.listEvents(),
-        // An association gets a refusal here, and that is not a failure: it sees
-        // its own events' numbers and not the municipality's.
-        panel.stats().catch(() => null),
-      ]);
-
-    setClient(panel);
-    setMunicipality(loadedMunicipality);
-    setCategories(loadedCategories);
-    setOrganizations(loadedOrganizations);
-    setEvents(loadedEvents);
-    setNotices([]);
-    setStats(loadedStats);
-    setLoading(false);
-  }, [config]);
-
-  const loadRemote = useCallback(async () => {
-    if (config === null) return;
-
-    try {
-      await loadRemoteOrThrow();
-      setLoadError(null);
-    } catch (error) {
-      // Whatever went wrong, the one thing that must not happen is staying on
-      // the spinner. Say something and stop.
-      setLoadError(
-        error instanceof Error && error.message !== ''
-          ? error.message
-          : 'No hemos podido conectar con el servidor.',
-      );
-      setLoading(false);
-    }
-  }, [config, loadRemoteOrThrow]);
+      setLoading(true);
+      await loadRemote(municipalityId);
+    },
+    [demo, loadRemote],
+  );
 
   useEffect(() => {
     // The seed and the API are both external systems as far as React is
@@ -1028,6 +1124,9 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       // The demo is the town hall's panel: that is what gets shown in a meeting.
       role: membership?.role ?? 'municipal_admin',
       organizationId: membership?.organizationId ?? null,
+      memberships,
+      municipalityNames,
+      switchMunicipality,
       municipality,
       categories,
       organizations,
@@ -1093,7 +1192,10 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       loading,
       loadError,
       membership,
+      memberships,
       municipality,
+      municipalityNames,
+      switchMunicipality,
       notices,
       organizations,
       refreshNotices,

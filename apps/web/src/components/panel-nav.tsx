@@ -31,7 +31,18 @@ const LINKS = [
 ] as const;
 
 export function PanelNav() {
-  const { demo, events, identity, leave, municipality, resetToSeed, role } = usePanel();
+  const {
+    demo,
+    events,
+    identity,
+    leave,
+    memberships,
+    municipality,
+    municipalityNames,
+    resetToSeed,
+    role,
+    switchMunicipality,
+  } = usePanel();
   const pathname = usePathname();
 
   const municipal = role === 'municipal_editor' || role === 'municipal_admin';
@@ -51,7 +62,26 @@ export function PanelNav() {
             className="inline-block size-7 rounded"
             style={{ backgroundColor: brand }}
           />
-          <span className="font-semibold">{municipality?.name ?? 'Panel municipal'}</span>
+
+          {/* One town hall for almost everybody, so it is a name and not a
+              control. It becomes one for a technician who works for two
+              neighbouring towns, for a provincial officer, and for us. */}
+          {memberships.length > 1 ? (
+            <select
+              aria-label="Cambiar de municipio"
+              value={municipality?.id ?? ''}
+              onChange={(event) => void switchMunicipality(event.target.value)}
+              className="min-h-11 rounded-lg border border-black/15 bg-white px-2 font-semibold"
+            >
+              {memberships.map((entry) => (
+                <option key={entry.municipalityId} value={entry.municipalityId}>
+                  {municipalityNames[entry.municipalityId] ?? entry.municipalityId}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="font-semibold">{municipality?.name ?? 'Panel municipal'}</span>
+          )}
         </div>
 
         <nav aria-label="Secciones del panel" className="flex flex-wrap items-center gap-1">

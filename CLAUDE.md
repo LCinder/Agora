@@ -577,3 +577,30 @@ Funcionalidades del backlog (sección 7.6) según lo que pidan los pilotos, app 
 - Datos mercantiles de Lemur Ideas S.L.: https://www.einforma.com/informacion-empresa/lemur-ideas y https://www.informa.es/directorio-empresas/Empresa_LEMUR-IDEAS.html
 - Adjudicaciones públicas de Bandomovil (Gobierto): https://contratos.gobierto.es/adjudicatarios/bandomovil-informacion-municipal-lemur-ideas-s-l
 - Ejemplos de municipios andaluces con Bandomovil: https://www.bandomovil.com/lachar · https://huelma.bandomovil.com/
+
+limitar generacion de imagenes por ayuntamiento. Existen actividades y eventos. los eventos es algo    
+generico,  un grupo grande que engloba por varias actividades, es decir, una actividad puede ser independiente o pertenecer a un evento.
+En el calendario
+
+
+
+Te llamaba porque querriamos hacer una propuesta y  colaboracion con
+el ayuntamiento de X para la mejora de la 
+agenda de eventos del municipio, ya que  estamos trabajando 
+con ayuntamientos de la provincia sobre esto.
+
+
+638650237
+
+cultura@cajar.es
+Juan Antonio
+
+
+Ogijares
+
+Juanma - Concejal Nuevas tecnologias
+juanmanuelplata@ogijares.org
+670464963
+
+
+
