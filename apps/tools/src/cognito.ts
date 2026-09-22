@@ -1,3 +1,4 @@
+import type { Credentials } from './aws';
 import {
   AdminCreateUserCommand,
   AdminGetUserCommand,
@@ -34,8 +35,12 @@ export async function ensureAccount(
   email: string,
   fullName: string | null,
   dryRun: boolean,
+  /** From the named profile, so a stale token in the environment cannot win. */
+  credentials?: Credentials | undefined,
 ): Promise<Account> {
-  const cognito = new CognitoIdentityProviderClient({});
+  const cognito = new CognitoIdentityProviderClient(
+    credentials === undefined ? {} : { credentials },
+  );
 
   const existing = await cognito
     .send(new AdminGetUserCommand({ UserPoolId: userPoolId, Username: email }))

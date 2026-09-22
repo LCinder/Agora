@@ -1,6 +1,7 @@
 import { createPublicStore, createStoreClient } from '@agora/store';
 import { AlreadyAMember, NoSuchMunicipality, addAdministrator } from '@agora/store/onboarding';
 
+import { awsFrom } from './aws';
 import { explain } from './aws-errors';
 import { ensureAccount } from './cognito';
 import { environmentOf, platformAdmins, platformAdminsParameter } from './platform-admins';
@@ -44,6 +45,7 @@ import { environmentOf, platformAdmins, platformAdminsParameter } from './platfo
 interface Arguments {
   table: string | null;
   region: string;
+  profile: string | null;
   endpoint: string | null;
   userPool: string | null;
   emails: string[];
@@ -57,6 +59,7 @@ interface Arguments {
 const VALUE_FLAGS = new Set([
   '--table',
   '--region',
+  '--profile',
   '--endpoint',
   '--user-pool',
   '--email',
@@ -67,6 +70,7 @@ function parseArguments(argv: readonly string[]): Arguments {
   const parsed: Arguments = {
     table: null,
     region: 'eu-central-1',
+    profile: null,
     endpoint: null,
     userPool: null,
     emails: [],
@@ -121,6 +125,9 @@ function parseArguments(argv: readonly string[]): Arguments {
       case '--region':
         parsed.region = value;
         break;
+      case '--profile':
+        parsed.profile = value;
+        break;
       case '--endpoint':
         parsed.endpoint = value;
         break;
@@ -155,6 +162,8 @@ Gives people access to municipalities, and says who has it.
   --list                    Print who has access to what and change nothing
   --dry-run                 Say what it would do, write nothing
   --region <region>         Defaults to eu-central-1
+  --profile <name>          AWS profile. Beats the environment, so a stale token
+                            cannot win. Default: AWS_PROFILE, or .env at the root
   --endpoint <url>          For DynamoDB Local
 
 Everyone granted here becomes a municipal administrator of that municipality.
@@ -206,9 +215,14 @@ async function main(): Promise<void> {
     return;
   }
 
+  const { credentials } = await awsFrom(args.profile);
+
   const client = createStoreClient({
     region: args.region,
     ...(args.endpoint === null ? {} : { endpoint: args.endpoint }),
+    // A named profile wins outright: an expired token in the environment cannot
+    // quietly take its place. See `aws.ts`.
+    ...(credentials === undefined ? {} : { credentials }),
   });
 
   const store = createPublicStore(client, args.table);
@@ -236,7 +250,7 @@ async function main(): Promise<void> {
       ? args.emails
       : environment === null
         ? []
-        : await platformAdmins({ region: args.region, environment });
+        : await platformAdmins({ region: args.region, environment, credentials });
 
   if (emails.length === 0) {
     console.error(
@@ -289,7 +303,7 @@ async function main(): Promise<void> {
     // of them, and asking Cognito eleven times for the same answer is eleven
     // round trips to learn nothing.
     // Checked before AWS was touched, at the top of main.
-    const account = await ensureAccount(args.userPool!, email, null, args.dryRun);
+    const account = await ensureAccount(args.userPool!, email, null, args.dryRun, credentials);
 
     for (const town of wanted) {
       try {
@@ -339,9 +353,14 @@ async function main(): Promise<void> {
  * nobody should have to answer by scanning a table by hand.
  */
 async function printAccess(args: Arguments, towns: readonly Town[]): Promise<void> {
+  const { credentials } = await awsFrom(args.profile);
+
   const client = createStoreClient({
     region: args.region,
     ...(args.endpoint === null ? {} : { endpoint: args.endpoint }),
+    // A named profile wins outright: an expired token in the environment cannot
+    // quietly take its place. See `aws.ts`.
+    ...(credentials === undefined ? {} : { credentials }),
   });
 
   const { createMembershipStore } = await import('@agora/store');

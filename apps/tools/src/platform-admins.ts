@@ -1,5 +1,7 @@
 import { GetParameterCommand, SSMClient } from '@aws-sdk/client-ssm';
 
+import type { Credentials } from './aws';
+
 /**
  * The people who get a membership in every municipality, the moment it exists.
  *
@@ -47,8 +49,13 @@ let client: SSMClient | null = null;
 export async function platformAdmins(input: {
   region: string;
   environment: string;
+  credentials?: Credentials | undefined;
 }): Promise<string[]> {
-  client ??= new SSMClient({ region: input.region });
+  client ??= new SSMClient(
+    input.credentials === undefined
+      ? { region: input.region }
+      : { region: input.region, credentials: input.credentials },
+  );
 
   const name = platformAdminsParameter(input.environment);
 

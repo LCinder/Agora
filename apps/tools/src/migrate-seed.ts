@@ -1,5 +1,6 @@
 import { createSeedDataSource } from '@agora/data';
 import { type MunicipalityBundle, createStoreClient, migrateSeed } from '@agora/store';
+import { awsFrom } from './aws';
 import { explain } from './aws-errors';
 
 /**
@@ -24,6 +25,7 @@ import { explain } from './aws-errors';
 interface Arguments {
   table: string | null;
   region: string;
+  profile: string | null;
   endpoint: string | null;
   municipality: string | null;
   dryRun: boolean;
@@ -34,6 +36,7 @@ function parseArguments(argv: readonly string[]): Arguments {
   const parsed: Arguments = {
     table: null,
     region: 'eu-central-1',
+    profile: null,
     endpoint: null,
     municipality: null,
     dryRun: false,
@@ -153,9 +156,14 @@ async function main(): Promise<void> {
     ].join('\n'),
   );
 
+  const { credentials } = await awsFrom(args.profile);
+
   const client = createStoreClient({
     region: args.region,
     ...(args.endpoint === null ? {} : { endpoint: args.endpoint }),
+    // A named profile wins outright: an expired token in the environment cannot
+    // quietly take its place. See `aws.ts`.
+    ...(credentials === undefined ? {} : { credentials }),
   });
 
   const result = await migrateSeed(client, args.table, bundles, {

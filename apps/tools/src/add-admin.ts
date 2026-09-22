@@ -2,6 +2,7 @@ import { createStoreClient, createPublicStore } from '@agora/store';
 import { AlreadyAMember, NoSuchMunicipality, addAdministrator } from '@agora/store/onboarding';
 
 import { ensureAccount } from './cognito';
+import { awsFrom } from './aws';
 import { explain } from './aws-errors';
 
 /**
@@ -26,6 +27,7 @@ import { explain } from './aws-errors';
 interface Arguments {
   table: string | null;
   region: string;
+  profile: string | null;
   endpoint: string | null;
   userPool: string | null;
   municipality: string | null;
@@ -38,6 +40,7 @@ interface Arguments {
 const VALUE_FLAGS = new Set([
   '--table',
   '--region',
+  '--profile',
   '--endpoint',
   '--user-pool',
   '--municipality',
@@ -49,6 +52,7 @@ function parseArguments(argv: readonly string[]): Arguments {
   const parsed: Arguments = {
     table: null,
     region: 'eu-central-1',
+    profile: null,
     endpoint: null,
     userPool: null,
     municipality: null,
@@ -88,6 +92,9 @@ function parseArguments(argv: readonly string[]): Arguments {
       case '--region':
         parsed.region = value;
         break;
+      case '--profile':
+        parsed.profile = value;
+        break;
       case '--endpoint':
         parsed.endpoint = value;
         break;
@@ -118,6 +125,7 @@ Gives a municipality that already exists its first administrator.
   --email          The person's email, which is how they sign in    (required)
   --name           Their name, for the panel
   --region         Defaults to eu-central-1
+  --profile        AWS profile. Beats the environment. Default: AWS_PROFILE, or .env
   --endpoint       For DynamoDB Local
   --dry-run        Check everything, write nothing
 
@@ -153,9 +161,14 @@ async function main(): Promise<void> {
     return;
   }
 
+  const { credentials } = await awsFrom(args.profile);
+
   const client = createStoreClient({
     region: args.region,
     ...(args.endpoint === null ? {} : { endpoint: args.endpoint }),
+    // A named profile wins outright: an expired token in the environment cannot
+    // quietly take its place. See `aws.ts`.
+    ...(credentials === undefined ? {} : { credentials }),
   });
 
   // A person thinks in slugs, because that is what the shared link and the QR
@@ -172,7 +185,13 @@ async function main(): Promise<void> {
   console.log(args.dryRun ? 'Mode:         dry run, nothing is written\n' : '');
 
   try {
-    const account = await ensureAccount(args.userPool!, args.email!, args.fullName, args.dryRun);
+    const account = await ensureAccount(
+      args.userPool!,
+      args.email!,
+      args.fullName,
+      args.dryRun,
+      credentials,
+    );
 
     await addAdministrator(
       client,

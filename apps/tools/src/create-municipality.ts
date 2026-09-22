@@ -12,6 +12,7 @@ import { ZodError } from 'zod';
 
 import { ensureAccount } from './cognito';
 import { environmentOf, platformAdmins, platformAdminsParameter } from './platform-admins';
+import { awsFrom } from './aws';
 import { explain } from './aws-errors';
 
 /**
@@ -38,6 +39,7 @@ import { explain } from './aws-errors';
 interface Arguments {
   table: string | null;
   region: string;
+  profile: string | null;
   endpoint: string | null;
   userPool: string | null;
   id: string | null;
@@ -62,6 +64,7 @@ interface Arguments {
 const VALUE_FLAGS = new Set([
   '--table',
   '--region',
+  '--profile',
   '--endpoint',
   '--user-pool',
   '--id',
@@ -83,6 +86,7 @@ function parseArguments(argv: readonly string[]): Arguments {
   const parsed: Arguments = {
     table: null,
     region: 'eu-central-1',
+    profile: null,
     endpoint: null,
     userPool: null,
     id: null,
@@ -144,6 +148,9 @@ function parseArguments(argv: readonly string[]): Arguments {
         break;
       case '--region':
         parsed.region = value;
+        break;
+      case '--profile':
+        parsed.profile = value;
         break;
       case '--endpoint':
         parsed.endpoint = value;
@@ -270,7 +277,8 @@ async function grantPlatformAdmins(args: Arguments, municipalityId: string): Pro
     return [`Platform admins: skipped, cannot tell the environment from ${args.table!}`];
   }
 
-  const emails = await platformAdmins({ region: args.region, environment });
+  const { credentials } = await awsFrom(args.profile);
+  const emails = await platformAdmins({ region: args.region, environment, credentials });
 
   if (emails.length === 0) {
     return [`Platform admins: none listed in ${platformAdminsParameter(environment)}`];
@@ -283,13 +291,16 @@ async function grantPlatformAdmins(args: Arguments, municipalityId: string): Pro
   const client = createStoreClient({
     region: args.region,
     ...(args.endpoint === null ? {} : { endpoint: args.endpoint }),
+    // A named profile wins outright: an expired token in the environment cannot
+    // quietly take its place. See `aws.ts`.
+    ...(credentials === undefined ? {} : { credentials }),
   });
 
   const lines: string[] = [];
 
   for (const email of emails) {
     try {
-      const account = await ensureAccount(args.userPool!, email, null, false);
+      const account = await ensureAccount(args.userPool!, email, null, false, credentials);
 
       await addAdministrator(client, args.table!, municipalityId, {
         authUserId: account.authUserId,
@@ -342,7 +353,13 @@ async function main(): Promise<void> {
   const account =
     args.adminAuthId !== null
       ? { authUserId: args.adminAuthId, created: false }
-      : await ensureAccount(args.userPool!, args.admin!, args.adminName, args.dryRun);
+      : await ensureAccount(
+          args.userPool!,
+          args.admin!,
+          args.adminName,
+          args.dryRun,
+          (await awsFrom(args.profile)).credentials,
+        );
 
   console.log(
     [
@@ -356,9 +373,14 @@ async function main(): Promise<void> {
     ].join('\n'),
   );
 
+  const { credentials } = await awsFrom(args.profile);
+
   const client = createStoreClient({
     region: args.region,
     ...(args.endpoint === null ? {} : { endpoint: args.endpoint }),
+    // A named profile wins outright: an expired token in the environment cannot
+    // quietly take its place. See `aws.ts`.
+    ...(credentials === undefined ? {} : { credentials }),
   });
 
   try {
