@@ -187,6 +187,24 @@ async function main(): Promise<void> {
     return;
   }
 
+  // Everything that can be answered without AWS is answered before AWS is
+  // touched. Otherwise a command missing an argument dials out, waits, and comes
+  // back with a credentials error that has nothing to do with what was wrong.
+  // That is exactly how this was first run.
+  if (!args.list && !args.all && args.municipalities.length === 0) {
+    console.error('Say where: --all, or --municipality <slug> one or more times.\n');
+    console.error(HELP);
+    process.exitCode = 1;
+    return;
+  }
+
+  if (!args.list && args.userPool === null) {
+    console.error('Missing --user-pool.\n');
+    console.error(HELP);
+    process.exitCode = 1;
+    return;
+  }
+
   const client = createStoreClient({
     region: args.region,
     ...(args.endpoint === null ? {} : { endpoint: args.endpoint }),
@@ -207,13 +225,6 @@ async function main(): Promise<void> {
 
   if (args.list) {
     await printAccess(args, towns);
-    return;
-  }
-
-  if (args.userPool === null) {
-    console.error('Missing --user-pool.\n');
-    console.error(HELP);
-    process.exitCode = 1;
     return;
   }
 
@@ -258,9 +269,8 @@ async function main(): Promise<void> {
       wanted.push(town);
     }
   } else {
-    console.error('Say where: --all, or --municipality <slug> one or more times.\n');
-    console.error(HELP);
-    process.exitCode = 1;
+    // Unreachable: checked before AWS was touched. Here so the compiler knows
+    // `wanted` is always assigned.
     return;
   }
 
@@ -277,7 +287,8 @@ async function main(): Promise<void> {
     // Once per person rather than once per pair: the account is the same in all
     // of them, and asking Cognito eleven times for the same answer is eleven
     // round trips to learn nothing.
-    const account = await ensureAccount(args.userPool, email, null, args.dryRun);
+    // Checked before AWS was touched, at the top of main.
+    const account = await ensureAccount(args.userPool!, email, null, args.dryRun);
 
     for (const town of wanted) {
       try {
