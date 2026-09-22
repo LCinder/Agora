@@ -22,6 +22,7 @@
 
 export * from './audit-log';
 export * from './client';
+export * from './device-purge';
 export * from './device-store';
 export * from './errors';
 export * from './items';

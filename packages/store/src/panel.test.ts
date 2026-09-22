@@ -1,7 +1,9 @@
+import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAuditLog } from './audit-log';
 import { type StoreClient, createStoreClient } from './client';
+import { purgeIdleDevices } from './device-purge';
 import { createDeviceStore } from './device-store';
 import { StoreError } from './errors';
 import { createMembershipStore } from './memberships';
@@ -527,6 +529,91 @@ describe.skipIf(local === null)('the panel', () => {
       await device.unmarkInterest(ZUBIA, doomed.id);
 
       expect(await device.listInterests()).toHaveLength(0);
+    });
+  });
+
+  describe('forgetting a phone nobody has heard from', () => {
+    it('takes its marks off the counters, and leaves the ones still in use', async () => {
+      const staff = createStaffStore(client, TABLE, editor);
+      const gone = createDeviceStore(client, TABLE, 'device-abandoned');
+      const here = createDeviceStore(client, TABLE, 'device-still-here');
+
+      const event = await staff.createEvent({
+        id: 'evt-purge',
+        title: 'Romería',
+        categoryId: 'cat-fiestas',
+        startAt: new Date('2027-10-01T09:00:00.000Z'),
+        location: { name: 'Ermita', latitude: null, longitude: null },
+        status: 'published',
+      });
+
+      for (const device of [gone, here]) {
+        await device.register({ platform: 'android', locale: 'es' });
+        await device.follow(ZUBIA);
+        await device.markInterest(ZUBIA, event.id);
+      }
+
+      expect((await staff.getEvent(event.id))?.interestCount).toBe(2);
+
+      // The abandoned one was last seen two years ago. `follow` above wrote
+      // today's date, so it is set back by hand — which is exactly what a phone
+      // that was wiped looks like: a row nobody has touched since.
+      await client.send(
+        new UpdateCommand({
+          TableName: TABLE,
+          Key: { pk: 'DEV#device-abandoned', sk: 'META' },
+          UpdateExpression: 'SET lastSeenAt = :then',
+          ExpressionAttributeValues: { ':then': '2024-09-01T10:00:00.000Z' },
+        }),
+      );
+
+      const purged = await purgeIdleDevices(client, TABLE, {
+        now: new Date('2026-09-22T04:00:00Z'),
+      });
+
+      expect(purged.forgotten).toBe(1);
+
+      // The counter came down by one, not by two: this is the whole point of
+      // going through `forget` rather than deleting rows.
+      expect((await staff.getEvent(event.id))?.interestCount).toBe(1);
+
+      // And the phone that is still in use kept its mark.
+      expect((await here.listInterests()).map((mark) => mark.eventId)).toContain(event.id);
+      expect(await gone.listInterests()).toEqual([]);
+
+      // These tests share one table and read each other's totals, so this one
+      // puts back what it borrowed: the device that is still here, and the event
+      // it marked.
+      await here.forget();
+      await staff.deleteEvent(event.id);
+    });
+
+    it('counts a launch as having been seen', async () => {
+      const device = createDeviceStore(client, TABLE, 'device-quiet-then-back');
+
+      await device.register({ platform: 'ios', locale: 'es' });
+
+      await client.send(
+        new UpdateCommand({
+          TableName: TABLE,
+          Key: { pk: 'DEV#device-quiet-then-back', sk: 'META' },
+          UpdateExpression: 'SET lastSeenAt = :then',
+          ExpressionAttributeValues: { ':then': '2024-09-01T10:00:00.000Z' },
+        }),
+      );
+
+      // Opening the app again. This is the write that saves a real neighbour who
+      // simply had a quiet autumn from being forgotten.
+      await device.follow(ZUBIA);
+
+      const purged = await purgeIdleDevices(client, TABLE, {
+        now: new Date('2026-09-22T04:00:00Z'),
+      });
+
+      expect(purged.forgotten).toBe(0);
+      expect(await device.listFollowed()).toEqual([ZUBIA]);
+
+      await device.forget();
     });
   });
 

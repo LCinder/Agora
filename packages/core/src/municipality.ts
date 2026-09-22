@@ -44,6 +44,27 @@ export type MunicipalityStatus = (typeof MUNICIPALITY_STATUSES)[number];
 /** Spanish municipalities all share one time zone, but never assume it. */
 export const DEFAULT_TIME_ZONE = 'Europe/Madrid';
 
+/**
+ * How long a phone that never comes back is kept.
+ *
+ * A resident who taps "borrar mis datos" is forgotten there and then. This is
+ * the other way a device stops existing: somebody clears the app's storage from
+ * the phone's own settings, or reinstalls, or changes phone. The app never gets
+ * to say so, it registers again as a new device, and the old row stays — with
+ * its marks still counted on every event it had marked and still counted in the
+ * town's total of neighbours with the app.
+ *
+ * That is not a privacy problem, because there is nothing personal in the row to
+ * leak. It is a truthfulness problem, and the numbers it makes untrue are the
+ * ones this product is sold on: a counter that only ever goes up stops being a
+ * counter. Hence a plazo, applied by the monthly job.
+ *
+ * Twelve months, for one reason a person can check: it has to cover somebody who
+ * opens the app at the feria and again at Semana Santa and not think they left.
+ * Anything shorter forgets a real neighbour who simply has a quiet autumn.
+ */
+export const DEVICE_IDLE_MONTHS = 12;
+
 const hexColor = z
   .string()
   .regex(/^#[0-9a-fA-F]{6}$/, 'Expected a six digit hex colour, for example #4F46E5');

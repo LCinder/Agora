@@ -69,6 +69,9 @@ export interface DeviceStore {
    *
    * Called when a resident picks a town and again when they mark an event in one.
    * Idempotent: following twice counts once, so it is safe to call on every launch.
+   *
+   * It also touches `lastSeenAt`, which is what makes a phone that stopped
+   * existing eventually stop being counted. See `purgeIdleDevices`.
    */
   follow(municipalityId: string): Promise<void>;
   listFollowed(): Promise<string[]>;
@@ -251,6 +254,25 @@ export function createDeviceStore(
     },
 
     async follow(municipalityId) {
+      // Every launch passes through here, which is what makes this the honest
+      // place to record that the phone still exists. Without it `lastSeenAt` only
+      // ever says when the app was installed, and nothing can tell a device that
+      // was wiped from one that is simply quiet in November.
+      //
+      // Swallowed on purpose: this is bookkeeping, and a resident picking their
+      // town is not waiting on it.
+      await client
+        .send(
+          new UpdateCommand({
+            TableName: tableName,
+            Key: deviceKey(deviceId),
+            UpdateExpression: 'SET lastSeenAt = :now',
+            ExpressionAttributeValues: { ':now': new Date().toISOString() },
+            ConditionExpression: 'attribute_exists(pk)',
+          }),
+        )
+        .catch(() => undefined);
+
       try {
         await client.send(
           new TransactWriteCommand({

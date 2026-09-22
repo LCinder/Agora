@@ -12,10 +12,12 @@ import {
   type JobMunicipality,
   type NotificationStore,
   type PendingPush,
+  type PurgeResult,
   type PushTarget,
   type StoreClient,
   createNotificationStore,
   createStoreClient,
+  purgeIdleDevices,
 } from '@agora/store';
 
 import { tableName } from '../lib/http';
@@ -40,7 +42,7 @@ import { tableName } from '../lib/http';
  * Both end in the same three questions per device: is anybody interested, do they
  * have quota left today, and where do I send it.
  */
-export type Job = 'reminders' | 'outbox';
+export type Job = 'reminders' | 'outbox' | 'purge';
 
 /** How many orders one minute's run will take on. */
 const OUTBOX_BATCH = 25;
@@ -50,6 +52,15 @@ export interface NotificationDependencies {
   push: Push;
   /** Fixed by the tests; the job itself always runs against the real clock. */
   now?: Date;
+  /**
+   * Forgetting the phones nobody has heard from in a year.
+   *
+   * Injected rather than built here because it needs the raw client and this
+   * module only ever holds a notification store — and because a test that had to
+   * stand up a whole table to check the job dispatches correctly would not be
+   * checking the dispatch.
+   */
+  forgetIdleDevices?: (now: Date) => Promise<PurgeResult>;
 }
 
 export interface JobResult {
@@ -306,8 +317,35 @@ async function runOutbox(dependencies: NotificationDependencies): Promise<JobRes
   return result;
 }
 
+/**
+ * The monthly tidy: phones that stopped existing stop being counted.
+ *
+ * It is here, on the same function and the same scheduler as the other two,
+ * because a third Lambda for something that runs twelve times a year is a
+ * deployment, an alarm and a log group to pay attention to, in exchange for
+ * nothing. The payload tells them apart, which is how the other two already
+ * work.
+ *
+ * Reported in the same shape as a send so there is one log line to read and one
+ * alarm to watch: what it considered is what it looked at, what it "sent" is
+ * what it forgot. It never fails a run — a device that could not be forgotten
+ * this month is forgotten next month, and nothing downstream is waiting.
+ */
+async function runPurge(dependencies: NotificationDependencies): Promise<JobResult> {
+  const result: JobResult = { job: 'purge', considered: 0, sent: 0, capped: 0, failed: 0 };
+
+  if (dependencies.forgetIdleDevices === undefined) return result;
+
+  const purged = await dependencies.forgetIdleDevices(dependencies.now ?? new Date());
+
+  return { ...result, considered: purged.examined, sent: purged.forgotten };
+}
+
 export async function run(job: Job, dependencies: NotificationDependencies): Promise<JobResult> {
-  return job === 'reminders' ? runReminders(dependencies) : runOutbox(dependencies);
+  if (job === 'outbox') return runOutbox(dependencies);
+  if (job === 'purge') return runPurge(dependencies);
+
+  return runReminders(dependencies);
 }
 
 /**
@@ -336,11 +374,15 @@ export interface JobEvent {
 export const handler = async (event: JobEvent = {}): Promise<JobResult> => {
   client ??= createStoreClient();
 
+  const table = tableName();
+  const connected = client;
+
   const result = await run(event.job ?? 'reminders', {
-    store: createNotificationStore(client, tableName()),
+    store: createNotificationStore(connected, table),
     // No credentials: Expo push works unauthenticated unless the project turns on
     // enhanced security, and this way there is no secret to rotate (D-046).
     push: createExpoPush(),
+    forgetIdleDevices: (now) => purgeIdleDevices(connected, table, { now }),
   });
 
   // One line per run, which is what makes "did the reminders go out on Wednesday"

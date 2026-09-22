@@ -7,7 +7,7 @@
  * that index explicitly, which is what lets the panel show counts without ever
  * being able to show names.
  *
- * One function, two schedules, told apart by the payload:
+ * One function, three schedules, told apart by the payload:
  *
  *   * every hour on the hour, for the evening reminder. Hourly and not once at
  *     19:00 because the hour is a municipality's own setting: the function sends
@@ -16,6 +16,10 @@
  *     cancellation reaches a phone within the minute without a queue, a stream or
  *     an open connection — and 1,440 invocations a day of a function that usually
  *     finds nothing is inside the free tier with room to spare.
+ *   * once a month, to forget the phones nobody has heard from in a year. Not a
+ *     notification, but the same function and the same schedule mechanism: a
+ *     third Lambda for twelve runs a year would be a deployment, an alarm and a
+ *     log group in exchange for nothing.
  */
 
 terraform {
@@ -43,6 +47,11 @@ data "aws_iam_policy_document" "notifications" {
       "dynamodb:UpdateItem",
       # An order that has been dealt with leaves the outbox.
       "dynamodb:DeleteItem",
+      # Once a month: finding the phones nobody has heard from in a year, so they
+      # stop being counted. There is no index on "last seen" on purpose — one
+      # would cost a write on every launch of every phone to save one read a
+      # month — so this is a scan of a small table twelve times a year.
+      "dynamodb:Scan",
     ]
     resources = [var.table_arn, var.calendar_index_arn, var.reminders_index_arn]
   }
@@ -143,6 +152,45 @@ resource "aws_scheduler_schedule" "reminders" {
     retry_policy {
       maximum_retry_attempts       = 3
       maximum_event_age_in_seconds = 600
+    }
+
+    dead_letter_config {
+      arn = aws_sqs_queue.failed_jobs.arn
+    }
+  }
+}
+
+# Once a month, at four in the morning: forgetting the phones that stopped
+# existing. Somebody who clears the app's storage or changes phone never gets to
+# tell us, so their device row stays behind with its marks still counted on every
+# event and still counted in the town's total of neighbours with the app.
+#
+# Nothing personal rots there — a device row is a UUID we invented and two dates.
+# What rots is the truth of the numbers the product is sold on, and a counter that
+# only ever goes up is not a counter.
+#
+# The plazo is in `DEVICE_IDLE_MONTHS` and the privacy policy states it. The job
+# forgets each one down the same path the "borrar mis datos" button takes, so
+# every counter comes down with it.
+resource "aws_scheduler_schedule" "purge" {
+  name                         = "${local.prefix}-purge"
+  schedule_expression          = "cron(0 4 1 * ? *)"
+  schedule_expression_timezone = "Europe/Madrid"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  target {
+    arn      = module.notifications.arn
+    role_arn = aws_iam_role.scheduler.arn
+    input    = jsonencode({ job = "purge" })
+
+    # Not worth retrying and not worth an alarm: a device that was not forgotten
+    # this month is forgotten next month, and nothing anywhere is waiting on it.
+    retry_policy {
+      maximum_retry_attempts       = 0
+      maximum_event_age_in_seconds = 3600
     }
 
     dead_letter_config {

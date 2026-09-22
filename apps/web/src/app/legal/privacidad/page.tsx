@@ -1,4 +1,4 @@
-import { BRAND, COMPANY } from '@agora/core';
+import { BRAND, COMPANY, DEVICE_IDLE_MONTHS } from '@agora/core';
 import type { Metadata } from 'next';
 
 import { Article, LegalPage, Rows } from '../../../components/legal';
@@ -130,6 +130,10 @@ export default function PrivacyPage() {
             {
               term: 'Tus eventos marcados',
               description: 'Hasta que los desmarques o borres los datos desde Ajustes.',
+            },
+            {
+              term: 'El identificador de tu móvil',
+              description: `Hasta que borres los datos desde Ajustes, y en todo caso ${DEVICE_IDLE_MONTHS} meses desde la última vez que abriste la aplicación. Si desinstalas o borras los datos desde los ajustes del teléfono, la aplicación no puede avisarnos: por eso hay un plazo, y al cumplirse se borra todo lo de ese móvil igual que si hubieras pulsado el botón.`,
             },
             {
               term: 'Posiciones de un directo',

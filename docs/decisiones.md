@@ -1403,3 +1403,55 @@ contestó 503 «high demand» dos de cada tres intentos esa tarde— y lo que ha
 darle al botón en un minuto. Y el 429 ya no dice «vuelve mañana»: el nivel gratuito lo contesta
 también por el límite por minuto, y mandar a alguien a mañana cuando la respuesta es esperar
 cuarenta segundos es una función que se deja de usar.
+
+---
+
+## D-072 — Un teléfono que deja de existir deja de contar a los doce meses
+
+**Fecha:** 2026-09-22 · **Estado:** aceptada
+
+Un vecino que pulsa «borrar mis datos» se olvida en el momento y bien: cada marca se quita una por
+una para que baje el contador de su evento, y la fila de seguimiento se quita para que baje el total
+del municipio. Eso estaba hecho y probado.
+
+**Lo que no estaba es la otra mitad, que es la que pasa de verdad.** Alguien borra los datos de la
+app desde los ajustes del teléfono, o la reinstala, o cambia de móvil. La aplicación no se entera, así
+que no nos lo puede decir: se registra otra vez como un dispositivo nuevo y la fila vieja se queda
+ahí para siempre, con sus marcas todavía contando en cada evento que marcó y todavía contando en los
+«vecinos con la aplicación» del panel.
+
+**No es un problema de privacidad y conviene decirlo, porque es lo primero que parece.** En esa fila
+hay un UUID que nos inventamos nosotros, «android», «es» y dos fechas. No hay nada que filtrar.
+
+**Es un problema de que los números dejan de ser verdad, y esos números son el producto.** A un
+concejal le decimos «tenéis 2.400 vecinos con la aplicación» y «a 340 personas les interesó la
+verbena». Con un año de reinstalaciones y cambios de móvil, esas cifras suben solas. Un contador que
+solo sabe subir no es un contador, y es justo por lo que nos pagan.
+
+Había además un descuadre con lo que ya prometía la política de privacidad, que da plazo a los
+directos (24 horas), a los contadores de avisos (48) y a los registros técnicos (14 días) — y a la
+fila de un dispositivo, ninguno. Era para siempre y no lo decía.
+
+**Doce meses**, y el motivo es comprobable por cualquiera: tiene que cubrir a quien abre la
+aplicación en la feria y otra vez en Semana Santa. Menos que eso olvida a un vecino real que
+simplemente ha tenido un otoño tranquilo. El valor está en `DEVICE_IDLE_MONTHS`, en `@agora/core`,
+y lo lee tanto el trabajo que lo aplica como la página de privacidad que lo promete: no pueden
+discrepar.
+
+**Se olvida por el mismo camino que el botón.** No es un borrado en bloque: quitar las filas sin
+restar lo que aportaron dejaría mal los mismos números que esto existe para proteger, pero en la otra
+dirección.
+
+**`lastSeenAt` se escribe en cada arranque.** El campo existía y solo se ponía al registrarse, así
+que no distinguía un teléfono borrado de uno silencioso. Ahora lo toca `follow`, por donde pasa cada
+arranque de todas formas.
+
+**Un escaneo, no un índice.** Un índice disperso sobre `lastSeenAt` costaría una escritura en cada
+arranque de cada teléfono de cada municipio, para siempre, para ahorrar una lectura al mes. El
+escaneo lee la tabla entera doce veces al año y la tabla entera es un item pequeño por dispositivo:
+céntimos al año, contra un coste que crece con lo bien que le vaya al producto. El día que el escaneo
+sea lento es el día que hay un piloto que paga un índice.
+
+**Y en la misma función que las notificaciones**, tercer horario y no tercera Lambda. Doce
+ejecuciones al año no justifican un despliegue, una alarma y un grupo de logs propios; el payload
+las distingue, que es como ya se distinguían las otras dos.
