@@ -1,6 +1,7 @@
 import type { Credentials } from './aws';
 import {
   AdminCreateUserCommand,
+  AdminDeleteUserCommand,
   AdminGetUserCommand,
   type AttributeType,
   CognitoIdentityProviderClient,
@@ -102,4 +103,52 @@ export async function ensureAccount(
 
     throw error;
   }
+}
+
+/**
+ * The account for an email, or nothing.
+ *
+ * Separate from `ensureAccount` because the two questions are different: that
+ * one means "there must be one", this one means "is there one" — and the second
+ * is what you ask before deleting.
+ */
+export async function findAccount(
+  userPoolId: string,
+  email: string,
+  credentials?: Credentials | undefined,
+): Promise<Account | null> {
+  const cognito = new CognitoIdentityProviderClient(
+    credentials === undefined ? {} : { credentials },
+  );
+
+  const existing = await cognito
+    .send(new AdminGetUserCommand({ UserPoolId: userPoolId, Username: email }))
+    .catch(() => null);
+
+  if (existing === null) return null;
+
+  const sub = existing.UserAttributes?.find((attribute) => attribute.Name === 'sub')?.Value ?? null;
+
+  return sub === null ? null : { authUserId: sub, created: false };
+}
+
+/**
+ * Deletes the account, and only the account.
+ *
+ * The memberships are what grant anything, so an account with none of them
+ * already opens nothing: this is tidying, not security, and the caller has
+ * already checked there is nothing left. Deliberately not something the panel
+ * can do — its Cognito permissions are create and read, and a town hall has no
+ * business deleting a person who also works for the next town along.
+ */
+export async function deleteAccount(
+  userPoolId: string,
+  email: string,
+  credentials?: Credentials | undefined,
+): Promise<void> {
+  const cognito = new CognitoIdentityProviderClient(
+    credentials === undefined ? {} : { credentials },
+  );
+
+  await cognito.send(new AdminDeleteUserCommand({ UserPoolId: userPoolId, Username: email }));
 }

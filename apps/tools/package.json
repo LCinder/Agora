@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "create-municipality": "esbuild src/create-municipality.ts --bundle --platform=node --target=node22 --format=cjs --outfile=dist/create-municipality.cjs --log-level=warning && node dist/create-municipality.cjs",
     "add-admin": "esbuild src/add-admin.ts --bundle --platform=node --target=node22 --format=cjs --outfile=dist/add-admin.cjs --log-level=warning && node dist/add-admin.cjs",
-    "grant-access": "esbuild src/grant-access.ts --bundle --platform=node --target=node22 --format=cjs --outfile=dist/grant-access.cjs --log-level=warning && node dist/grant-access.cjs"
+    "grant-access": "esbuild src/grant-access.ts --bundle --platform=node --target=node22 --format=cjs --outfile=dist/grant-access.cjs --log-level=warning && node dist/grant-access.cjs",
+    "revoke-access": "esbuild src/revoke-access.ts --bundle --platform=node --target=node22 --format=cjs --outfile=dist/revoke-access.cjs --log-level=warning && node dist/revoke-access.cjs"
   },
   "dependencies": {
     "@agora/core": "workspace:*",

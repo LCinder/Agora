@@ -22,6 +22,7 @@ cambia la app, el panel, el APK y los correos del panel a la vez. Ver
 - Desplegar: [`infra/deploy.sh`](infra/deploy.sh) y [`infra/terraform/README.md`](infra/terraform/README.md)
 - Dar de alta un ayuntamiento: `pnpm --filter @agora/tools create-municipality -- --help`
 - Quién entra a qué panel: `pnpm --filter @agora/tools grant-access -- --list`
+- Quitarle el acceso a alguien: `pnpm --filter @agora/tools revoke-access -- --help`
 - Credenciales de AWS para esos comandos: copia [`.env.example`](.env.example) a `.env` (ignorado por git)
 - Cómo renombrar la aplicación: [`docs/renombrar-la-app.md`](docs/renombrar-la-app.md)
 
