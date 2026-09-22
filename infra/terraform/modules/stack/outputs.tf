@@ -46,5 +46,6 @@ output "secret_parameters" {
     aws_ssm_parameter.gemini_key.name,
     aws_ssm_parameter.cloudflare_account.name,
     aws_ssm_parameter.cloudflare_token.name,
+    aws_ssm_parameter.platform_admins.name,
   ]
 }

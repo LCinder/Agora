@@ -245,7 +245,18 @@ aws ssm put-parameter --profile hoyq --region eu-central-1 \
 
 aws ssm put-parameter --profile hoyq --region eu-central-1 \
   --name /agora-dev/cloudflare-api-token --type SecureString --overwrite --value "..."
+
+# Vuestros correos, separados por comas. No es un secreto: es la lista de quien
+# recibe acceso automáticamente a cada municipio nuevo, y está aquí y no en un
+# fichero del repositorio porque el repositorio es público.
+aws ssm put-parameter --profile hoyq --region eu-central-1 \
+  --name /agora-dev/platform-admins --type String --overwrite \
+  --value "uno@ejemplo.es,otro@ejemplo.es"
 ```
+
+De los cinco, **solo `device-token-key` hace falta para que la aplicación funcione**. Los tres de
+los carteles dejan esa función apagada hasta que estén, y `platform-admins` vacío solo significa que
+cada municipio nuevo hay que dárselo a mano con `add-admin`.
 
 Si prefieres no dejarlas en el historial del shell, usa la consola web: Systems Manager →
 Parameter Store → el parámetro → *Edit*.

@@ -91,6 +91,28 @@ resource "aws_ssm_parameter" "cloudflare_token" {
   }
 }
 
+# The two of us, by email.
+#
+# Not a secret and not a credential: a list of who should be given a membership
+# in every municipality the moment it is created. `create-municipality` reads it
+# so that adding a town hall stays one command however many of us there are, and
+# so that nobody has to remember. The rows it writes are ordinary memberships —
+# auditable per town, revocable one at a time — which is the whole reason this is
+# a list of emails and not a role that crosses municipalities.
+#
+# In Parameter Store and not in a file in the repository because the repository
+# is public and these are personal addresses.
+resource "aws_ssm_parameter" "platform_admins" {
+  name        = "/${local.prefix}/platform-admins"
+  description = "Emails, comma separated, granted municipal_admin in every new municipality."
+  type        = "String"
+  value       = "PENDIENTE"
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
+
 # ---------------------------------------------------------------------------
 # The pieces
 # ---------------------------------------------------------------------------

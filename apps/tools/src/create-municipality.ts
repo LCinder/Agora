@@ -1,10 +1,17 @@
 import categories from '../../../content/shared/categories.json';
 import { eventCategorySchema } from '@agora/core';
 import { createStoreClient } from '@agora/store';
-import { AlreadyOnboarded, SlugTaken, onboardMunicipality } from '@agora/store/onboarding';
+import {
+  AlreadyAMember,
+  AlreadyOnboarded,
+  SlugTaken,
+  addAdministrator,
+  onboardMunicipality,
+} from '@agora/store/onboarding';
 import { ZodError } from 'zod';
 
 import { ensureAccount } from './cognito';
+import { environmentOf, platformAdmins, platformAdminsParameter } from './platform-admins';
 
 /**
  * Sets up a town hall: the municipality, its categories and the first person who
@@ -46,6 +53,8 @@ interface Arguments {
   adminName: string | null;
   adminAuthId: string | null;
   dryRun: boolean;
+  /** Skips granting the people in the platform-admins parameter. */
+  skipPlatformAdmins: boolean;
   help: boolean;
 }
 
@@ -91,6 +100,7 @@ function parseArguments(argv: readonly string[]): Arguments {
     adminName: null,
     adminAuthId: null,
     dryRun: false,
+    skipPlatformAdmins: false,
     help: false,
   };
 
@@ -101,6 +111,11 @@ function parseArguments(argv: readonly string[]): Arguments {
     // `pnpm run x -- --table y` forwards the separator. Ignoring it is friendlier
     // than telling the caller off for typing what pnpm's own docs tell them to.
     if (flag === '--') continue;
+
+    if (flag === '--no-platform-admins') {
+      parsed.skipPlatformAdmins = true;
+      continue;
+    }
 
     if (flag === '--dry-run') {
       parsed.dryRun = true;
@@ -198,6 +213,7 @@ Sets up a municipality: the town, its categories and its first administrator.
   --color <#RRGGBB>       Municipal colour. Default: #1D4ED8.
   --id <id>               Row id. Default: mun-<slug>.
   --status <status>       demo | pilot | active | inactive. Default: pilot.
+  --no-platform-admins    Do not grant the people in /agora-<env>/platform-admins.
   --admin <email>         The first administrator. An account is created and
                           Cognito emails them a temporary password.
   --admin-name <name>     Their name, for the panel.
@@ -229,6 +245,69 @@ function missing(args: Arguments): string[] {
   if (args.userPool === null && args.adminAuthId === null) absent.push('--user-pool');
 
   return absent;
+}
+
+/**
+ * Gives the people on the platform list a membership in the town just created.
+ *
+ * This is what keeps adding a municipality to one command however many of us
+ * there are. What it writes are ordinary memberships, one row per person per
+ * town: auditable one town at a time, revocable one town at a time. A role that
+ * crossed municipalities would remove the rows and with them the property every
+ * request depends on — credentials pinned to the municipality in its path.
+ *
+ * Nothing here can stop a municipality being created. It has already been
+ * written by the time this runs, and a membership that did not land is one
+ * `add-admin` away — so every failure is reported and none is thrown.
+ */
+async function grantPlatformAdmins(args: Arguments, municipalityId: string): Promise<string[]> {
+  if (args.skipPlatformAdmins) return [];
+
+  const environment = environmentOf(args.table!);
+
+  if (environment === null) {
+    return [`Platform admins: skipped, cannot tell the environment from ${args.table!}`];
+  }
+
+  const emails = await platformAdmins({ region: args.region, environment });
+
+  if (emails.length === 0) {
+    return [`Platform admins: none listed in ${platformAdminsParameter(environment)}`];
+  }
+
+  if (args.dryRun) {
+    return [`Platform admins: would grant ${emails.join(', ')}`];
+  }
+
+  const client = createStoreClient({
+    region: args.region,
+    ...(args.endpoint === null ? {} : { endpoint: args.endpoint }),
+  });
+
+  const lines: string[] = [];
+
+  for (const email of emails) {
+    try {
+      const account = await ensureAccount(args.userPool!, email, null, false);
+
+      await addAdministrator(client, args.table!, municipalityId, {
+        authUserId: account.authUserId,
+        email,
+      });
+
+      lines.push(`Platform admin: ${email} granted`);
+    } catch (error) {
+      // Already a member is the ordinary case when this is re-run, and it is not
+      // worth a stack trace.
+      lines.push(
+        error instanceof AlreadyAMember
+          ? `Platform admin: ${email} already had access`
+          : `Platform admin: ${email} NOT granted (${error instanceof Error ? error.message : 'unknown'})`,
+      );
+    }
+  }
+
+  return lines;
 }
 
 async function main(): Promise<void> {
@@ -311,11 +390,14 @@ async function main(): Promise<void> {
       },
     );
 
+    const alsoGranted = await grantPlatformAdmins(args, result.municipality.id);
+
     console.log(
       [
         '',
         `Municipality: ${result.municipality.name} (${result.municipality.id})`,
         `Categories:   ${result.categories}`,
+        ...alsoGranted,
         '',
         args.dryRun
           ? 'Nothing was written. Run it again without --dry-run.'
