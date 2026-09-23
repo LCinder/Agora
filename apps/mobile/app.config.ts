@@ -71,8 +71,32 @@ function deepLinks(host: string | null): Partial<Pick<ExpoConfig, 'ios' | 'andro
   };
 }
 
+/**
+ * Where Firebase's `google-services.json` is, or null when this build has none.
+ *
+ * Android cannot hand out an Expo push token without it: `getExpoPushTokenAsync`
+ * needs the app registered with Firebase Cloud Messaging, and without the file
+ * it throws — which `push.ts` catches, so the failure is silent and the phone
+ * simply never gets an address. That is exactly what happened the first time
+ * this was tried on a real device.
+ *
+ * The file is not in the repository: it is a credential of the Firebase project
+ * and this repository is public. CI writes it from a secret and points here.
+ * Without it the build still works and everything but notifications does too,
+ * which is what a demo build wants.
+ *
+ * That the path leads anywhere is checked where the file is written, not here:
+ * this file is compiled by Expo's own resolver, which has no Node types.
+ */
+function googleServices(): string | null {
+  const path = process.env.GOOGLE_SERVICES_JSON?.trim();
+
+  return path === undefined || path === '' ? null : path;
+}
+
 export default ({ config }: ConfigContext): ExpoConfig => {
   const links = deepLinks(siteHost());
+  const firebase = googleServices();
 
   return {
     ...config,
@@ -80,6 +104,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     slug: brand.slug,
     scheme: brand.scheme,
     ios: { ...config.ios, bundleIdentifier: brand.iosBundleId, ...links.ios },
-    android: { ...config.android, package: brand.androidPackage, ...links.android },
+    android: {
+      ...config.android,
+      package: brand.androidPackage,
+      ...links.android,
+      ...(firebase === null ? {} : { googleServicesFile: firebase }),
+    },
   };
 };

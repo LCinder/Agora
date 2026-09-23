@@ -17,6 +17,7 @@ const KEYS = {
   volunteerSession: 'agora.volunteer.session',
   deviceRegistration: 'agora.device.registration',
   viewedToday: 'agora.views.today',
+  pushAsked: 'agora.push.asked',
 } as const;
 
 /** An interest is one event of one municipality. */
@@ -143,6 +144,32 @@ export async function clearAllData(): Promise<void> {
     await AsyncStorage.multiRemove(Object.values(KEYS));
   } catch {
     // Nothing useful to do; the next read falls back to empty anyway.
+  }
+}
+
+/**
+ * Whether this phone has ever been shown the notifications prompt.
+ *
+ * Android cannot answer this. `shouldShowRequestPermissionRationale` — which is
+ * what `canAskAgain` comes from — returns false both when the resident has
+ * refused for good and when nobody has ever asked, and those two need opposite
+ * treatment: one is a dead end, the other is the normal state of a fresh
+ * install. So the app remembers it itself.
+ */
+export async function loadPushAsked(): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(KEYS.pushAsked)) === 'yes';
+  } catch {
+    // Better to offer the button again than to hide it forever.
+    return false;
+  }
+}
+
+export async function savePushAsked(): Promise<void> {
+  try {
+    await AsyncStorage.setItem(KEYS.pushAsked, 'yes');
+  } catch {
+    // Storage being full is not worth interrupting the neighbour for.
   }
 }
 
