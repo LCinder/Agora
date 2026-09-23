@@ -321,7 +321,7 @@ el enlace abre la web, que es el comportamiento correcto mientras no haya app pu
 Después comprueba que la verificación pasa de verdad, porque falla en silencio:
 
 ```bash
-adb shell pm get-app-links com.hoyq.app
+adb shell pm get-app-links com.boof.hoyq
 # y el validador de Apple: https://app-site-association.cdn-apple.com/a/v1/<tu dominio>
 ```
 

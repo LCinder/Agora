@@ -50,5 +50,133 @@
     "status": "published",
     "isFeatured": false,
     "liveTrackingEnabled": false
+  },
+  {
+    "id": "og-cuentacuentos",
+    "organizationId": null,
+    "title": "Cuentacuentos en la biblioteca",
+    "description": "Sesión de cuentos para niños de 3 a 8 años, con inscripción en la propia biblioteca.",
+    "categoryId": "infantil",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 0,
+      "startTime": "18:00",
+      "endTime": "19:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Biblioteca Municipal",
+      "latitude": 37.1268,
+      "longitude": -3.6152
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["children", "families"],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "og-verbena-plaza",
+    "organizationId": null,
+    "title": "Verbena de la plaza",
+    "description": "Orquesta, barra de las asociaciones del pueblo y baile hasta la madrugada.",
+    "categoryId": "fiestas",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 3,
+      "startTime": "22:00",
+      "endTime": "02:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Plaza de la Constitución",
+      "latitude": 37.1272,
+      "longitude": -3.6167
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["families", "youth"],
+    "status": "published",
+    "isFeatured": true,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "og-taller-memoria",
+    "organizationId": null,
+    "title": "Taller de memoria para mayores",
+    "description": "Cuatro sesiones semanales de estimulación cognitiva. Plazas limitadas.",
+    "categoryId": "mayores",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 5,
+      "startTime": "11:00",
+      "endTime": "12:30"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Centro de Participación Activa de Mayores",
+      "latitude": 37.1259,
+      "longitude": -3.6181
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["seniors"],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "og-banda-municipal",
+    "organizationId": null,
+    "title": "Concierto de la banda municipal",
+    "description": "Pasodobles y bandas sonoras de cine, con entrada libre hasta completar aforo.",
+    "categoryId": "cultura",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 12,
+      "startTime": "20:00",
+      "endTime": "21:30"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Casa de la Cultura",
+      "latitude": 37.1281,
+      "longitude": -3.6144
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["families"],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
+  },
+  {
+    "id": "og-cabalgata",
+    "organizationId": null,
+    "title": "Cabalgata de Reyes Magos",
+    "description": "Recorrido de las carrozas por el casco urbano hasta la plaza.",
+    "categoryId": "fiestas",
+    "when": {
+      "kind": "fixed",
+      "startAt": "2027-01-05T18:00:00+01:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Salida del Polideportivo Municipal",
+      "latitude": 37.1249,
+      "longitude": -3.6193
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["children", "families"],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false
   }
 ]

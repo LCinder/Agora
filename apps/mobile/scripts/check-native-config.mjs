@@ -49,10 +49,13 @@ const FORBIDDEN_ANDROID = {
   'android.permission.CAMERA': 'nothing in the app uses the camera',
 };
 
+// `shell: true` porque en Windows `npx` es `npx.cmd` y sin shell no existe:
+// spawnSync contesta ENOENT y la comprobación no llega ni a mirar el config.
 const output = execFileSync('npx', ['expo', 'config', '--type', 'introspect', '--json'], {
   encoding: 'utf8',
   maxBuffer: 32 * 1024 * 1024,
   stdio: ['ignore', 'pipe', 'inherit'],
+  shell: true,
 });
 
 const config = JSON.parse(output);

@@ -62,6 +62,13 @@
       "typedRoutes": false,
       "reactCompiler": true
     },
-    "backgroundColor": "#121211"
+    "backgroundColor": "#121211",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "93b2dc3a-0970-4652-bf11-245209fb8567"
+      }
+    },
+    "owner": "booftechnologiess-team"
   }
 }

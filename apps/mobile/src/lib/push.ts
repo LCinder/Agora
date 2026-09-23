@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import { deviceClient } from './devices';
+import { loadPushAsked, savePushAsked } from './storage';
 
 /**
  * Notifications, from the phone's side.
@@ -70,7 +71,17 @@ export async function pushState(): Promise<PushState> {
 
     if (permission.granted) return 'granted';
 
-    return permission.canAskAgain ? 'undetermined' : 'denied';
+    // `denied` only once we know the resident actually said no.
+    //
+    // On Android `canAskAgain` is false before the first prompt as well as
+    // after a permanent refusal — the platform does not distinguish them — so
+    // trusting it alone reports a fresh install as denied. Settings then hides
+    // the only button that could ask, and the neighbour has no way to turn
+    // notifications on from inside the app. Whether we have asked is something
+    // only the app knows, so the app remembers it.
+    if (permission.canAskAgain) return 'undetermined';
+
+    return (await loadPushAsked()) ? 'denied' : 'undetermined';
   } catch {
     return 'unsupported';
   }
@@ -105,6 +116,9 @@ export async function enablePush(): Promise<PushState> {
 
   try {
     const existing = await Notifications.getPermissionsAsync();
+
+    if (!existing.granted) await savePushAsked();
+
     const permission = existing.granted ? existing : await Notifications.requestPermissionsAsync();
 
     if (!permission.granted) return permission.canAskAgain ? 'undetermined' : 'denied';

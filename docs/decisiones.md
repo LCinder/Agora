@@ -592,7 +592,7 @@ Cambia en un fichero, `packages/core/src/brand.json` (D-030): nombre, slug, esqu
 
 **Lo que queda abierto, y es de la Fase E:**
 
-- **Los identificadores de tienda son `com.hoyq.app`**, es decir, llevan la marca. Son **inmutables una vez publicada la app**, así que si el nombre cambia después de publicar, el identificador se queda con el viejo. Lo recomendable es que salgan de algo estable (la empresa o un dominio propio) y no del producto; no se ha hecho porque todavía no hay ni empresa ni dominio. Es un cambio de un minuto **mientras no se publique**.
+- **Los identificadores de tienda son `com.boof.hoyq`**, y salen de la empresa y no del producto. Son **inmutables una vez publicada la app**: si el nombre comercial cambia después de publicar, el identificador se queda con el viejo para siempre, así que colgarlo de algo estable era lo correcto. Estuvieron un tiempo como `com.hoyq.app` porque no había empresa; se cambiaron el 23 de septiembre de 2026, antes de la primera publicación, que es la única ventana en la que se puede.
 - **Marca y dominio sin confirmar.** `hoyq.es` y `hoyq.com` no tienen DNS, lo que no significa que estén libres. Hay que comprobarlo en un registrador y buscar en OEPM y EUIPO antes de imprimir nada o mandar una oferta a un ayuntamiento.
 - El icono no depende del nombre: es la celosía geométrica que dibuja `apps/mobile/scripts/make-icons.py`, no una letra.
 
