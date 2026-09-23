@@ -1,9 +1,11 @@
 import {
+  type Activity,
   type Event,
   type EventCategory,
   type Municipality,
   type Organization,
   type Route,
+  activitySchema,
   eventCategorySchema,
   eventSchema,
   municipalitySchema,
@@ -81,6 +83,12 @@ export function createHttpDataSource(options: HttpDataSourceOptions): DataSource
       return api.getOrNull(
         `/municipalities/${encodeURIComponent(municipalityId)}/events/${encodeURIComponent(eventId)}`,
         (value) => eventSchema.parse(value),
+      );
+    },
+
+    async listActivities(municipalityId: string): Promise<Activity[]> {
+      return api.get(`/municipalities/${encodeURIComponent(municipalityId)}/activities`, (value) =>
+        listOf(activitySchema).parse(value),
       );
     },
 

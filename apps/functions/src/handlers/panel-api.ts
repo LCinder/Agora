@@ -83,6 +83,45 @@ const eventPatchSchema = z.object({
   imageUrl: z.string().nullable().optional(),
 });
 
+/**
+ * A line of a programme, on its way in.
+ *
+ * The three nullable fields are the inheritance, and they are `.nullish()`
+ * rather than `.optional()` on purpose: leaving one out means "do not change
+ * it", and sending `null` means "go back to what the event says". A form needs
+ * both, and a schema that collapsed them would make a line permanently stuck
+ * with a place somebody typed once.
+ */
+const activityLocationInputSchema = z.object({
+  name: z.string().min(1),
+  latitude: z.number().min(-90).max(90).nullable().default(null),
+  longitude: z.number().min(-180).max(180).nullable().default(null),
+});
+
+const newActivitySchema = z.object({
+  id: z.string().min(1).optional(),
+  title: z.string().min(1),
+  description: z.string().optional(),
+  categoryId: z.string().min(1).nullish(),
+  startAt: z.coerce.date(),
+  endAt: z.coerce.date().nullish(),
+  location: activityLocationInputSchema.nullish(),
+  isFree: z.boolean().nullish(),
+  priceInfo: z.string().nullish(),
+  status: z.enum(['draft', 'pending_review', 'published']).optional(),
+});
+
+const activityPatchSchema = z.object({
+  title: z.string().min(1).optional(),
+  description: z.string().optional(),
+  categoryId: z.string().min(1).nullish(),
+  startAt: z.coerce.date().optional(),
+  endAt: z.coerce.date().nullish(),
+  location: activityLocationInputSchema.nullish(),
+  isFree: z.boolean().nullish(),
+  priceInfo: z.string().nullish(),
+});
+
 const reasonSchema = z.object({ reason: z.string().min(1) });
 
 /**
@@ -268,6 +307,123 @@ const ROUTES: readonly Route<RequestContext>[] = [
       await panel.audit.record({ action: 'event.cancel', entity: 'event', entityId: eventId! });
 
       return ok(cancelled);
+    },
+  },
+
+  // --- programmes ----------------------------------------------------------
+  //
+  // Every one of these names the event as well as the activity. That is not
+  // decoration: the permission question about a line of a programme is a
+  // question about its event, and the store answers it that way. A route that
+  // reached an activity by id alone would be a route that had to look up which
+  // event it belonged to before it could refuse anything.
+  {
+    method: 'GET',
+    pattern: 'municipalities/:municipalityId/activities',
+    run: async (_parameters, { panel }) => ok(await panel.events.listActivities()),
+  },
+  {
+    method: 'GET',
+    pattern: 'municipalities/:municipalityId/events/:eventId/activities',
+    run: async ({ eventId }, { panel }) => ok(await panel.events.listActivities(eventId!)),
+  },
+  {
+    method: 'POST',
+    pattern: 'municipalities/:municipalityId/events/:eventId/activities',
+    run: async ({ eventId }, { event, panel }) => {
+      const input = body(event, newActivitySchema);
+      const created = await panel.events.createActivity(eventId!, {
+        ...definedOnly(input),
+        id: input.id ?? crypto.randomUUID(),
+      });
+
+      await panel.audit.record({
+        action: 'activity.create',
+        entity: 'activity',
+        entityId: created.id,
+      });
+
+      return ok(created);
+    },
+  },
+  {
+    method: 'PATCH',
+    pattern: 'municipalities/:municipalityId/events/:eventId/activities/:activityId',
+    run: async ({ eventId, activityId }, { event, panel }) => {
+      const result = await panel.events.updateActivity(
+        eventId!,
+        activityId!,
+        definedOnly(body(event, activityPatchSchema)),
+      );
+
+      await panel.audit.record({
+        action: result.kind === 'queued' ? 'activity.change_requested' : 'activity.update',
+        entity: 'activity',
+        entityId: activityId!,
+      });
+
+      return ok(result);
+    },
+  },
+  {
+    method: 'POST',
+    pattern: 'municipalities/:municipalityId/events/:eventId/activities/:activityId/cancel',
+    run: async ({ eventId, activityId }, { panel }) => {
+      const cancelled = await panel.events.cancelActivity(eventId!, activityId!);
+
+      await panel.audit.record({
+        action: 'activity.cancel',
+        entity: 'activity',
+        entityId: activityId!,
+      });
+
+      return ok(cancelled);
+    },
+  },
+  {
+    method: 'POST',
+    pattern: 'municipalities/:municipalityId/events/:eventId/activities/:activityId/approve',
+    run: async ({ eventId, activityId }, { panel }) => {
+      const approved = await panel.events.approveActivity(eventId!, activityId!);
+
+      await panel.audit.record({
+        action: 'activity.approve',
+        entity: 'activity',
+        entityId: activityId!,
+      });
+
+      return ok(approved);
+    },
+  },
+  {
+    method: 'POST',
+    pattern: 'municipalities/:municipalityId/events/:eventId/activities/:activityId/reject',
+    run: async ({ eventId, activityId }, { event, panel }) => {
+      const { reason } = body(event, reasonSchema);
+      const rejected = await panel.events.rejectActivity(eventId!, activityId!, reason);
+
+      await panel.audit.record({
+        action: 'activity.reject',
+        entity: 'activity',
+        entityId: activityId!,
+      });
+
+      return ok(rejected);
+    },
+  },
+  {
+    method: 'DELETE',
+    pattern: 'municipalities/:municipalityId/events/:eventId/activities/:activityId',
+    run: async ({ eventId, activityId }, { panel }) => {
+      await panel.events.deleteActivity(eventId!, activityId!);
+
+      await panel.audit.record({
+        action: 'activity.delete',
+        entity: 'activity',
+        entityId: activityId!,
+      });
+
+      return noContent();
     },
   },
 

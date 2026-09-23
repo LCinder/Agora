@@ -150,6 +150,36 @@ describe.skipIf(local === null)('tenant isolation', () => {
       expect(Object.keys(store)).not.toContain('listInterests');
     });
 
+    it('reads how many marked one line of a programme, and has no way to read who either', async () => {
+      const store = createStaffStore(client, TABLE, municipalEditor);
+
+      const line = await store.createActivity(EVENTS.zubiaPublished, {
+        id: 'act-isolation-count',
+        title: 'Show de aves rapaces',
+        startAt: new Date('2027-03-01T17:00:00.000Z'),
+      });
+
+      const device = createDeviceStore(client, TABLE, DEVICE_ONE);
+
+      await device.markActivityInterest(ZUBIA, EVENTS.zubiaPublished, line.id);
+
+      expect(Object.keys(store)).not.toContain('devicesInterestedInActivity');
+      expect(Object.keys(store)).not.toContain('listActivityInterests');
+
+      // What it does get is the tally on the line itself, which is the whole of
+      // what the panel ever learns about who cared.
+      const counted = (await store.listActivities(EVENTS.zubiaPublished)).find(
+        (entry) => entry.id === line.id,
+      );
+
+      expect(counted?.interestCount).toBe(1);
+
+      // Tidied up, mark included: the tests further down read this device's own
+      // marks back and expect only what they put there.
+      await device.unmarkActivityInterest(ZUBIA, EVENTS.zubiaPublished, line.id);
+      await store.deleteActivity(EVENTS.zubiaPublished, line.id);
+    });
+
     it('has a review queue with the pending events of its own municipality only', async () => {
       const store = createStaffStore(client, TABLE, municipalEditor);
       const queue = await store.reviewQueue();

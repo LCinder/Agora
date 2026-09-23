@@ -142,6 +142,7 @@ async function main(): Promise<void> {
       categories: await source.listCategories(municipality.id),
       organizations: await source.listOrganizations(municipality.id),
       events: await source.listEvents(municipality.id),
+      activities: await source.listActivities(municipality.id),
     });
   }
 
@@ -180,6 +181,7 @@ async function main(): Promise<void> {
       `Categories:     ${result.categories}`,
       `Organizations:  ${result.organizations}`,
       `Events:         ${result.events}`,
+      `Activities:     ${result.activities}`,
       '',
       // Worth saying out loud: the seed calendar is written relative to today,
       // so what lands in the table is a snapshot taken on the day this ran.

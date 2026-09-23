@@ -1,4 +1,11 @@
-import type { Event, EventCategory, Municipality, Organization, Route } from '@agora/core';
+import type {
+  Activity,
+  Event,
+  EventCategory,
+  Municipality,
+  Organization,
+  Route,
+} from '@agora/core';
 
 /**
  * The only way the rest of the codebase reaches data.
@@ -44,6 +51,20 @@ export interface DataSource {
   listEvents(municipalityId: string): Promise<Event[]>;
 
   getEvent(municipalityId: string, eventId: string): Promise<Event | null>;
+
+  /**
+   * Every activity of the municipality: the programmes of every event that has
+   * one, in one read.
+   *
+   * One call for the whole town rather than one per event, because that is the
+   * question every screen actually asks. The calendar needs to know which events
+   * have a programme and how long a feria really runs; the detail screen needs
+   * one event's lines. Asking per event would mean a request per card.
+   *
+   * There are a few hundred of these in a municipality's year, not a few
+   * thousand, so the whole lot is cheaper than the round trips would be.
+   */
+  listActivities(municipalityId: string): Promise<Activity[]>;
 
   /** The planned route used by the simulated live tracking, if there is one. */
   getPlannedRoute(municipalityId: string): Promise<Route | null>;

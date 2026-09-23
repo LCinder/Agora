@@ -106,6 +106,7 @@ Una sola tabla, `agora-<entorno>`, con clave de partición `pk` y de ordenación
 | Categoría | `MUN#<id>` | `CAT#<categoryId>` |
 | Asociación | `MUN#<id>` | `ORG#<orgId>` |
 | Evento | `MUN#<id>` | `EVT#<eventId>` |
+| Actividad de un evento | `MUN#<id>` | `ACT#<eventId>#<activityId>` |
 | Aviso de evento | `EVT#<eventId>` | `UPD#<createdAt>#<id>` |
 | Sesión de directo | `EVT#<eventId>` | `LIVE` |
 | Posición del directo | `EVT#<eventId>` | `POS#<recordedAt>` |
@@ -114,6 +115,7 @@ Una sola tabla, `agora-<entorno>`, con clave de partición `pk` y de ordenación
 | Marcas nuevas de un mes | `MUN#<id>` | `MONTH#<aaaa-mm>` |
 | Dispositivo | `DEV#<deviceId>` | `META` |
 | Interés de un vecino | `DEV#<deviceId>` | `INT#<municipalityId>#<eventId>` |
+| Interés en una actividad | `DEV#<deviceId>` | `IAC#<municipalityId>#<eventId>#<activityId>` |
 | Municipio que sigue un vecino | `DEV#<deviceId>` | `FOL#<municipalityId>` |
 | Tope de avisos del día | `DEV#<deviceId>` | `NOTIF#<municipio>#<fecha>` |
 | Vecinos que siguen un municipio | `MUN#<id>` | `STAT#DEVICES` |
@@ -131,12 +133,18 @@ que no existe la consulta que lo haría sin nombrarlo.
 | --- | --- | --- | --- |
 | `gsi1` | `MUN#<id>#PUB` | `<startAt>` | El calendario del vecino, ordenado por fecha |
 | `gsi2` | `MUN#<id>#REVIEW` | `<createdAt>` | La bandeja de revisión del ayuntamiento |
-| `gsi3` | `EVT#<eventId>` | `DEV#<deviceId>` | Recordatorios: a quién avisar de un evento |
+| `gsi3` | `EVT#<eventId>` o `ACT#<activityId>` | `DEV#<deviceId>` | Recordatorios: a quién avisar |
+
+**En `gsi1` hay eventos y actividades**, distinguidos por el atributo `entity`. Una actividad entra
+solo cuando su estado **y el de su evento** lo permiten, así que el programa de un borrador no puede
+escaparse línea a línea. Un segundo índice sería un segundo juego de atributos dispersos que
+mantener en paralelo, y el que se desincroniza es el que filtra (D-073).
 
 ### El truco que sustituye a la seguridad por fila
 
 En `gsi2` no solo hay eventos: un cambio que una asociación pide sobre un evento ya publicado entra
-en el mismo índice, así que el ayuntamiento tiene **una bandeja y no dos** (D-039).
+en el mismo índice, y una actividad que espera aprobación —o que tiene una edición en espera en su
+atributo `pendingPatch`— también. El ayuntamiento tiene **una bandeja y no tres** (D-039, D-073).
 
 `gsi1` y `gsi2` son **índices dispersos**: un evento solo aparece en ellos si tiene el atributo
 correspondiente, y ese atributo solo se escribe cuando el evento pasa a `published` o a

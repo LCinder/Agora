@@ -1455,3 +1455,62 @@ sea lento es el día que hay un piloto que paga un índice.
 **Y en la misma función que las notificaciones**, tercer horario y no tercera Lambda. Doce
 ejecuciones al año no justifican un despliegue, una alarma y un grupo de logs propios; el payload
 las distingue, que es como ya se distinguían las otras dos.
+
+## D-073 — Un evento puede ser una cosa, o un programa entero
+
+**Fecha:** 2026-09-23 · **Estado:** aceptada
+
+Hasta ahora el calendario solo sabía de una forma de cosa, y el año de un ayuntamiento no tiene una
+sola forma. «Taller de cerámica» es un evento y se acaba ahí. «Feria medieval» son cuatro días con un
+show de aves rapaces, un taller de queso curado y una tómbola dentro. Meter esas tres cosas en el
+calendario como iguales entierra la feria debajo de su propio programa.
+
+**Un evento es independiente o contiene actividades, y el calendario solo enseña eventos.** La
+actividad es más delgada a propósito: no tiene cartel, ni organizador propio, ni directo, porque todo
+eso ya lo tiene aquello dentro de lo que ocurre. Tres campos —categoría, lugar y precio— son nulos, y
+eso significa «lo mismo que el evento», que es lo que dice casi toda línea de un programa real.
+
+**Lo que sí tiene es hora propia y «Me interesa» propio, y esa es la decisión que costaba.** La
+alternativa era que marcar la feria valiera para todo, que es bastante menos trabajo. Se descartó por
+las dos partes a las que se le vende esto: el vecino que quiere que le recuerden las aves rapaces a
+las seis del sábado no quiere que le recuerden cuatro días de feria, y el concejal que decide el
+programa del año que viene quiere saber cuál de las doce cosas que pagó llenó la plaza. «La feria
+tuvo 800 marcas» dice que la feria funcionó; «las aves 200 y el taller de queso 11» dice qué volver a
+contratar.
+
+**Filas propias, no una lista dentro del evento.** Un contador que incrementan los vecinos no puede
+vivir en la posición 3 de una lista: reordenar el programa movería las marcas de sitio. Van bajo el
+municipio (`MUN#<id>` / `ACT#<eventId>#<activityId>`), que es la regla que ya cumple todo lo demás, y
+con el evento en la clave de ordenación para que un solo `begins_with` devuelva un programa entero.
+
+**Comparten el índice del calendario con los eventos.** Una actividad entra en `gsi1` exactamente
+cuando su estado **y el de su evento** lo permiten, así que el programa de un borrador no puede
+escaparse actividad a actividad. Un segundo índice habría sido un segundo juego de atributos
+dispersos que mantener en paralelo, y el que se desincroniza es el que filtra. El coste es un filtro
+por `entity` en la consulta, que DynamoDB aplica antes de que nada cruce la red.
+
+**La revisión de una línea cabe en un atributo.** Un evento guarda el cambio pendiente en una fila
+aparte porque puede tocar una docena de campos; una actividad tiene cuatro que importan, así que el
+cambio vive en `pendingPatch` y los valores publicados siguen intactos en la misma fila. Misma
+promesa que el documento de proyecto hace para los eventos (7.2), sin una segunda bandeja y sin una
+segunda entidad que decidir.
+
+**Una línea nueva dentro de algo que todavía espera aprobación no se aprueba aparte.** Viaja con su
+evento: aprobar una feria es aprobar el programa que se ha leído en ella, y aprobar trece cosas de
+una en una es un flujo que no usa nadie. Solo espera lo que toca algo que los vecinos ya están
+leyendo.
+
+**Un aviso del evento llega también a quien solo marcó una actividad.** Van a la misma plaza. Si se
+cancela la feria, el vecino que solo marcó el taller de queso tiene que enterarse — y se le envía una
+sola notificación aunque hubiera marcado seis líneas, porque seis avisos idénticos se comerían de
+golpe su límite diario.
+
+**Lo que no cambia:** el filtro «Gratis» sigue siendo del evento. Una feria que cobra en la puerta no
+es gratis porque la tómbola de dentro lo sea. El filtro por categoría sí mira dentro, porque ahí la
+pregunta del vecino es «¿hay algo para los niños?» y la respuesta honesta es que sí, dentro de la
+feria.
+
+**Y un efecto lateral que arregla algo que ya estaba mal:** un evento de varios días con la fecha de
+fin en blanco se caía de «Hoy» la primera tarde y no volvía a verse. Ahora el final de un evento es
+el más tardío entre el suyo y el de su última actividad, así que una feria ocupa en el calendario los
+días que de verdad ocupa.

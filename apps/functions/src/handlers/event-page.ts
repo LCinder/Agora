@@ -62,10 +62,15 @@ export async function route(
       found.organizationId === null ? [] : await store.listOrganizations(municipality.id);
     const organization = organizations.find((entry) => entry.id === found.organizationId) ?? null;
 
+    // The programme, for an event that has one. Read directly rather than
+    // through the calendar index, because this page already knows the event is
+    // visible and wants the lines of that one event rather than of the town.
+    const activities = await store.listActivitiesOfEvent(municipality.id, found.id);
+
     return {
       statusCode: 200,
       headers: HTML_HEADERS,
-      body: renderEventPage({ municipality, event: found, organization, siteUrl }),
+      body: renderEventPage({ municipality, event: found, organization, activities, siteUrl }),
     };
   } catch (thrown) {
     const refused = refusal(thrown);

@@ -1,6 +1,6 @@
-import { atLocalTime, eventSchema, type Event } from '@agora/core';
+import { activitySchema, atLocalTime, eventSchema, type Activity, type Event } from '@agora/core';
 
-import type { SeedEvent, SeedWhen } from './seed-schema';
+import type { SeedActivity, SeedEvent, SeedWhen } from './seed-schema';
 
 /**
  * Turns a seed event into a real one.
@@ -74,7 +74,7 @@ function resolveWhen(
 }
 
 export function resolveSeedEvent(seed: SeedEvent, context: ResolveContext): Event {
-  const { when, ...rest } = seed;
+  const { when, activities: _activities, ...rest } = seed;
   const { startAt, endAt } = resolveWhen(when, context);
 
   return eventSchema.parse({
@@ -86,5 +86,45 @@ export function resolveSeedEvent(seed: SeedEvent, context: ResolveContext): Even
     createdAt: SEED_TIMESTAMP,
     updatedAt: SEED_TIMESTAMP,
     publishedAt: seed.status === 'published' || seed.status === 'cancelled' ? SEED_TIMESTAMP : null,
+  });
+}
+
+/**
+ * Plausible marks for one line of a seeded programme.
+ *
+ * A tenth of what a whole event carries, from the same hash of the same id, so a
+ * feria with a hundred and forty marks shows lines with a dozen or two — which is
+ * the shape a real programme has. The alternative in a meeting is a feria whose
+ * every activity reads as empty, which says the opposite of what the screen is
+ * there to say.
+ */
+function demoActivityTally(id: string): number {
+  let hash = 0;
+
+  for (const character of id) {
+    hash = (hash * 31 + character.charCodeAt(0)) % 100_000;
+  }
+
+  return 6 + (hash % 44);
+}
+
+export function resolveSeedActivity(
+  seed: SeedActivity,
+  eventId: string,
+  context: ResolveContext,
+): Activity {
+  const { when, ...rest } = seed;
+  const { startAt, endAt } = resolveWhen(when, context);
+
+  return activitySchema.parse({
+    ...rest,
+    municipalityId: context.municipalityId,
+    eventId,
+    startAt,
+    endAt,
+    interestCount: demoActivityTally(seed.id),
+    pendingPatch: null,
+    createdAt: SEED_TIMESTAMP,
+    updatedAt: SEED_TIMESTAMP,
   });
 }

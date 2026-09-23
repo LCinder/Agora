@@ -11,7 +11,10 @@
  *     name one cannot exist.
  *   * gsi1 and gsi2 are sparse. An event only appears in them once it is
  *     published or sent for review, which makes the public calendar physically
- *     unable to return an unapproved event.
+ *     unable to return an unapproved event. The same holds for the lines of a
+ *     programme, with one extra condition: an activity is written into the
+ *     calendar index only when its own state **and its event's** allow it, so
+ *     the programme of a draft cannot leak one activity at a time.
  */
 
 resource "aws_dynamodb_table" "main" {
@@ -60,8 +63,11 @@ resource "aws_dynamodb_table" "main" {
     type = "S"
   }
 
-  # The resident calendar: published and cancelled events of a municipality,
-  # ordered by date. Sparse: `gsi1pk` is only written once an event is visible.
+  # The resident calendar: published and cancelled events of a municipality —
+  # and the lines of their programmes — ordered by date. Sparse: `gsi1pk` is
+  # only written once the row is visible. Events and activities share it on
+  # purpose: they belong in the public calendar under the same conditions, and a
+  # second index would be a second set of sparse attributes to keep in step.
   global_secondary_index {
     name            = "gsi1"
     hash_key        = "gsi1pk"
@@ -78,8 +84,9 @@ resource "aws_dynamodb_table" "main" {
     projection_type = "ALL"
   }
 
-  # Event to interested devices. Read by the reminder job and by nothing else:
-  # no municipal role has permission on this index. See modules/api.
+  # Event — or one line of its programme — to the devices interested in it. Read
+  # by the reminder job and by nothing else: no municipal role has permission on
+  # this index. See modules/api.
   global_secondary_index {
     name            = "gsi3"
     hash_key        = "gsi3pk"

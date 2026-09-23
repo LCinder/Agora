@@ -1,9 +1,11 @@
 import {
+  activitySchema,
   eventSchema,
   liveSessionSchema,
   municipalitySchema,
   organizationSchema,
   routeSchema,
+  type Activity,
   type Event,
   type Municipality,
   type ORGANIZATION_STATUSES,
@@ -52,9 +54,50 @@ export type EditResult = z.infer<typeof editResultSchema>;
 const reviewItemSchema = z.union([
   z.object({ kind: z.literal('event'), event: eventSchema }),
   z.object({ kind: z.literal('change'), change: pendingChangeSchema }),
+  // A line of a programme: either one nobody has seen yet, or an edit to one they
+  // have. Which of the two it is reads off the activity itself, so it needs no
+  // second shape here.
+  z.object({ kind: z.literal('activity'), activity: activitySchema }),
 ]);
 
 export type ReviewItem = z.infer<typeof reviewItemSchema>;
+
+/**
+ * What the panel sends to add a line to a programme.
+ *
+ * The three nullable fields are the inheritance: leave them out and the activity
+ * takes the event's category, place and price, which is what almost every line
+ * of a real programme does.
+ */
+export interface NewActivityInput {
+  id?: string;
+  title: string;
+  description?: string;
+  categoryId?: string | null;
+  startAt: Date;
+  endAt?: Date | null;
+  location?: { name: string; latitude: number | null; longitude: number | null } | null;
+  isFree?: boolean | null;
+  priceInfo?: string | null;
+  status?: 'draft' | 'pending_review' | 'published';
+}
+
+export type ActivityPatchInput = Partial<Omit<NewActivityInput, 'id' | 'status'>>;
+
+/**
+ * What became of an edit to an activity.
+ *
+ * The same two outcomes as an event's, for the same reason: an untrusted
+ * association changing a line the neighbours are already reading does not get to
+ * change it under them. `queued` means the published line is untouched and the
+ * change is in the town hall's inbox.
+ */
+const activityEditResultSchema = z.object({
+  kind: z.enum(['applied', 'queued']),
+  activity: activitySchema,
+});
+
+export type ActivityEditResult = z.infer<typeof activityEditResultSchema>;
 
 export const NOTICE_TYPES = ['time_change', 'location_change', 'cancelled', 'notice'] as const;
 
@@ -99,6 +142,19 @@ const statsSchema = z.object({
         viewed: reportableSchema.default(null),
       }),
     ),
+    /** Lines of a programme, most marked first. Empty until the town runs one. */
+    topActivities: z
+      .array(
+        z.object({
+          activityId: z.string(),
+          eventId: z.string(),
+          title: z.string(),
+          eventTitle: z.string(),
+          startAt: z.coerce.date(),
+          interested: reportableSchema,
+        }),
+      )
+      .default([]),
     byCategory: z.array(z.object({ categoryId: z.string(), interested: reportableSchema })),
     /** New marks per month, oldest first. A municipal total, never suppressed. */
     monthly: z.array(z.object({ month: z.string(), interested: z.number() })),
@@ -219,6 +275,26 @@ export interface PanelClient {
   approveEvent(eventId: string): Promise<Event>;
   rejectEvent(eventId: string, reason: string): Promise<Event>;
 
+  /**
+   * Every activity of the municipality: the programmes of all its events.
+   *
+   * One call rather than one per event, like the app's. The panel holds the whole
+   * town's calendar in memory anyway, and a programme is a handful of rows.
+   */
+  listActivities(): Promise<Activity[]>;
+  createActivity(eventId: string, input: NewActivityInput): Promise<Activity>;
+  updateActivity(
+    eventId: string,
+    activityId: string,
+    patch: ActivityPatchInput,
+  ): Promise<ActivityEditResult>;
+  /** Off the programme for good. A line nobody should have typed. */
+  deleteActivity(eventId: string, activityId: string): Promise<void>;
+  /** Still on the programme, struck through: the rain got the falconry show. */
+  cancelActivity(eventId: string, activityId: string): Promise<Activity>;
+  approveActivity(eventId: string, activityId: string): Promise<Activity>;
+  rejectActivity(eventId: string, activityId: string, reason: string): Promise<Activity>;
+
   reviewQueue(): Promise<ReviewItem[]>;
   approveChange(eventId: string, changeId: string): Promise<EditResult>;
   rejectChange(eventId: string, changeId: string, reason: string): Promise<PendingChange>;
@@ -272,6 +348,8 @@ export function createPanelClient(options: PanelClientOptions): PanelClient {
   const api = options.client ?? createApiClient(options);
   const town = `/panel/municipalities/${encodeURIComponent(options.municipalityId)}`;
   const at = (eventId: string) => `${town}/events/${encodeURIComponent(eventId)}`;
+  const activityAt = (eventId: string, activityId: string) =>
+    `${at(eventId)}/activities/${encodeURIComponent(activityId)}`;
   const one =
     <T>(schema: z.ZodType<T>) =>
     (value: unknown) =>
@@ -320,6 +398,42 @@ export function createPanelClient(options: PanelClientOptions): PanelClient {
 
     async rejectEvent(eventId, reason) {
       return eventSchema.parse(await api.send('POST', `${at(eventId)}/reject`, { reason }));
+    },
+
+    async listActivities() {
+      return api.get(`${town}/activities`, one(z.array(activitySchema)));
+    },
+
+    async createActivity(eventId, input) {
+      return activitySchema.parse(await api.send('POST', `${at(eventId)}/activities`, input));
+    },
+
+    async updateActivity(eventId, activityId, patch) {
+      return activityEditResultSchema.parse(
+        await api.send('PATCH', activityAt(eventId, activityId), patch),
+      );
+    },
+
+    async deleteActivity(eventId, activityId) {
+      await api.send('DELETE', activityAt(eventId, activityId));
+    },
+
+    async cancelActivity(eventId, activityId) {
+      return activitySchema.parse(
+        await api.send('POST', `${activityAt(eventId, activityId)}/cancel`),
+      );
+    },
+
+    async approveActivity(eventId, activityId) {
+      return activitySchema.parse(
+        await api.send('POST', `${activityAt(eventId, activityId)}/approve`),
+      );
+    },
+
+    async rejectActivity(eventId, activityId, reason) {
+      return activitySchema.parse(
+        await api.send('POST', `${activityAt(eventId, activityId)}/reject`, { reason }),
+      );
     },
 
     async reviewQueue() {

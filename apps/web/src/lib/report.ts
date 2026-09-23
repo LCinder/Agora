@@ -31,6 +31,21 @@ export interface ReportRow {
   interested: number | null;
 }
 
+/**
+ * One line of a programme, for the report.
+ *
+ * It carries the event it belongs to because that is what makes it mean
+ * anything on paper: "Taller de queso curado — 41 interesados" in a memoria
+ * anual belongs to no year until it says "dentro de la Feria medieval".
+ */
+export interface ReportActivityRow {
+  title: string;
+  eventTitle: string;
+  when: string;
+  /** Null when the count was held back for being too small to show. */
+  interested: number | null;
+}
+
 export interface ReportMonth {
   /** Written out for a person: "septiembre de 2026". */
   label: string;
@@ -47,6 +62,13 @@ export interface ReportInput {
   period: string;
   figures: ReportFigure[];
   events: ReportRow[];
+  /**
+   * The lines of the town's programmes, most marked first.
+   *
+   * Empty for a municipality whose events are all single things, and then the
+   * section is left out rather than printed with a heading over nothing.
+   */
+  activities?: ReportActivityRow[];
   categories: { name: string; interested: number | null }[];
   /** New marks per month, oldest first. Empty when there is no series to show. */
   monthly: ReportMonth[];
@@ -235,6 +257,44 @@ export async function downloadReport(input: ReportInput): Promise<void> {
     doc.text(countLabel(row.interested), columns.interested, y, { align: 'right' });
 
     y += lines.length * 4.5 + 2.5;
+  }
+
+  // --- the programmes, most marked first -----------------------------------
+  //
+  // The section a councillor reads twice: it is the one that says which of the
+  // twelve things they paid for inside the feria people actually turned up to,
+  // which is the argument for next year's line in the budget.
+  const programme = input.activities ?? [];
+
+  if (programme.length > 0) {
+    y += 6;
+    heading('Actividades con más interesados');
+
+    for (const row of programme) {
+      const lines = doc.splitTextToSize(row.title, columns.when - columns.title - 4) as string[];
+
+      room(lines.length * 4.5 + 7);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(INK.text);
+      doc.text(lines, columns.title, y);
+      doc.setTextColor(INK.muted);
+      doc.text(row.when, columns.when, y);
+      doc.setTextColor(INK.text);
+      doc.text(countLabel(row.interested), columns.interested, y, { align: 'right' });
+
+      y += lines.length * 4.5;
+
+      // The feria underneath and smaller, the way a subtitle sits under a title:
+      // on paper the column for it would have to be a third one, and three
+      // columns of text at this width stop being readable.
+      doc.setFontSize(8);
+      doc.setTextColor(INK.muted);
+      doc.text(`Dentro de ${row.eventTitle}`, columns.title, y);
+
+      y += 5;
+    }
   }
 
   // --- interest by kind of activity ----------------------------------------

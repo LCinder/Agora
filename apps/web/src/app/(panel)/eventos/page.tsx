@@ -1,6 +1,6 @@
 'use client';
 
-import { byStartDate, formatWhen, type Event, type EventStatus } from '@agora/core';
+import { byStartDate, countByEvent, formatWhen, type Event, type EventStatus } from '@agora/core';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
@@ -24,10 +24,21 @@ const STATUS_OPTIONS: { value: EventStatus | 'all'; label: string }[] = [
 ];
 
 export default function EventsPage() {
-  const { categories, events, loading, municipality, organizationId, organizations, role } =
-    usePanel();
+  const {
+    activities,
+    categories,
+    events,
+    loading,
+    municipality,
+    organizationId,
+    organizations,
+    role,
+  } = usePanel();
   const [status, setStatus] = useState<EventStatus | 'all'>('all');
   const [categoryId, setCategoryId] = useState('all');
+
+  // How long each event's programme is, counted once rather than per row.
+  const programmeSizes = useMemo(() => countByEvent(activities), [activities]);
 
   const ownOnly = role === 'org_editor';
 
@@ -116,6 +127,9 @@ export default function EventsPage() {
                     </p>
                     <p className="mt-1 text-xs text-neutral-500">
                       {organization ? organization.name : 'Ayuntamiento'}
+                      {programmeSizes.has(event.id)
+                        ? ` · ${String(programmeSizes.get(event.id))} actividades`
+                        : ''}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">

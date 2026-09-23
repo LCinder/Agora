@@ -33,6 +33,13 @@ es que en tres minutos entienda **qué problema suyo resuelve** y **qué se llev
    > «Con eso recibe un recordatorio la tarde antes, y un aviso si cambia la hora o llueve y se
    > cancela. No le pedimos ni nombre ni email: es el dispositivo, anónimo.»
 
+5. Vuelve atrás y abre **la Feria Medieval**. Baja al **programa**.
+   > «Un evento puede ser una cosa suelta, o puede ser una feria entera con su programa dentro.
+   > Aquí está lo que hay cada día, a su hora.»
+   Pulsa el corazón de **«Show de aves rapaces»** — solo el de esa línea.
+   > «Y el vecino no marca la feria: marca las aves rapaces. Le avisamos a las seis del sábado de lo
+   > que él ha elegido, no de cuatro días de feria. Eso es lo que hace que no silencie la app.»
+
 **Si hay poco tiempo, salta al minuto 3.**
 
 ---
@@ -48,10 +55,18 @@ es que en tres minutos entienda **qué problema suyo resuelve** y **qué se llev
    Espera a que rellene el formulario.
    > «El programa de fiestas entero se mete así. Él solo revisa y publica.»
 
-3. Panel → **Revisión**. Aprueba un evento de la hermandad.
+3. Abre la **Feria Medieval** en el panel y baja a **Programa**.
+   > «Y si lo que tienen es una feria, aquí van las actividades: hora, título y poco más, porque el
+   > lugar y el precio los hereda del evento. Se teclea del tirón, leyendo el cartel.»
+   Añade una línea delante de él. Es rápido y se ve que lo es.
+
+4. Panel → **Revisión**. Aprueba un evento de la hermandad.
    > «Las hermandades, las peñas, el club deportivo y el AMPA suben sus propios eventos. Ustedes
    > solo dicen que sí. El calendario se mantiene solo, sin trabajo suyo.»
    > «Y a las que ya conocen, las marcan de confianza y publican directamente.»
+   Más abajo hay una **actividad** pendiente de la peña flamenca.
+   > «Y esto también vale para una línea suelta del programa: hasta que ustedes la aprueben, los
+   > vecinos siguen viendo el programa como estaba.»
 
 **Este es el argumento de venta. Si solo se acuerda de una cosa, que sea esta.**
 
@@ -63,6 +78,9 @@ es que en tres minutos entienda **qué problema suyo resuelve** y **qué se llev
    > «Cuánta gente marcó cada evento, qué tipo de actividad funciona, cómo evoluciona el mes.
    > Todo agregado: nunca sabemos quién es nadie.»
    > «Esto es lo que le falta para la memoria anual y para defender la partida.»
+   Enséñale la gráfica de **actividades con más interesados**.
+   > «Y dentro de la feria, cuál de las doce cosas que pagaron llenó la plaza. "La feria funcionó" ya
+   > lo sabían; esto dice qué volver a contratar y qué no.»
 
 2. Abre un evento y **manda un aviso**.
    > «Cambio de hora o cancelación por lluvia: le llega solo a quien había marcado ese evento.

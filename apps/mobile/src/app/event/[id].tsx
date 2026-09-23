@@ -1,8 +1,11 @@
 import {
+  activitiesOf,
   formatLongDate,
   formatTime,
   publicEventUrl,
   reportableCount,
+  residentVisibleActivitiesFor,
+  type Activity,
   type Event,
   type EventCategory,
   type Organization,
@@ -15,6 +18,7 @@ import { Alert, Dimensions, Pressable, Share, StyleSheet, View } from 'react-nat
 
 import { EventCover } from '../../components/event-cover';
 import { Map } from '../../components/map';
+import { Programme } from '../../components/programme';
 import {
   Badge,
   Body,
@@ -44,6 +48,8 @@ export default function EventDetailScreen() {
   const router = useRouter();
 
   const [event, setEvent] = useState<Event | null>(null);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [categories, setCategories] = useState<EventCategory[]>([]);
   const [category, setCategory] = useState<EventCategory | undefined>();
   const [organization, setOrganization] = useState<Organization | undefined>();
   const [loading, setLoading] = useState(true);
@@ -64,13 +70,22 @@ export default function EventDetailScreen() {
 
     async function load(municipalityId: string, eventId: string) {
       const found = await dataSource.getEvent(municipalityId, eventId);
-      const categories = await dataSource.listCategories(municipalityId);
+      const loadedCategories = await dataSource.listCategories(municipalityId);
       const organizations = await dataSource.listOrganizations(municipalityId);
+      const programme = await dataSource.listActivities(municipalityId);
 
       if (!active) return;
 
       setEvent(found);
-      setCategory(categories.find((entry) => entry.id === found?.categoryId));
+      setCategories(loadedCategories);
+      // Narrowed against this event, so a line of a programme cannot be shown
+      // for an event a resident is not allowed to see in the first place.
+      setActivities(
+        found === null
+          ? []
+          : activitiesOf(residentVisibleActivitiesFor(programme, [found]), found.id),
+      );
+      setCategory(loadedCategories.find((entry) => entry.id === found?.categoryId));
       setOrganization(organizations.find((entry) => entry.id === found?.organizationId));
       setLoading(false);
     }
@@ -245,6 +260,12 @@ export default function EventDetailScreen() {
           </View>
 
           {event.description ? <Body>{event.description}</Body> : null}
+
+          {/* The programme, for something that has one. It sits above the map
+              and the buttons because on a feria it *is* the event: what a
+              neighbour opened this screen to read is what is on at six on
+              Saturday, not the description of the feria as a whole. */}
+          <Programme event={event} activities={activities} categories={categories} />
 
           <Audience
             interested={Math.max(0, event.interestCount + ownDelta)}

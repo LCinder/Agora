@@ -6,9 +6,11 @@ import { DEFAULT_TIME_ZONE, dayKeyInZone } from '@agora/core';
 
 import { apiBaseUrl, usingRealBackend } from './data';
 import {
+  activityInterestKey,
   interestKey,
   loadDeviceRegistration,
   loadViewedToday,
+  parseInterestKey,
   saveDeviceRegistration,
   saveViewedToday,
 } from './storage';
@@ -36,12 +38,11 @@ export const deviceClient: DeviceClient | null = usingRealBackend
     })
   : null;
 
-function split(key: string): { municipalityId: string; eventId: string } | null {
-  const slash = key.indexOf('/');
-
-  if (slash <= 0) return null;
-
-  return { municipalityId: key.slice(0, slash), eventId: key.slice(slash + 1) };
+/** The key of one remote mark, in the form the phone stores it. */
+function keyOf(mark: { municipalityId: string; eventId: string; activityId: string | null }): string {
+  return mark.activityId === null
+    ? interestKey(mark.municipalityId, mark.eventId)
+    : activityInterestKey(mark.municipalityId, mark.eventId, mark.activityId);
 }
 
 /**
@@ -82,6 +83,23 @@ export async function pushInterest(
   try {
     if (interested) await deviceClient.mark(municipalityId, eventId);
     else await deviceClient.unmark(municipalityId, eventId);
+  } catch {
+    // Reconciled on the next launch.
+  }
+}
+
+/** The same, for one line of a programme. Same silence on failure, same reason. */
+export async function pushActivityInterest(
+  municipalityId: string,
+  eventId: string,
+  activityId: string,
+  interested: boolean,
+): Promise<void> {
+  if (deviceClient === null) return;
+
+  try {
+    if (interested) await deviceClient.markActivity(municipalityId, eventId, activityId);
+    else await deviceClient.unmarkActivity(municipalityId, eventId, activityId);
   } catch {
     // Reconciled on the next launch.
   }
@@ -133,20 +151,30 @@ export async function syncInterests(local: readonly string[]): Promise<void> {
 
   try {
     const remote = await deviceClient.listInterests();
-    const remoteKeys = remote.map((mark) => interestKey(mark.municipalityId, mark.eventId));
+    const remoteKeys = remote.map(keyOf);
 
     for (const key of local) {
       if (remoteKeys.includes(key)) continue;
 
-      const parts = split(key);
+      const parts = parseInterestKey(key);
 
-      if (parts !== null) await deviceClient.mark(parts.municipalityId, parts.eventId);
+      if (parts === null) continue;
+
+      if (parts.activityId === null) {
+        await deviceClient.mark(parts.municipalityId, parts.eventId);
+      } else {
+        await deviceClient.markActivity(parts.municipalityId, parts.eventId, parts.activityId);
+      }
     }
 
     for (const mark of remote) {
-      if (local.includes(interestKey(mark.municipalityId, mark.eventId))) continue;
+      if (local.includes(keyOf(mark))) continue;
 
-      await deviceClient.unmark(mark.municipalityId, mark.eventId);
+      if (mark.activityId === null) {
+        await deviceClient.unmark(mark.municipalityId, mark.eventId);
+      } else {
+        await deviceClient.unmarkActivity(mark.municipalityId, mark.eventId, mark.activityId);
+      }
     }
   } catch {
     // No coverage on launch. Tried again next time.

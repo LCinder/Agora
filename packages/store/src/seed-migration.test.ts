@@ -96,6 +96,10 @@ describe.skipIf(local === null)('the seed migration', () => {
       categories: 1,
       organizations: 1,
       events: 2,
+      // This bundle has no programmes. A municipality whose events are all
+      // single things is the normal case, and the migration has to be happy
+      // with a bundle written before programmes existed at all.
+      activities: 0,
     });
   });
 

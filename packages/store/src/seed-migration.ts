@@ -1,8 +1,9 @@
-import type { Event, EventCategory, Municipality, Organization } from '@agora/core';
+import type { Activity, Event, EventCategory, Municipality, Organization } from '@agora/core';
 import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 
 import type { StoreClient } from './client';
 import {
+  activityWriteExpression,
   categoryItem,
   eventWriteExpression,
   municipalityItem,
@@ -10,6 +11,7 @@ import {
   organizationItem,
 } from './items';
 import {
+  activityKey,
   categoryKey,
   eventKey,
   municipalityIndexKey,
@@ -43,6 +45,8 @@ export interface MunicipalityBundle {
   categories: EventCategory[];
   organizations: Organization[];
   events: Event[];
+  /** The programmes, for the events that have one. Absent in an older bundle. */
+  activities?: Activity[];
 }
 
 export interface MigrationResult {
@@ -50,6 +54,7 @@ export interface MigrationResult {
   categories: number;
   organizations: number;
   events: number;
+  activities: number;
 }
 
 export interface MigrationOptions {
@@ -71,6 +76,7 @@ export async function migrateSeed(
     categories: 0,
     organizations: 0,
     events: 0,
+    activities: 0,
   };
 
   /**
@@ -108,6 +114,8 @@ export async function migrateSeed(
 
   for (const bundle of bundles) {
     const { municipality, categories, organizations, events } = bundle;
+    const activities = bundle.activities ?? [];
+    const statuses = new Map(events.map((event) => [event.id, event.status]));
 
     await put(municipalityKey(municipality.id), municipalityItem(municipality));
     await put(municipalityIndexKey(municipality.slug), municipalityPointerItem(municipality));
@@ -143,8 +151,29 @@ export async function migrateSeed(
       result.events += 1;
     }
 
+    for (const activity of activities) {
+      const parentStatus = statuses.get(activity.eventId);
+
+      // A line whose event is not in the bundle has no parent to inherit its
+      // visibility from, and writing it would put a programme in the table for
+      // an event that is not there. Skipped rather than guessed.
+      if (parentStatus === undefined) continue;
+
+      if (!dryRun) {
+        await client.send(
+          new UpdateCommand({
+            TableName: tableName,
+            Key: activityKey(municipality.id, activity.eventId, activity.id),
+            ...activityWriteExpression(activity, parentStatus, { create: true }),
+          }),
+        );
+      }
+
+      result.activities += 1;
+    }
+
     onProgress?.(
-      `${municipality.slug}: ${categories.length} categories, ${organizations.length} organizations, ${events.length} events`,
+      `${municipality.slug}: ${categories.length} categories, ${organizations.length} organizations, ${events.length} events, ${activities.length} activities`,
     );
   }
 

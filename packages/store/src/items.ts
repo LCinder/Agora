@@ -1,12 +1,20 @@
 import {
+  type Activity,
   type Event,
   type EventCategory,
   type Municipality,
   type Organization,
+  activitySchema,
   eventSchema,
 } from '@agora/core';
 
-import { eventKey, indexAttributesFor, municipalityPk } from './keys';
+import {
+  activityIndexAttributesFor,
+  activityKey,
+  eventKey,
+  indexAttributesFor,
+  municipalityPk,
+} from './keys';
 
 /**
  * Domain objects to table items, and back.
@@ -170,6 +178,147 @@ export function eventWriteExpression(
   }
 
   const attributes = indexAttributesFor(event);
+
+  for (const key of INDEX_ATTRIBUTES) {
+    names[`#${key}`] = key;
+
+    const value = attributes[key];
+
+    if (value === undefined) {
+      removes.push(`#${key}`);
+    } else {
+      values[`:${key}`] = value;
+      sets.push(`#${key} = :${key}`);
+    }
+  }
+
+  return {
+    UpdateExpression:
+      `SET ${sets.join(', ')}` + (removes.length === 0 ? '' : ` REMOVE ${removes.join(', ')}`),
+    ExpressionAttributeNames: names,
+    ExpressionAttributeValues: values,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Activities
+//
+// The same shape of code as the event above, and deliberately not shared with
+// it. The two look alike — a row, an index, a counter residents own and writers
+// must not touch — but they differ on the one thing that matters: where an
+// activity appears depends on its event as well as itself, so every write here
+// needs a parent status the event's own write has no concept of. Folding them
+// together would mean a parameter that is meaningless half the time.
+// ---------------------------------------------------------------------------
+
+export function toActivityItem(
+  activity: Activity,
+  parentStatus: string,
+): Record<string, unknown> {
+  const { pk, sk } = activityKey(activity.municipalityId, activity.eventId, activity.id);
+
+  return {
+    pk,
+    sk,
+    entity: 'activity',
+    ...activityIndexAttributesFor({ ...activity, parentStatus }),
+
+    id: activity.id,
+    municipalityId: activity.municipalityId,
+    eventId: activity.eventId,
+
+    title: activity.title,
+    description: activity.description,
+    categoryId: activity.categoryId,
+
+    startAt: activity.startAt.toISOString(),
+    endAt: activity.endAt === null ? null : activity.endAt.toISOString(),
+
+    location: activity.location,
+    isFree: activity.isFree,
+    priceInfo: activity.priceInfo,
+
+    status: activity.status,
+    rejectionReason: activity.rejectionReason,
+    pendingPatch: activity.pendingPatch,
+
+    createdAt: activity.createdAt.toISOString(),
+    updatedAt: activity.updatedAt.toISOString(),
+
+    // Zero for a new line, and never `activity.interestCount`: the write
+    // expression below refuses to touch it, which is what stops an edit taking
+    // it back to zero.
+    interestCount: 0,
+  };
+}
+
+export function fromActivityItem(item: Record<string, unknown>): Activity {
+  return activitySchema.parse(item);
+}
+
+/**
+ * The attributes an edit to an activity may write.
+ *
+ * `interestCount` is not among them, for the same reason it is not among the
+ * event's: it belongs to the residents. Neither is `eventId` — a line does not
+ * move from one programme to another, it is deleted and typed into the right
+ * one.
+ */
+const ACTIVITY_WRITABLE_FIELDS = [
+  'title',
+  'description',
+  'categoryId',
+  'startAt',
+  'endAt',
+  'location',
+  'isFree',
+  'priceInfo',
+  'status',
+  'rejectionReason',
+  'pendingPatch',
+  'updatedAt',
+] as const;
+
+const ACTIVITY_CREATION_FIELDS = [
+  'entity',
+  'id',
+  'municipalityId',
+  'eventId',
+  'createdAt',
+] as const;
+
+/**
+ * How an activity is written once it exists — or might.
+ *
+ * An update rather than a `Put`, like the event's, so the residents' counter
+ * survives every edit. `parentStatus` is what recomputes the index attributes:
+ * approving a feria has to put its whole programme into the calendar index, and
+ * that happens by rewriting each line with the new parent status, not by
+ * touching the lines themselves.
+ */
+export function activityWriteExpression(
+  activity: Activity,
+  parentStatus: string,
+  options: EventWriteOptions = {},
+): EventWriteExpression {
+  const item = toActivityItem(activity, parentStatus);
+  const names: Record<string, string> = {};
+  const values: Record<string, unknown> = { ':zero': 0 };
+  const sets: string[] = ['interestCount = if_not_exists(interestCount, :zero)'];
+  const removes: string[] = [];
+
+  const fields =
+    options.create === true
+      ? [...ACTIVITY_WRITABLE_FIELDS, ...ACTIVITY_CREATION_FIELDS]
+      : ACTIVITY_WRITABLE_FIELDS;
+
+  for (const field of fields) {
+    names[`#${field}`] = field;
+    values[`:${field}`] = item[field];
+    sets.push(`#${field} = :${field}`);
+  }
+
+  const attributes = activityIndexAttributesFor({ ...activity, parentStatus });
 
   for (const key of INDEX_ATTRIBUTES) {
     names[`#${key}`] = key;

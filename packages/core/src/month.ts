@@ -1,7 +1,8 @@
 import { TZDate } from '@date-fns/tz';
 import { addDays, addMonths, endOfDay, getDay, startOfDay, startOfMonth } from 'date-fns';
 
-import { byStartDate, occursWithin, type Event } from './event';
+import { activitiesOf, eventSpan, type Activity } from './activity';
+import { byStartDate, type Event } from './event';
 
 /**
  * The month view of the calendar.
@@ -43,6 +44,14 @@ export interface MonthGrid {
 export interface MonthContext {
   now: Date;
   timeZone: string;
+  /**
+   * The programmes, when the caller has them.
+   *
+   * A grid of days is where a multi-day event most needs them: a feria with its
+   * end left blank should fill the four squares its programme covers, not sit on
+   * the Thursday alone while the Saturday looks empty.
+   */
+  activities?: readonly Activity[];
 }
 
 function zoned(instant: Date, timeZone: string): TZDate {
@@ -93,16 +102,33 @@ export function buildMonthGrid(
   const weeks: MonthDay[][] = [];
   let week: MonthDay[] = [];
 
+  // Computed once for the whole grid rather than per square: a month is up to
+  // forty-two days, and walking the town's programme for each of them is forty-
+  // two passes over the same list.
+  const programme = context.activities ?? [];
+  const spans = new Map(
+    events.map((event) => [event.id, eventSpan(event, activitiesOf(programme, event.id))]),
+  );
+
   for (let day = gridStart; day.getTime() <= gridEnd.getTime(); day = addDays(day, 1)) {
     const start = startOfDay(day);
-    const range = { start: new Date(start.getTime()), end: new Date(endOfDay(day).getTime()) };
+    const from = start.getTime();
+    const to = endOfDay(day).getTime();
 
     week.push({
       date: new Date(start.getTime()),
       dayOfMonth: day.getDate(),
       inMonth: day.getMonth() === monthNumber,
       isToday: start.getTime() === today,
-      events: events.filter((event) => occursWithin(event, range)).sort(byStartDate),
+      events: events
+        .filter((event) => {
+          const span = spans.get(event.id);
+
+          if (span === undefined) return false;
+
+          return span.startAt.getTime() <= to && span.endAt.getTime() >= from;
+        })
+        .sort(byStartDate),
     });
 
     if (week.length === DAYS_IN_WEEK) {

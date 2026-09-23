@@ -67,6 +67,17 @@ export interface Messages {
   'event.interestedCount': string;
   'event.viewsCount': string;
 
+  'programme.title': string;
+  'programme.activityCount': string;
+  'programme.todayCount': string;
+  'programme.matchingCount': string;
+  'programme.partOf': string;
+  'programme.interested': string;
+  'programme.interestedDone': string;
+  'programme.addToCalendar': string;
+  'programme.cancelled': string;
+  'programme.free': string;
+
   'myEvents.title': string;
   'myEvents.empty': string;
   'myEvents.emptyHint': string;
@@ -104,8 +115,11 @@ export interface Messages {
   'volunteer.privacy': string;
   'volunteer.demoNotice': string;
 
+  'myEvents.activities': string;
+
   'push.reminderBody': string;
   'push.reminderBodyAllDay': string;
+  'push.activityReminderBody': string;
   'push.titleTimeChange': string;
   'push.titleLocationChange': string;
   'push.titleCancelled': string;
@@ -205,10 +219,25 @@ const es: Messages = {
   // what the number actually counts. «Visitas» says that; «personas» would not.
   'event.viewsCount': '{count} visitas',
 
+  'programme.title': 'Programa',
+  'programme.activityCount': '{count} actividades',
+  // What is on today inside something that lasts several days. The question a
+  // neighbour has on the Saturday of a feria is not «what is the feria», it is
+  // «qué hay hoy».
+  'programme.todayCount': 'Hoy, {count} actividades',
+  'programme.matchingCount': '{count} actividades de {category}',
+  'programme.partOf': 'Dentro de {event}',
+  'programme.interested': 'Me interesa esta actividad',
+  'programme.interestedDone': 'Te interesa esta actividad',
+  'programme.addToCalendar': 'Añadir esta actividad a mi calendario',
+  'programme.cancelled': 'Cancelada',
+  'programme.free': 'Gratis',
+
   'myEvents.title': 'Mis eventos',
   'myEvents.empty': 'Todavía no te interesa ningún evento.',
   'myEvents.emptyHint': 'Marca «Me interesa» en un evento y aparecerá aquí.',
   'myEvents.past': 'Ya pasaron',
+  'myEvents.activities': 'Actividades sueltas que te interesan',
 
   'live.title': 'En directo',
   'live.lastUpdate': 'Actualizado hace {minutes} min',
@@ -248,6 +277,7 @@ const es: Messages = {
 
   'push.reminderBody': 'Mañana a las {time}',
   'push.reminderBodyAllDay': 'Mañana en tu pueblo',
+  'push.activityReminderBody': 'Mañana a las {time}, dentro de {event}',
   'push.titleTimeChange': 'Cambio de hora: {title}',
   'push.titleLocationChange': 'Cambio de lugar: {title}',
   'push.titleCancelled': 'Se cancela: {title}',
@@ -280,7 +310,7 @@ const es: Messages = {
   'shared.unknownMunicipality': 'Ese municipio todavía no está en la aplicación',
   'shared.openInBrowser': 'Abre el enlace en el navegador para ver el evento.',
   'settings.deleteDataBody':
-    'Se borrarán los eventos que te interesan y el municipio elegido. No guardamos nada más.',
+    'Se borrarán los eventos y actividades que te interesan y el municipio elegido. No guardamos nada más.',
   'settings.demoNotice': 'Versión de demostración con datos de ejemplo.',
 };
 
@@ -346,10 +376,22 @@ const en: Messages = {
   'event.interestedCount': '{count} neighbours are interested',
   'event.viewsCount': '{count} visits',
 
+  'programme.title': 'Programme',
+  'programme.activityCount': '{count} activities',
+  'programme.todayCount': 'Today, {count} activities',
+  'programme.matchingCount': '{count} {category} activities',
+  'programme.partOf': 'Part of {event}',
+  'programme.interested': 'I am interested in this',
+  'programme.interestedDone': 'Interested in this',
+  'programme.addToCalendar': 'Add this activity to my calendar',
+  'programme.cancelled': 'Cancelled',
+  'programme.free': 'Free',
+
   'myEvents.title': 'My events',
   'myEvents.empty': 'You are not interested in any event yet.',
   'myEvents.emptyHint': 'Mark an event as interesting and it will show up here.',
   'myEvents.past': 'Already happened',
+  'myEvents.activities': 'Single activities you are interested in',
 
   'live.title': 'Live',
   'live.lastUpdate': 'Updated {minutes} min ago',
@@ -389,6 +431,7 @@ const en: Messages = {
 
   'push.reminderBody': 'Tomorrow at {time}',
   'push.reminderBodyAllDay': 'Tomorrow in your town',
+  'push.activityReminderBody': 'Tomorrow at {time}, part of {event}',
   'push.titleTimeChange': 'New time: {title}',
   'push.titleLocationChange': 'New place: {title}',
   'push.titleCancelled': 'Called off: {title}',
@@ -415,7 +458,7 @@ const en: Messages = {
   'settings.privacy': 'Privacy',
   'settings.deleteData': 'Delete my data',
   'settings.deleteDataBody':
-    'This removes the events you marked and the town you chose. We store nothing else.',
+    'This removes the events and activities you marked and the town you chose. We store nothing else.',
   'settings.privacyPolicy': 'Privacy policy',
   'settings.legalNotice': 'Legal notice',
   'settings.accessibility': 'Accessibility',

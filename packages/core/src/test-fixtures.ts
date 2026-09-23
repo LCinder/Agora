@@ -1,3 +1,4 @@
+import { activitySchema, type Activity } from './activity';
 import { eventSchema, type Event } from './event';
 import { municipalitySchema, type Municipality } from './municipality';
 import type { z } from 'zod';
@@ -11,6 +12,7 @@ import type { z } from 'zod';
  */
 
 type EventInput = z.input<typeof eventSchema>;
+type ActivityInput = z.input<typeof activitySchema>;
 type MunicipalityInput = z.input<typeof municipalitySchema>;
 
 export function makeEvent(overrides: Partial<EventInput> = {}): Event {
@@ -27,6 +29,21 @@ export function makeEvent(overrides: Partial<EventInput> = {}): Event {
   };
 
   return eventSchema.parse({ ...base, ...overrides });
+}
+
+export function makeActivity(overrides: Partial<ActivityInput> = {}): Activity {
+  const base: ActivityInput = {
+    id: 'activity-1',
+    municipalityId: 'la-zubia',
+    eventId: 'event-1',
+    title: 'Show de aves rapaces',
+    startAt: '2026-09-11T18:00:00Z',
+    status: 'published',
+    createdAt: '2026-09-01T10:00:00Z',
+    updatedAt: '2026-09-01T10:00:00Z',
+  };
+
+  return activitySchema.parse({ ...base, ...overrides });
 }
 
 export function makeMunicipality(overrides: Partial<MunicipalityInput> = {}): Municipality {

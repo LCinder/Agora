@@ -20,14 +20,22 @@ import {
 import { useColorScheme } from 'react-native';
 
 import { dataSource } from '../lib/data';
-import { followMunicipality, forgetDevice, pushInterest, syncInterests } from '../lib/devices';
+import {
+  followMunicipality,
+  forgetDevice,
+  pushActivityInterest,
+  pushInterest,
+  syncInterests,
+} from '../lib/devices';
 import { enablePush, refreshPushToken } from '../lib/push';
 import {
+  activityInterestKey,
   clearAllData,
   interestKey,
   loadActiveMunicipality,
   loadAppearance,
   loadInterests,
+  parseInterestKey,
   saveActiveMunicipality,
   saveAppearance,
   saveInterests,
@@ -67,6 +75,18 @@ export interface AppState {
   isInterested: (eventId: string) => boolean;
   toggleInterest: (eventId: string) => Promise<void>;
   interestedEventIds: string[];
+  /**
+   * The same pair for one line of a programme.
+   *
+   * A separate mark from the event's, which is the point: somebody who wants a
+   * reminder about the falconry show at six on Saturday has not asked to be
+   * reminded about the whole feria. Marking a line needs the event too, because
+   * that is how the API finds it.
+   */
+  isActivityInterested: (eventId: string, activityId: string) => boolean;
+  toggleActivityInterest: (eventId: string, activityId: string) => Promise<void>;
+  /** Marked activities of the active municipality, as `eventId/activityId`. */
+  interestedActivityIds: { eventId: string; activityId: string }[];
   forgetEverything: () => Promise<void>;
 }
 
@@ -182,13 +202,57 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setAppearanceState(DEFAULT_APPEARANCE);
   }, []);
 
-  const interestedEventIds = useMemo(() => {
-    if (!municipality) return [];
+  const isActivityInterested = useCallback(
+    (eventId: string, activityId: string) =>
+      municipality !== null &&
+      interests.includes(activityInterestKey(municipality.id, eventId, activityId)),
+    [interests, municipality],
+  );
 
-    const prefix = `${municipality.id}/`;
-    return interests
-      .filter((entry) => entry.startsWith(prefix))
-      .map((entry) => entry.slice(prefix.length));
+  const toggleActivityInterest = useCallback(
+    async (eventId: string, activityId: string) => {
+      if (!municipality) return;
+
+      const key = activityInterestKey(municipality.id, eventId, activityId);
+      const interested = !interests.includes(key);
+      const next = interested ? [...interests, key] : interests.filter((entry) => entry !== key);
+
+      setInterests(next);
+      await saveInterests(next);
+
+      void pushActivityInterest(municipality.id, eventId, activityId, interested);
+
+      // Same moment, same argument as on an event: somebody has just said they
+      // care about a thing with a time on it, which is when asking to notify
+      // them makes sense.
+      if (interested) void enablePush();
+    },
+    [interests, municipality],
+  );
+
+  /**
+   * The marks of the active municipality, split by what they are about.
+   *
+   * One pass over one list, because the two shapes live in the same stored list:
+   * a key with two segments is an event, one with three is a line of a
+   * programme.
+   */
+  const { interestedEventIds, interestedActivityIds } = useMemo(() => {
+    const events: string[] = [];
+    const activities: { eventId: string; activityId: string }[] = [];
+
+    if (!municipality) return { interestedEventIds: events, interestedActivityIds: activities };
+
+    for (const entry of interests) {
+      const parsed = parseInterestKey(entry);
+
+      if (parsed === null || parsed.municipalityId !== municipality.id) continue;
+
+      if (parsed.activityId === null) events.push(parsed.eventId);
+      else activities.push({ eventId: parsed.eventId, activityId: parsed.activityId });
+    }
+
+    return { interestedEventIds: events, interestedActivityIds: activities };
   }, [interests, municipality]);
 
   const value = useMemo<AppState>(
@@ -210,13 +274,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       isInterested,
       toggleInterest,
       interestedEventIds,
+      isActivityInterested,
+      toggleActivityInterest,
+      interestedActivityIds,
       forgetEverything,
     }),
     [
       appearance,
       setAppearance,
       forgetEverything,
+      interestedActivityIds,
       interestedEventIds,
+      isActivityInterested,
       isInterested,
       locale,
       municipalities,
@@ -224,6 +293,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ready,
       scheme,
       selectMunicipality,
+      toggleActivityInterest,
       toggleInterest,
     ],
   );

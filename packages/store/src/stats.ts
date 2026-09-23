@@ -54,6 +54,26 @@ export interface EventInterest {
   viewed: ReportableCount;
 }
 
+/**
+ * One line of a programme, with how many neighbours marked it.
+ *
+ * The number a councillor deciding next year's feria actually wants. "The feria
+ * had eight hundred marks" says the feria worked; "the falconry show had two
+ * hundred and the cheese workshop eleven" says what to book again. It carries
+ * the event's title too, because "Taller" on its own belongs to no year.
+ *
+ * No view count beside it, unlike an event's: an activity has no screen of its
+ * own to open, so there is nothing honest to count.
+ */
+export interface ActivityInterest {
+  activityId: string;
+  eventId: string;
+  title: string;
+  eventTitle: string;
+  startAt: Date;
+  interested: ReportableCount;
+}
+
 export interface PanelStats {
   /**
    * The neighbours, counted and nothing else.
@@ -78,6 +98,14 @@ export interface PanelStats {
     total: number;
     /** Most marked events first. */
     topEvents: EventInterest[];
+    /**
+     * Most marked activities first, across every programme in the town.
+     *
+     * Empty for a municipality whose events are all single things, which is most
+     * of the year — the panel leaves the card out rather than showing an empty
+     * one.
+     */
+    topActivities: ActivityInterest[];
     byCategory: { categoryId: string; interested: ReportableCount }[];
     /**
      * New marks per month, oldest first, as `2026-09`.
@@ -105,7 +133,7 @@ export function createStatsStore(
 ): StatsStore {
   return {
     async summary(options = {}) {
-      const [result, devices, months] = await Promise.all([
+      const [result, programme, devices, months] = await Promise.all([
         client.send(
           new QueryCommand({
             TableName: tableName,
@@ -113,6 +141,16 @@ export function createStatsStore(
             ExpressionAttributeValues: {
               ':pk': municipalityPk(actor.municipalityId),
               ':prefix': SK_PREFIX.event,
+            },
+          }),
+        ),
+        client.send(
+          new QueryCommand({
+            TableName: tableName,
+            KeyConditionExpression: 'pk = :pk and begins_with(sk, :prefix)',
+            ExpressionAttributeValues: {
+              ':pk': municipalityPk(actor.municipalityId),
+              ':prefix': SK_PREFIX.activity,
             },
           }),
         ),
@@ -198,7 +236,67 @@ export function createStatsStore(
         });
       }
 
+      // The programme, scoped the same way: an association reads the lines of
+      // its own events and nothing about the rest of the town's. The events it
+      // may see are the ones already in `mine`, so belonging to one of them is
+      // the whole check.
+      const ownEvents = new Map(
+        mine.map((item) => [String(item['id']), { title: String(item['title']), categoryId: String(item['categoryId']) }]),
+      );
+
+      const perActivity: {
+        activityId: string;
+        eventId: string;
+        title: string;
+        eventTitle: string;
+        startAt: Date;
+        count: number;
+      }[] = [];
+
+      for (const item of programme.Items ?? []) {
+        const eventId = String(item['eventId']);
+        const parent = ownEvents.get(eventId);
+
+        if (parent === undefined) continue;
+
+        const count = interestCountOf(item);
+        // A line with no category of its own is filed under its event's, which
+        // is what the app shows it as. Counting it as uncategorised would put a
+        // feria's whole programme into a bucket nobody named.
+        const categoryId =
+          typeof item['categoryId'] === 'string' ? item['categoryId'] : parent.categoryId;
+
+        total += count;
+        perCategory.set(categoryId, (perCategory.get(categoryId) ?? 0) + count);
+        perActivity.push({
+          activityId: String(item['id']),
+          eventId,
+          title: String(item['title']),
+          eventTitle: parent.title,
+          startAt: new Date(String(item['startAt'])),
+          count,
+        });
+      }
+
       let suppressed = 0;
+
+      const topActivities = perActivity
+        .sort((left, right) => right.count - left.count)
+        .slice(0, options.topEvents ?? 10)
+        .map((entry) => {
+          const interested = reportableCount(entry.count);
+
+          if (interested === null) suppressed += 1;
+
+          return {
+            activityId: entry.activityId,
+            eventId: entry.eventId,
+            title: entry.title,
+            eventTitle: entry.eventTitle,
+            startAt: entry.startAt,
+            interested,
+          };
+        });
 
       const topEvents = perEvent
         .sort((left, right) => right.count - left.count)
@@ -231,7 +329,7 @@ export function createStatsStore(
         devices: { following },
         events,
         views: { total: views },
-        interests: { total, topEvents, byCategory, monthly },
+        interests: { total, topEvents, topActivities, byCategory, monthly },
         suppressed,
         generatedAt: new Date(),
       };

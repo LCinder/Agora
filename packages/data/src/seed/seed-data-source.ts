@@ -4,6 +4,7 @@ import {
   municipalitySchema,
   organizationSchema,
   routeSchema,
+  type Activity,
   type Event,
   type EventCategory,
   type Municipality,
@@ -14,7 +15,7 @@ import { z } from 'zod';
 
 import type { DataSource, MunicipalitySummary } from '../data-source';
 import { SEED_BUNDLES, SHARED_CATEGORIES, type SeedBundle } from './content';
-import { resolveSeedEvent } from './resolve';
+import { resolveSeedActivity, resolveSeedEvent } from './resolve';
 import { seedEventSchema } from './seed-schema';
 
 /**
@@ -81,6 +82,19 @@ export function createSeedDataSource(options: SeedDataSourceOptions = {}): DataS
     return seeds.map((seed) => resolveSeedEvent(seed, context));
   }
 
+  function activitiesOfMunicipality(entry: LoadedMunicipality): Activity[] {
+    const seeds = z.array(seedEventSchema).parse(entry.events);
+    const context = {
+      municipalityId: entry.municipality.id,
+      timeZone: entry.municipality.timeZone,
+      now: now(),
+    };
+
+    return seeds.flatMap((seed) =>
+      seed.activities.map((activity) => resolveSeedActivity(activity, seed.id, context)),
+    );
+  }
+
   return {
     async listMunicipalities(): Promise<MunicipalitySummary[]> {
       return loaded
@@ -116,6 +130,10 @@ export function createSeedDataSource(options: SeedDataSourceOptions = {}): DataS
     async getEvent(municipalityId: string, eventId: string): Promise<Event | null> {
       const events = eventsOf(requireMunicipality(municipalityId));
       return events.find((event) => event.id === eventId) ?? null;
+    },
+
+    async listActivities(municipalityId: string): Promise<Activity[]> {
+      return activitiesOfMunicipality(requireMunicipality(municipalityId));
     },
 
     async getPlannedRoute(municipalityId: string): Promise<Route | null> {

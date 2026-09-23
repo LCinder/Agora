@@ -2,6 +2,7 @@ import {
   AUDIENCE_TAGS,
   EVENT_STATUSES,
   TIME_OF_DAY_PATTERN,
+  activityLocationSchema,
   eventLocationSchema,
 } from '@agora/core';
 import { z } from 'zod';
@@ -33,6 +34,28 @@ export const relativeWhenSchema = z.object({
 
 export const seedWhenSchema = z.discriminatedUnion('kind', [fixedWhenSchema, relativeWhenSchema]);
 
+/**
+ * One line of a seeded programme.
+ *
+ * It carries a `when` of its own, resolved against today exactly like the
+ * event's: a feria seeded to start in two days with a falconry show seeded for
+ * three lands on the Friday and the Saturday whenever the demo is opened. The
+ * three nullable fields mean "the same as the event", which is what almost every
+ * line of a real programme says.
+ */
+export const seedActivitySchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  description: z.string().default(''),
+  categoryId: z.string().min(1).nullable().default(null),
+  when: seedWhenSchema,
+  location: activityLocationSchema.nullable().default(null),
+  isFree: z.boolean().nullable().default(null),
+  priceInfo: z.string().nullable().default(null),
+  status: z.enum(EVENT_STATUSES).default('published'),
+  rejectionReason: z.string().nullable().default(null),
+});
+
 export const seedEventSchema = z.object({
   id: z.string().min(1),
   organizationId: z.string().min(1).nullable().default(null),
@@ -50,7 +73,15 @@ export const seedEventSchema = z.object({
   rejectionReason: z.string().nullable().default(null),
   isFeatured: z.boolean().default(false),
   liveTrackingEnabled: z.boolean().default(false),
+  /**
+   * The programme, for an event that has one.
+   *
+   * Absent on almost every event, because almost every event is one thing at one
+   * time. It is the feria, the semana cultural and the romería that need it.
+   */
+  activities: z.array(seedActivitySchema).default([]),
 });
 
 export type SeedWhen = z.infer<typeof seedWhenSchema>;
+export type SeedActivity = z.infer<typeof seedActivitySchema>;
 export type SeedEvent = z.infer<typeof seedEventSchema>;

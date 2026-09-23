@@ -101,6 +101,35 @@ async function dispatch(event: ApiEvent, store: PublicReadable): Promise<ApiResu
       );
     }
 
+    /**
+     * Every programme in the town, in one request.
+     *
+     * Its own path rather than a field on the calendar, so CloudFront caches the
+     * two separately: a town hall that adds a line to the feria has not changed
+     * the calendar, and the calendar is the request every phone in the
+     * municipality makes.
+     */
+    case 'GET /municipalities/{municipalityId}/activities': {
+      const municipalityId = pathParameter(event, 'municipalityId');
+
+      let from: Date | undefined;
+      let to: Date | undefined;
+
+      try {
+        from = parseDate(event.queryStringParameters?.['from'], 'from');
+        to = parseDate(event.queryStringParameters?.['to'], 'to');
+      } catch {
+        return badRequest('Las fechas from y to tienen que ser ISO 8601.');
+      }
+
+      return ok(
+        await store.listActivities(municipalityId, {
+          ...(from === undefined ? {} : { from }),
+          ...(to === undefined ? {} : { to }),
+        }),
+      );
+    }
+
     case 'GET /municipalities/{municipalityId}/categories':
       return ok(await store.listCategories(pathParameter(event, 'municipalityId')));
 

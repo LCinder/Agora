@@ -14,7 +14,7 @@ import { usePanel } from '../../lib/panel-store';
  * this working. Everything else is one click away.
  */
 export default function PanelHome() {
-  const { events, loading, municipality, organizationId, role, stats } = usePanel();
+  const { activities, events, loading, municipality, organizationId, role, stats } = usePanel();
 
   if (loading || !municipality) {
     return <p className="text-sm text-neutral-500">Cargando…</p>;
@@ -31,7 +31,13 @@ export default function PanelHome() {
 
   const pending = ours.filter(isAwaitingReview);
   const published = residentVisibleEvents(municipal ? events : ours);
-  const groups = groupEvents(published, context);
+  // With the programmes, so "Hoy y este finde" counts a feria that is running
+  // rather than one that started on Tuesday and has no end date typed in.
+  const groups = groupEvents(published, {
+    now: context.now,
+    timeZone: context.timeZone,
+    activities,
+  });
 
   const totalInterest =
     stats?.interests.total ?? published.reduce((sum, event) => sum + event.interestCount, 0);

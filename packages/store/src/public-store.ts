@@ -1,4 +1,5 @@
 import {
+  type Activity,
   type Event,
   type EventCategory,
   type Municipality,
@@ -10,11 +11,12 @@ import {
 import { GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 
 import type { StoreClient } from './client';
-import { fromEventItem } from './items';
+import { fromActivityItem, fromEventItem } from './items';
 import {
   CALENDAR_INDEX,
   PLATFORM_PK,
   SK_PREFIX,
+  activityPrefixFor,
   calendarIndexPk,
   eventKey,
   municipalityIndexKey,
@@ -54,6 +56,24 @@ export interface PublicStore {
   listCalendar(municipalityId: string, range?: { from?: Date; to?: Date }): Promise<Event[]>;
   /** One event, and only if a resident is allowed to see it. */
   getVisibleEvent(municipalityId: string, eventId: string): Promise<Event | null>;
+  /**
+   * Every programme in the municipality, off the same index as the calendar.
+   *
+   * An activity is written into that index only when its own state and its
+   * event's both allow it, so this cannot return the programme of a draft any
+   * more than `listCalendar` can return the draft. That is the same guarantee,
+   * from the same mechanism, and not a filter applied afterwards.
+   */
+  listActivities(municipalityId: string, range?: { from?: Date; to?: Date }): Promise<Activity[]>;
+  /**
+   * One event's programme, read directly rather than through the index.
+   *
+   * For the public page of a shared link, which already has the event and needs
+   * the lines under it. The parent's visibility is the caller's to have
+   * established — it got the event from `getVisibleEvent` — so what is applied
+   * here is the line's own.
+   */
+  listActivitiesOfEvent(municipalityId: string, eventId: string): Promise<Activity[]>;
 }
 
 export function createPublicStore(client: StoreClient, tableName: string): PublicStore {
@@ -73,6 +93,42 @@ export function createPublicStore(client: StoreClient, tableName: string): Publi
         ExpressionAttributeValues: {
           ':pk': municipalityPk(municipalityId),
           ':prefix': prefix,
+        },
+      }),
+    );
+
+    return result.Items ?? [];
+  }
+
+  /**
+   * The calendar index, narrowed to one kind of row.
+   *
+   * Events and programmes share the index on purpose: an activity belongs in the
+   * public calendar under exactly the same conditions as an event, and a second
+   * index would mean a second set of sparse attributes to keep in step — and the
+   * one that drifts is the one that leaks. The cost is a filter here, which
+   * DynamoDB applies before anything crosses the wire.
+   */
+  async function calendarRows(
+    municipalityId: string,
+    range: { from?: Date; to?: Date },
+    entity: 'event' | 'activity',
+  ) {
+    const from = range.from?.toISOString() ?? '0000';
+    const to = range.to?.toISOString() ?? '9999';
+
+    const result = await client.send(
+      new QueryCommand({
+        TableName: tableName,
+        IndexName: CALENDAR_INDEX,
+        KeyConditionExpression: 'gsi1pk = :pk and gsi1sk between :from and :to',
+        FilterExpression: '#entity = :entity',
+        ExpressionAttributeNames: { '#entity': 'entity' },
+        ExpressionAttributeValues: {
+          ':pk': calendarIndexPk(municipalityId),
+          ':from': from,
+          ':to': to,
+          ':entity': entity,
         },
       }),
     );
@@ -129,23 +185,20 @@ export function createPublicStore(client: StoreClient, tableName: string): Publi
     },
 
     async listCalendar(municipalityId, range = {}) {
-      const from = range.from?.toISOString() ?? '0000';
-      const to = range.to?.toISOString() ?? '9999';
+      return (await calendarRows(municipalityId, range, 'event')).map(fromEventItem);
+    },
 
-      const result = await client.send(
-        new QueryCommand({
-          TableName: tableName,
-          IndexName: CALENDAR_INDEX,
-          KeyConditionExpression: 'gsi1pk = :pk and gsi1sk between :from and :to',
-          ExpressionAttributeValues: {
-            ':pk': calendarIndexPk(municipalityId),
-            ':from': from,
-            ':to': to,
-          },
-        }),
-      );
+    async listActivities(municipalityId, range = {}) {
+      return (await calendarRows(municipalityId, range, 'activity')).map(fromActivityItem);
+    },
 
-      return (result.Items ?? []).map(fromEventItem);
+    async listActivitiesOfEvent(municipalityId, eventId) {
+      const items = await queryPrefix(municipalityId, activityPrefixFor(eventId));
+
+      return items
+        .map(fromActivityItem)
+        .filter((activity) => activity.status === 'published' || activity.status === 'cancelled')
+        .sort((left, right) => left.startAt.getTime() - right.startAt.getTime());
     },
 
     async getVisibleEvent(municipalityId, eventId) {

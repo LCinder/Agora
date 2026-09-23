@@ -63,6 +63,10 @@ pnpm --filter @agora/web dev
   eventos y sus métricas y nada más (D-050).
 - Página pública de un evento: <http://localhost:3000/e/la-zubia/lz-cabalgata>
 
+Un evento puede ser una cosa suelta o llevar dentro un **programa de actividades** — es lo que
+distingue un taller de cerámica de una feria medieval. El programa se edita al abrir el evento, y
+cada actividad tiene su hora y su propio «Me interesa» en la app (D-073).
+
 Para que funcionen los carteles, copia `apps/web/.env.example` a `apps/web/.env.local` y pon tus
 claves: `GEMINI_API_KEY` para leer el cartel y escribir la instrucción del dibujo, y
 `CLOUDFLARE_ACCOUNT_ID` con `CLOUDFLARE_API_TOKEN` para dibujarlo. Las dos son gratuitas y no piden

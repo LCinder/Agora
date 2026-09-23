@@ -11,7 +11,12 @@ import {
 import type { StoreClient } from './client';
 import { notFound } from './errors';
 import {
+  ACTIVITY_INTEREST_PREFIX,
   FOLLOW_PREFIX,
+  INTEREST_PREFIX,
+  activityInterestIndexPk,
+  activityInterestKey,
+  activityKey,
   audienceIndexPk,
   deviceCountKey,
   monthlyStatsKey,
@@ -50,7 +55,30 @@ const VIEW_GUARD_LIFETIME_HOURS = 48;
 export interface Interest {
   municipalityId: string;
   eventId: string;
+  /** Null for a mark on the event itself, set for one line of its programme. */
+  activityId: string | null;
   createdAt: Date;
+}
+
+/**
+ * What a mark is about: an event, or one line of its programme.
+ *
+ * The two are the same operation on different rows — write a mark under the
+ * device, move a counter, file it on the reminder index — so they go through one
+ * piece of code that takes the three addresses rather than through two copies
+ * that will drift on the transaction.
+ */
+interface Subject {
+  /** Where the mark lives, under the device that made it. */
+  markKey: { pk: string; sk: string };
+  /** The row whose counter this moves. */
+  counterKey: { pk: string; sk: string };
+  /** The partition of the reminder index this mark is filed under. */
+  indexPk: string;
+  /** What the mark row records about itself, beyond its key. */
+  attributes: Record<string, unknown>;
+  /** What to say when the thing being marked is not there. */
+  missing: string;
 }
 
 export interface DeviceStore {
@@ -78,6 +106,25 @@ export interface DeviceStore {
   listInterests(): Promise<Interest[]>;
   markInterest(municipalityId: string, eventId: string): Promise<void>;
   unmarkInterest(municipalityId: string, eventId: string): Promise<void>;
+  /**
+   * The same, for one line of a programme.
+   *
+   * A separate mark from the event's, on purpose. Somebody who wants to be
+   * reminded about the falconry show at six on Saturday has not asked to be
+   * reminded about the whole feria, and marking the feria does not sign them up
+   * to twenty reminders. The two only meet again when the town hall sends a
+   * notice, which reaches everybody with a stake in the event.
+   */
+  markActivityInterest(
+    municipalityId: string,
+    eventId: string,
+    activityId: string,
+  ): Promise<void>;
+  unmarkActivityInterest(
+    municipalityId: string,
+    eventId: string,
+    activityId: string,
+  ): Promise<void>;
   /**
    * Counts that this phone opened an event, at most once a day.
    *
@@ -123,8 +170,8 @@ export function createDeviceStore(
    * `if_not_exists` on the counter because an event written before this feature
    * existed has no attribute to add to.
    */
-  async function move(municipalityId: string, eventId: string, by: 1 | -1): Promise<void> {
-    const key = interestKey(deviceId, municipalityId, eventId);
+  async function move(municipalityId: string, subject: Subject, by: 1 | -1): Promise<void> {
+    const key = subject.markKey;
 
     const mark =
       by === 1
@@ -133,14 +180,13 @@ export function createDeviceStore(
               TableName: tableName,
               Item: {
                 ...key,
-                entity: 'interest',
                 deviceId,
                 municipalityId,
-                eventId,
+                ...subject.attributes,
                 createdAt: new Date().toISOString(),
-                // The reminder index: from an event to the devices to notify.
+                // The reminder index: from a thing to the devices to notify.
                 // Only the reminder job may read it (D-032).
-                gsi3pk: `EVT#${eventId}`,
+                gsi3pk: subject.indexPk,
                 gsi3sk: devicePk(deviceId),
               },
               ConditionExpression: 'attribute_not_exists(pk)',
@@ -180,7 +226,7 @@ export function createDeviceStore(
             {
               Update: {
                 TableName: tableName,
-                Key: eventKey(municipalityId, eventId),
+                Key: subject.counterKey,
                 UpdateExpression: 'SET interestCount = if_not_exists(interestCount, :zero) + :by',
                 ExpressionAttributeValues: { ':zero': 0, ':by': by },
                 ConditionExpression: 'attribute_exists(pk)',
@@ -199,17 +245,39 @@ export function createDeviceStore(
       // something a resident should be told about.
       if (reasons[0]?.Code === 'ConditionalCheckFailed') return;
 
-      // The event is gone. On the way up that is worth saying out loud — the
-      // resident asked to be reminded of something that does not exist.
-      if (by === 1) throw notFound('Ese evento no existe.');
+      // It is gone. On the way up that is worth saying out loud — the resident
+      // asked to be reminded of something that does not exist.
+      if (by === 1) throw notFound(subject.missing);
 
       // On the way down it is not. The town hall deleted a duplicate and a
       // phone is still carrying the mark: the counter it would have decremented
-      // went with the event, and refusing here would leave the resident holding
+      // went with the row, and refusing here would leave the resident holding
       // a mark they cannot remove — and "borrar mis datos", which unmarks
       // everything one by one, unable to finish.
       await client.send(new DeleteCommand({ TableName: tableName, Key: key }));
     }
+  }
+
+  /** The event itself, as something to mark. */
+  function eventSubject(municipalityId: string, eventId: string): Subject {
+    return {
+      markKey: interestKey(deviceId, municipalityId, eventId),
+      counterKey: eventKey(municipalityId, eventId),
+      indexPk: `EVT#${eventId}`,
+      attributes: { entity: 'interest', eventId },
+      missing: 'Ese evento no existe.',
+    };
+  }
+
+  /** One line of its programme, as something to mark. */
+  function activitySubject(municipalityId: string, eventId: string, activityId: string): Subject {
+    return {
+      markKey: activityInterestKey(deviceId, municipalityId, eventId, activityId),
+      counterKey: activityKey(municipalityId, eventId, activityId),
+      indexPk: activityInterestIndexPk(activityId),
+      attributes: { entity: 'activity_interest', eventId, activityId },
+      missing: 'Esa actividad no existe.',
+    };
   }
 
   return {
@@ -353,23 +421,40 @@ export function createDeviceStore(
     },
 
     async listInterests() {
-      const result = await client.send(
-        new QueryCommand({
-          TableName: tableName,
-          KeyConditionExpression: 'pk = :pk and begins_with(sk, :prefix)',
-          ExpressionAttributeValues: { ':pk': devicePk(deviceId), ':prefix': 'INT#' },
-        }),
+      // Two prefixes, one after the other, because a single `begins_with` cannot
+      // match both and the alternative is reading every row the device owns —
+      // including the daily notification counters, which are none of this
+      // question's business.
+      const [events, activities] = await Promise.all(
+        [INTEREST_PREFIX, ACTIVITY_INTEREST_PREFIX].map((prefix) =>
+          client.send(
+            new QueryCommand({
+              TableName: tableName,
+              KeyConditionExpression: 'pk = :pk and begins_with(sk, :prefix)',
+              ExpressionAttributeValues: { ':pk': devicePk(deviceId), ':prefix': prefix },
+            }),
+          ),
+        ),
       );
 
-      return (result.Items ?? []).map((item) => ({
+      return [...(events?.Items ?? []), ...(activities?.Items ?? [])].map((item) => ({
         municipalityId: String(item['municipalityId']),
         eventId: String(item['eventId']),
+        activityId: item['activityId'] === undefined ? null : String(item['activityId']),
         createdAt: new Date(String(item['createdAt'])),
       }));
     },
 
     async markInterest(municipalityId, eventId) {
-      await move(municipalityId, eventId, 1);
+      await move(municipalityId, eventSubject(municipalityId, eventId), 1);
+    },
+
+    async markActivityInterest(municipalityId, eventId, activityId) {
+      await move(municipalityId, activitySubject(municipalityId, eventId, activityId), 1);
+    },
+
+    async unmarkActivityInterest(municipalityId, eventId, activityId) {
+      await move(municipalityId, activitySubject(municipalityId, eventId, activityId), -1);
     },
 
     async forget() {
@@ -378,15 +463,29 @@ export function createDeviceStore(
           TableName: tableName,
           KeyConditionExpression: 'pk = :pk',
           ExpressionAttributeValues: { ':pk': devicePk(deviceId) },
-          ProjectionExpression: 'pk, sk, municipalityId, eventId',
+          ProjectionExpression: 'pk, sk, municipalityId, eventId, activityId',
         }),
       );
 
       for (const item of rows.Items ?? []) {
         const sk = String(item['sk']);
+        const town = String(item['municipalityId']);
 
-        if (sk.startsWith('INT#')) {
-          await move(String(item['municipalityId']), String(item['eventId']), -1);
+        if (sk.startsWith(INTEREST_PREFIX)) {
+          await move(town, eventSubject(town, String(item['eventId'])), -1);
+
+          continue;
+        }
+
+        // The marks on lines of a programme go the same way, and they have to:
+        // leaving them would keep the town hall reading interest from a phone
+        // that asked to be forgotten, one activity at a time.
+        if (sk.startsWith(ACTIVITY_INTEREST_PREFIX)) {
+          await move(
+            town,
+            activitySubject(town, String(item['eventId']), String(item['activityId'])),
+            -1,
+          );
 
           continue;
         }
@@ -424,7 +523,7 @@ export function createDeviceStore(
     },
 
     async unmarkInterest(municipalityId, eventId) {
-      await move(municipalityId, eventId, -1);
+      await move(municipalityId, eventSubject(municipalityId, eventId), -1);
     },
 
     async recordView(municipalityId, eventId) {

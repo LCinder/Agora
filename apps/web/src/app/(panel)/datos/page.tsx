@@ -87,7 +87,7 @@ function shorten(title: string): string {
 }
 
 export default function DataPage() {
-  const { categories, demo, events, loading, municipality, role, stats } = usePanel();
+  const { activities, categories, demo, events, loading, municipality, role, stats } = usePanel();
   const municipal = role === 'municipal_editor' || role === 'municipal_admin';
   const [asTable, setAsTable] = useState(false);
   const [writing, setWriting] = useState(false);
@@ -114,6 +114,46 @@ export default function DataPage() {
       .sort((a, b) => b.interesados - a.interesados)
       .slice(0, 8);
   }, [published, stats]);
+
+  /**
+   * The lines of a programme with the most marks, across every event in the
+   * town.
+   *
+   * The question a councillor planning next year's feria actually has. "The
+   * feria had eight hundred marks" says the feria worked; "the falconry show had
+   * two hundred and the cheese workshop eleven" says what to book again — and
+   * that second sentence is the one that justifies a line in a budget.
+   *
+   * Empty for a municipality whose events are all single things, which is most
+   * of the year, and the card is left out rather than shown empty.
+   */
+  const byActivity = useMemo(() => {
+    if (stats !== null) {
+      return stats.interests.topActivities
+        .filter((entry) => entry.interested !== null)
+        .map((entry) => ({
+          name: shorten(entry.title),
+          // The feria it belongs to, because "Taller" on its own belongs to no
+          // year and this table ends up in a document.
+          event: entry.eventTitle,
+          interesados: entry.interested ?? 0,
+        }))
+        .sort((a, b) => b.interesados - a.interesados)
+        .slice(0, 8);
+    }
+
+    const titles = new Map(events.map((event) => [event.id, event.title]));
+
+    return activities
+      .filter((activity) => activity.status === 'published')
+      .map((activity) => ({
+        name: shorten(activity.title),
+        event: titles.get(activity.eventId) ?? '',
+        interesados: activity.interestCount,
+      }))
+      .sort((a, b) => b.interesados - a.interesados)
+      .slice(0, 8);
+  }, [activities, events, stats]);
 
   const byCategory = useMemo(() => {
     if (stats !== null) {
@@ -254,6 +294,24 @@ export default function DataPage() {
             : []),
         ],
         events: rows,
+        // Same threshold as everywhere else: what the API held back arrives as
+        // null and is printed as "menos de 5" rather than as a number.
+        activities: (stats === null
+          ? activities
+              .filter((activity) => activity.status === 'published')
+              .map((activity) => ({
+                title: activity.title,
+                eventTitle: events.find((entry) => entry.id === activity.eventId)?.title ?? '',
+                when: formatShortDate(activity.startAt, context),
+                interested: reportableCount(activity.interestCount),
+              }))
+          : stats.interests.topActivities.map((entry) => ({
+              title: entry.title,
+              eventTitle: entry.eventTitle,
+              when: formatShortDate(entry.startAt, context),
+              interested: entry.interested,
+            }))
+        ).sort((left, right) => (right.interested ?? -1) - (left.interested ?? -1)),
         categories: byCategory.map((entry) => ({
           name: entry.name,
           interested: entry.interesados,
@@ -277,9 +335,18 @@ export default function DataPage() {
   }
 
   function exportCsv() {
+    // One file with both, told apart by a `tipo` column, because a spreadsheet
+    // somebody is going to pivot is more useful than two downloads they have to
+    // join by hand. The activity's own event goes in a column of its own.
     const rows = [
-      ['evento', 'interesados'],
-      ...byEvent.map((entry) => [entry.name, String(entry.interesados)]),
+      ['tipo', 'nombre', 'dentro_de', 'interesados'],
+      ...byEvent.map((entry) => ['evento', entry.name, '', String(entry.interesados)]),
+      ...byActivity.map((entry) => [
+        'actividad',
+        entry.name,
+        entry.event,
+        String(entry.interesados),
+      ]),
     ];
     const csv = rows.map((row) => row.map((cell) => `"${cell}"`).join(',')).join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
@@ -356,12 +423,60 @@ export default function DataPage() {
           <Empty>Todavía no hay eventos publicados de los que sacar datos.</Empty>
         </div>
       ) : asTable ? (
-        <Table rows={byEvent} />
+        <>
+          <Table rows={byEvent} />
+          {byActivity.length === 0 ? null : (
+            <Table
+              caption="Actividades con más interesados"
+              column="Actividad"
+              rows={byActivity}
+            />
+          )}
+        </>
       ) : (
         <>
           <ChartCard title="Eventos con más interesados">
             <ResponsiveContainer width="100%" height={Math.max(240, byEvent.length * 38)}>
               <BarChart data={byEvent} layout="vertical" margin={{ left: 8, right: 24 }}>
+                <CartesianGrid horizontal={false} stroke="var(--viz-grid)" />
+                <XAxis type="number" stroke="var(--viz-axis)" fontSize={12} />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  width={200}
+                  stroke="var(--viz-axis)"
+                  fontSize={12}
+                />
+                <Tooltip
+                  cursor={{ fill: 'var(--viz-grid)' }}
+                  contentStyle={{
+                    background: 'var(--viz-surface)',
+                    border: '1px solid var(--viz-grid)',
+                    borderRadius: 8,
+                    fontSize: 13,
+                  }}
+                />
+                <Bar
+                  dataKey="interesados"
+                  name="Interesados"
+                  fill="var(--viz-series-1)"
+                  radius={[0, 4, 4, 0]}
+                  barSize={14}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+
+          {/* Only for a town that runs something with a programme in it. A card
+              headed "Actividades" over an empty chart would say the town hall
+              is missing a feature rather than that they have not had a feria. */}
+          <ChartCard
+            title="Actividades con más interesados"
+            hidden={byActivity.length === 0}
+            note="Dentro de ferias, semanas culturales y romerías. Cada vecino marca la actividad que le interesa, no solo el evento entero."
+          >
+            <ResponsiveContainer width="100%" height={Math.max(240, byActivity.length * 38)}>
+              <BarChart data={byActivity} layout="vertical" margin={{ left: 8, right: 24 }}>
                 <CartesianGrid horizontal={false} stroke="var(--viz-grid)" />
                 <XAxis type="number" stroke="var(--viz-axis)" fontSize={12} />
                 <YAxis
@@ -464,32 +579,47 @@ function ChartCard({
   title,
   children,
   hidden = false,
+  note,
 }: {
   title: string;
   children: React.ReactNode;
   hidden?: boolean;
+  /** One sentence under the heading, for a chart whose subject is not obvious. */
+  note?: string;
 }) {
   if (hidden) return null;
 
   return (
     <Card className="mt-6">
-      <h2 className="mb-4 text-lg font-semibold">{title}</h2>
+      <h2 className={note === undefined ? 'mb-4 text-lg font-semibold' : 'text-lg font-semibold'}>
+        {title}
+      </h2>
+      {note === undefined ? null : (
+        <p className="mb-4 mt-1 text-sm text-neutral-600 dark:text-neutral-400">{note}</p>
+      )}
       {children}
     </Card>
   );
 }
 
-function Table({ rows }: { rows: { name: string; interesados: number }[] }) {
+function Table({
+  rows,
+  caption = 'Eventos con más interesados',
+  column = 'Evento',
+}: {
+  /** `event` is set for a line of a programme, and names the feria it is in. */
+  rows: { name: string; interesados: number; event?: string }[];
+  caption?: string;
+  column?: string;
+}) {
   return (
     <Card className="mt-6 overflow-x-auto">
       <table className="w-full text-sm">
-        <caption className="mb-3 text-left text-lg font-semibold">
-          Eventos con más interesados
-        </caption>
+        <caption className="mb-3 text-left text-lg font-semibold">{caption}</caption>
         <thead>
           <tr className="border-b border-black/10 text-left dark:border-white/10">
             <th scope="col" className="py-2 pr-4 font-medium">
-              Evento
+              {column}
             </th>
             <th scope="col" className="py-2 text-right font-medium">
               Interesados
@@ -499,7 +629,12 @@ function Table({ rows }: { rows: { name: string; interesados: number }[] }) {
         <tbody>
           {rows.map((row) => (
             <tr key={row.name} className="border-b border-black/5 dark:border-white/5">
-              <td className="py-2 pr-4">{row.name}</td>
+              <td className="py-2 pr-4">
+                {row.name}
+                {row.event === undefined || row.event === '' ? null : (
+                  <span className="block text-xs text-neutral-500">Dentro de {row.event}</span>
+                )}
+              </td>
               <td className="py-2 text-right tabular-nums">{row.interesados}</td>
             </tr>
           ))}

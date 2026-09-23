@@ -29,6 +29,8 @@ Reglas de trabajo:
 
 Aplicación móvil para vender a **ayuntamientos de Andalucía**. Al abrirla, el vecino ve un **calendario con todos los eventos, fiestas e información del municipio**. El personal del ayuntamiento introduce la información de forma muy sencilla y los vecinos pueden reaccionar a los eventos.
 
+Un evento puede ser **una cosa suelta** («Taller de cerámica») o **contener actividades** («Feria medieval», con su show de aves rapaces, su taller de queso curado y su tómbola dentro). El calendario enseña eventos; las actividades son el programa que hay dentro de uno, cada una con su hora y su propio «Me interesa». Ver 7.1b y D-073.
+
 El producto se diferencia de la competencia existente con tres funcionalidades clave, además del calendario:
 
 1. **Calendario colaborativo con asociaciones**: hermandades, peñas, clubes y AMPAs suben sus eventos y el ayuntamiento solo los aprueba.
@@ -193,6 +195,30 @@ El núcleo del producto. Al abrir la app, el vecino ve directamente los eventos 
 - Crear un evento en el panel lleva menos de un minuto: solo título, fecha y hora de inicio, y lugar son obligatorios.
 - Los eventos cancelados se muestran como tales (no desaparecen sin más).
 - Compartir genera un enlace que abre el evento en la app o, si no está instalada, en una página web del evento.
+
+### 7.1b Eventos con programa: las actividades
+
+Una feria, una semana cultural o una romería no son una cosa a una hora: son un programa. Meter cada línea de ese programa en el calendario como si fuera un evento más entierra la feria debajo de sí misma, y no meterlas deja al vecino sin saber qué hay el sábado a las seis.
+
+**Historias de usuario**
+
+- Como personal municipal, quiero añadir actividades a un evento, cada una con su hora, sin repetir el lugar ni el precio cuando son los mismos que los del evento.
+- Como vecino, quiero ver el programa de una feria por días, como en el cartel.
+- Como vecino, quiero marcar «Me interesa» en una actividad concreta y que me recuerden **esa**, no los cuatro días enteros.
+- Como vecino, quiero añadir una actividad suelta al calendario de mi móvil.
+- Como concejal, quiero saber qué actividades de la feria funcionaron, no solo si la feria funcionó.
+- Como responsable de una asociación, quiero añadir líneas al programa de mi evento con las mismas reglas de revisión que el evento.
+
+**Criterios de aceptación**
+
+- Una actividad pertenece siempre a un evento y no aparece nunca suelta en el calendario.
+- Categoría, lugar y precio son opcionales: en blanco, la actividad usa los del evento.
+- Una actividad **solo es tan pública como su evento**: el programa de un borrador no es visible aunque cada línea esté publicada, y al aprobar el evento se publica con él.
+- Una actividad cancelada sigue en el programa, tachada (misma razón que un evento cancelado).
+- El filtro por categoría encuentra un evento por las actividades que contiene; el filtro «Gratis» sigue siendo del evento.
+- Un evento con programa ocupa en el calendario hasta el final de su última actividad, aunque no tenga fecha de fin.
+- Un aviso sobre el evento llega también a quien solo marcó una de sus actividades, y le llega **una sola vez** aunque haya marcado varias.
+- Las actividades no tienen cartel, organizador propio ni directo: los hereda del evento.
 
 ### 7.2 Diferenciadora 1: calendario colaborativo con asociaciones
 
@@ -368,11 +394,27 @@ events
   rejection_reason, is_featured, live_tracking_enabled,
   created_at, updated_at, published_at
 
+activities                       -- el programa de un evento que lo tiene
+  id, municipality_id, event_id,
+  title, description,
+  category_id (nullable = la del evento),
+  start_at, end_at,
+  location (nullable = el del evento),
+  is_free, price_info (nullable = los del evento),
+  status (draft|pending_review|published|rejected|cancelled),
+  rejection_reason,
+  pending_patch (json, nullable)   -- edición en espera; lo publicado no se toca
+  interest_count,                  -- sin vistas: una actividad no tiene pantalla propia
+  created_at, updated_at
+
 event_pending_changes            -- ediciones de asociaciones sobre eventos publicados
   id, event_id, payload (json), created_by, status, created_at
 
 event_interests
   device_id, event_id, created_at, reminder_sent_at   -- único (device_id, event_id)
+
+activity_interests               -- lo mismo, sobre una línea del programa
+  device_id, event_id, activity_id, created_at        -- único (device_id, activity_id)
 
 event_updates                    -- avisos asociados a un evento
   id, event_id, type (time_change|location_change|cancelled|notice),
@@ -398,8 +440,8 @@ audit_log
 
 1. **Bienvenida:** elegir municipio (o entrar directamente por enlace o QR), idioma y permiso de notificaciones explicado con claridad.
 2. **Inicio (calendario):** bloque "Hoy" y "Este finde", eventos destacados, lista de próximos, cambio a vista de mes, filtros.
-3. **Detalle de evento:** información, mapa, organizador, botones "Me interesa", "Añadir a mi calendario" y "Compartir", avisos del evento y botón "Ver en directo" cuando esté activo.
-4. **Mis eventos:** eventos marcados con "Me interesa".
+3. **Detalle de evento:** información, mapa, organizador, botones "Me interesa", "Añadir a mi calendario" y "Compartir", avisos del evento y botón "Ver en directo" cuando esté activo. Cuando el evento tiene programa, las actividades por días, cada una con su "Me interesa".
+4. **Mis eventos:** eventos marcados con "Me interesa", y las actividades sueltas marcadas sin su evento.
 5. **Directo:** mapa con posición actual, recorrido previsto y hora de última actualización.
 6. **Ajustes:** municipio, idioma, notificaciones, política de privacidad.
 7. **Modo voluntario:** entrada con código, botón grande de iniciar, pausar y terminar, indicador de que se está emitiendo.
@@ -407,8 +449,8 @@ audit_log
 **Panel web (ayuntamiento)**
 
 1. Inicio con métricas principales y eventos pendientes de revisión.
-2. Eventos: lista con filtros, crear, editar, cancelar, enviar aviso.
-3. Bandeja de revisión de eventos de asociaciones.
+2. Eventos: lista con filtros, crear, editar, cancelar, enviar aviso, y el programa de actividades del evento cuando lo tiene.
+3. Bandeja de revisión de eventos de asociaciones, y de las actividades que añaden a un evento ya publicado.
 4. Asociaciones: alta, invitación, confianza, baja.
 5. Directos: programar sesión, recorrido previsto, generar código o QR para voluntario, ver sesión en curso.
 6. Estadísticas y exportación de informes.
@@ -422,12 +464,13 @@ audit_log
 
 ### 9.7 Notificaciones
 
-| Tipo                          | Destinatarios                        | Momento                         |
-| ----------------------------- | ------------------------------------ | ------------------------------- |
-| Recordatorio de evento        | Dispositivos con "Me interesa"       | Tarde anterior (hora pendiente) |
-| Aviso de cambio o cancelación | Dispositivos con "Me interesa"       | Inmediato                       |
-| Inicio de directo             | Dispositivos con "Me interesa"       | Al iniciar la sesión            |
-| Evento destacado              | Todos los dispositivos del municipio | Manual, con límite diario       |
+| Tipo                          | Destinatarios                                             | Momento                         |
+| ----------------------------- | --------------------------------------------------------- | ------------------------------- |
+| Recordatorio de evento        | Dispositivos con "Me interesa" en el evento               | Tarde anterior (hora pendiente) |
+| Recordatorio de actividad     | Dispositivos con "Me interesa" en esa actividad           | Tarde anterior, con su hora     |
+| Aviso de cambio o cancelación | Dispositivos con "Me interesa" en el evento **o en una de sus actividades**, una sola vez | Inmediato |
+| Inicio de directo             | Dispositivos con "Me interesa"                            | Al iniciar la sesión            |
+| Evento destacado              | Todos los dispositivos del municipio                      | Manual, con límite diario       |
 
 Las notificaciones de recordatorio se envían desde una tarea programada. Todas respetan la zona horaria `Europe/Madrid` y el límite anti-spam.
 

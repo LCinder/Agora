@@ -511,6 +511,11 @@ locals {
     "GET /municipalities",
     "GET /municipalities/{slug}",
     "GET /municipalities/{municipalityId}/events",
+    # The programmes of every event that has one, in one read. Its own path
+    # rather than a field on the calendar above, so the two cache separately: a
+    # town hall adding a line to the feria has not changed the calendar, and the
+    # calendar is the request every phone in the municipality makes.
+    "GET /municipalities/{municipalityId}/activities",
     "GET /municipalities/{municipalityId}/categories",
     "GET /municipalities/{municipalityId}/organizations",
     # Under the municipality, and not a bare `/events/{eventId}`: the partition
@@ -527,6 +532,12 @@ locals {
     "GET /me/interests",
     "PUT /me/interests/{eventId}",
     "DELETE /me/interests/{eventId}",
+    # A mark on one line of a programme, which is a different row, a different
+    # counter and a different reminder from a mark on the event around it. The
+    # event travels in the query string: an activity is not addressable without
+    # knowing whose programme it is in.
+    "PUT /me/activity-interests/{activityId}",
+    "DELETE /me/activity-interests/{activityId}",
     # That a phone opened an event, counted once a day. Behind the authorizer
     # like the rest: a tally anybody could post to is not a tally.
     "PUT /me/views/{eventId}",

@@ -1,4 +1,5 @@
-import { byStartDate, eventEndsAt, occursWithin, type Event } from './event';
+import { activitiesOf, eventSpan, type Activity } from './activity';
+import { byStartDate, type Event } from './event';
 import { dayRange, weekendRange } from './time';
 
 /**
@@ -17,6 +18,23 @@ export interface EventGroups {
 export interface GroupingContext {
   now: Date;
   timeZone: string;
+  /**
+   * The programmes, when the caller has them.
+   *
+   * They only ever change where an event lands, never whether it is shown: a
+   * feria that runs from Thursday to Sunday has to stay in "Hoy" on the Saturday,
+   * and on its own dates it would fall into "Próximos" on Thursday evening and
+   * never be seen again. Optional, so a screen that has not loaded them groups
+   * on the events alone and is merely less right about long ones.
+   */
+  activities?: readonly Activity[];
+}
+
+/** Whether an event, programme included, overlaps a range. Both ends inclusive. */
+function overlaps(span: { startAt: Date; endAt: Date }, range: { start: Date; end: Date }): boolean {
+  return (
+    span.startAt.getTime() <= range.end.getTime() && span.endAt.getTime() >= range.start.getTime()
+  );
 }
 
 /**
@@ -34,13 +52,16 @@ export function groupEvents(events: readonly Event[], context: GroupingContext):
   const weekend = weekendRange(context.now, context.timeZone);
 
   const groups: EventGroups = { today: [], thisWeekend: [], upcoming: [], past: [] };
+  const programme = context.activities ?? [];
 
   for (const event of events) {
-    if (eventEndsAt(event).getTime() < today.start.getTime()) {
+    const span = eventSpan(event, activitiesOf(programme, event.id));
+
+    if (span.endAt.getTime() < today.start.getTime()) {
       groups.past.push(event);
-    } else if (occursWithin(event, today)) {
+    } else if (overlaps(span, today)) {
       groups.today.push(event);
-    } else if (occursWithin(event, weekend)) {
+    } else if (overlaps(span, weekend)) {
       groups.thisWeekend.push(event);
     } else {
       groups.upcoming.push(event);

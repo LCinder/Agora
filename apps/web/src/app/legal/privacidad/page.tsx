@@ -61,7 +61,7 @@ export default function PrivacyPage() {
             {
               term: '«Me interesa»',
               description:
-                'Los eventos que marcas, para recordártelos y para avisarte si cambian de hora o se cancelan. El ayuntamiento ve cuántas personas marcaron cada evento, nunca la lista.',
+                'Los eventos que marcas, y las actividades sueltas que marcas dentro de uno, para recordártelos y para avisarte si cambian de hora o se cancelan. El ayuntamiento ve cuántas personas marcaron cada evento y cada actividad, nunca la lista.',
             },
             {
               term: 'Testigo de notificaciones',
@@ -94,7 +94,7 @@ export default function PrivacyPage() {
           No hay publicidad ni rastreadores de terceros. No se elaboran perfiles ni se toman
           decisiones automatizadas sobre nadie. No se venden ni se ceden datos. No se cruza esta
           información con ninguna otra, y no hay forma de saber quién eres: lo que hay guardado es
-          un número aleatorio y una lista de eventos.
+          un número aleatorio y una lista de eventos y actividades.
         </p>
       </Article>
 
@@ -128,7 +128,7 @@ export default function PrivacyPage() {
         <Rows
           rows={[
             {
-              term: 'Tus eventos marcados',
+              term: 'Tus eventos y actividades marcados',
               description: 'Hasta que los desmarques o borres los datos desde Ajustes.',
             },
             {
@@ -191,7 +191,7 @@ export default function PrivacyPage() {
         <p>
           La aplicación no pide datos a nadie, ni pregunta la edad, porque no hay registro. Un menor
           que la use está en la misma situación que cualquier otro vecino: un identificador
-          aleatorio y una lista de eventos que puede borrar cuando quiera.
+          aleatorio y una lista de eventos y actividades que puede borrar cuando quiera.
         </p>
       </Article>
 

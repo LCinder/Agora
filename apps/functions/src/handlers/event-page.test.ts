@@ -105,6 +105,60 @@ describe.skipIf(local === null)('the public event page', () => {
     expect(html).toContain('hoyq://event/');
   });
 
+  /**
+   * The programme on the page somebody opens from a WhatsApp group.
+   *
+   * It is also the reason the page is worth having for a feria at all: the card
+   * says "13 actividades", and what is behind the link is the poster, readable
+   * in the street on a phone with no app installed.
+   */
+  it('prints the programme of an event that has one', async () => {
+    const { createStaffStore } = await import('@agora/store');
+    const staff = createStaffStore(client, TABLE, {
+      authUserId: 'auth-editor',
+      municipalityId: ZUBIA,
+      role: 'municipal_editor',
+      organizationId: null,
+    });
+
+    await staff.createActivity(EVENTS.zubiaPublished, {
+      id: 'act-page-falcons',
+      title: 'Show de aves rapaces',
+      startAt: new Date('2027-03-01T17:00:00.000Z'),
+      endAt: new Date('2027-03-01T18:00:00.000Z'),
+    });
+    await staff.createActivity(EVENTS.zubiaPublished, {
+      id: 'act-page-rained',
+      title: 'Justa medieval',
+      startAt: new Date('2027-03-01T19:00:00.000Z'),
+      location: { name: 'Explanada del pabellón', latitude: null, longitude: null },
+    });
+    await staff.cancelActivity(EVENTS.zubiaPublished, 'act-page-rained');
+
+    const html = htmlOf(await serve(`/e/la-zubia/${EVENTS.zubiaPublished}`));
+
+    expect(html).toContain('Programa');
+    expect(html).toContain('Show de aves rapaces');
+    // Printed where it happens, because that one is not where the event is.
+    expect(html).toContain('Explanada del pabellón');
+    // A cancelled line stays on the programme and says so: the person opening
+    // this link on the Saturday morning is exactly who needs to read it.
+    expect(html).toContain('Justa medieval');
+    expect(html).toContain('Cancelada');
+    // And the card a chat app reads says how big the thing is, which is what
+    // makes somebody open the link.
+    expect(html).toContain('2 actividades');
+
+    await staff.deleteActivity(EVENTS.zubiaPublished, 'act-page-falcons');
+    await staff.deleteActivity(EVENTS.zubiaPublished, 'act-page-rained');
+  });
+
+  it('leaves the programme out of an event that has none', async () => {
+    const html = htmlOf(await serve(`/e/la-zubia/${EVENTS.zubiaPublished}`));
+
+    expect(html).not.toContain('<h2>Programa</h2>');
+  });
+
   it('says a cancelled event is cancelled rather than hiding it', async () => {
     const result = await serve(`/e/la-zubia/${EVENTS.zubiaCancelled}`);
 

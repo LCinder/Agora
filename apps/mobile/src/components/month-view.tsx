@@ -1,9 +1,11 @@
 import {
+  activitiesOf,
   buildMonthGrid,
   formatLongDate,
   monthDays,
   readableOn,
   shiftMonth,
+  type Activity,
   type Event,
   type EventCategory,
   type MonthDay,
@@ -36,9 +38,12 @@ const MAX_DOTS = 3;
 export function MonthView({
   events,
   categories,
+  activities = [],
 }: {
   events: Event[];
   categories: EventCategory[];
+  /** Every programme in the town, so a feria fills the days it actually covers. */
+  activities?: Activity[];
 }) {
   const { municipality, t, theme } = useApp();
   const timeZone = municipality?.timeZone ?? 'Europe/Madrid';
@@ -48,8 +53,8 @@ export function MonthView({
   const [selected, setSelected] = useState<string | null>(null);
 
   const grid = useMemo(
-    () => buildMonthGrid(events, { now, timeZone, month }),
-    [events, month, now, timeZone],
+    () => buildMonthGrid(events, { now, timeZone, month, activities }),
+    [activities, events, month, now, timeZone],
   );
 
   // The chosen day, or today when it is on screen, or the first day with
@@ -148,6 +153,7 @@ export function MonthView({
                 key={event.id}
                 event={event}
                 category={categories.find((category) => category.id === event.categoryId)}
+                activities={activitiesOf(activities, event.id)}
               />
             ))
           )}

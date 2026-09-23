@@ -1,4 +1,4 @@
-import { type Municipality, type Event, municipalitySchema } from '@agora/core';
+import { type Activity, type Municipality, type Event, municipalitySchema } from '@agora/core';
 import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import {
   BatchGetCommand,
@@ -9,10 +9,13 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 
 import type { StoreClient } from './client';
-import { fromEventItem } from './items';
+import { fromActivityItem, fromEventItem } from './items';
 import {
   CALENDAR_INDEX,
   INTERESTS_INDEX,
+  activityInterestIndexPk,
+  activityKey,
+  activityPrefixFor,
   audienceIndexPk,
   NOTICE_PREFIX,
   OUTBOX_PK,
@@ -21,6 +24,7 @@ import {
   deviceKey,
   eventKey,
   municipalityKey,
+  municipalityPk,
   notificationCounterKey,
 } from './keys';
 import type { NoticeType } from './notices';
@@ -77,9 +81,35 @@ export interface NotificationStore {
   municipalities(): Promise<JobMunicipality[]>;
   /** Published events of a municipality starting inside a window. */
   eventsStartingBetween(municipalityId: string, from: Date, to: Date): Promise<Event[]>;
+  /**
+   * Published lines of a programme starting inside a window.
+   *
+   * Their own reminder, separate from their event's, because that is the whole
+   * point of marking one: somebody who asked about the falconry show at six on
+   * Saturday wants to be told about the falconry show, and being told "the feria
+   * is tomorrow" instead is the reminder they did not ask for.
+   */
+  activitiesStartingBetween(municipalityId: string, from: Date, to: Date): Promise<Activity[]>;
   getEvent(municipalityId: string, eventId: string): Promise<Event | null>;
   /** Device ids to notify about an event. The only event-to-people query there is. */
   devicesInterestedIn(eventId: string): Promise<string[]>;
+  /**
+   * Device ids to notify about one line of a programme.
+   *
+   * On the same restricted index and under its own partition, so a reminder for
+   * one activity reaches the people who asked about that activity.
+   */
+  devicesInterestedInActivity(activityId: string): Promise<string[]>;
+  /**
+   * Everybody with a stake in an event: the people who marked it, and the people
+   * who marked anything in its programme.
+   *
+   * What a notice goes to. A neighbour who only marked the falconry show has to
+   * be told that the feria is cancelled or has moved — they are walking to the
+   * same square either way — and an audience that stopped at the event itself
+   * would leave exactly the people with the most specific plan uninformed.
+   */
+  devicesToNotifyAbout(municipalityId: string, eventId: string): Promise<string[]>;
   /**
    * Every device that follows a municipality.
    *
@@ -103,6 +133,18 @@ export interface NotificationStore {
   ): Promise<boolean>;
   /** False when a reminder for this event already went out. */
   claimReminder(municipalityId: string, eventId: string, at: Date): Promise<boolean>;
+  /** The same claim, on one line of a programme. */
+  claimActivityReminder(
+    municipalityId: string,
+    eventId: string,
+    activityId: string,
+    at: Date,
+  ): Promise<boolean>;
+  releaseActivityReminder(
+    municipalityId: string,
+    eventId: string,
+    activityId: string,
+  ): Promise<void>;
   /**
    * Gives the claim back, for a reminder that was claimed and then reached nobody.
    *
@@ -133,6 +175,82 @@ function expiresIn(hours: number): number {
 }
 
 export function createNotificationStore(client: StoreClient, tableName: string): NotificationStore {
+  /** The calendar index over a window, narrowed to one kind of row. */
+  async function startingBetween(
+    municipalityId: string,
+    from: Date,
+    to: Date,
+    entity: 'event' | 'activity',
+  ) {
+    const result = await client.send(
+      new QueryCommand({
+        TableName: tableName,
+        IndexName: CALENDAR_INDEX,
+        KeyConditionExpression: 'gsi1pk = :pk and gsi1sk between :from and :to',
+        FilterExpression: '#entity = :entity',
+        ExpressionAttributeNames: { '#entity': 'entity' },
+        ExpressionAttributeValues: {
+          ':pk': calendarIndexPk(municipalityId),
+          ':from': from.toISOString(),
+          ':to': to.toISOString(),
+          ':entity': entity,
+        },
+      }),
+    );
+
+    return result.Items ?? [];
+  }
+
+  /** The devices under one partition of the restricted index. */
+  async function devicesUnder(indexPk: string): Promise<string[]> {
+    const result = await client.send(
+      new QueryCommand({
+        TableName: tableName,
+        IndexName: INTERESTS_INDEX,
+        KeyConditionExpression: 'gsi3pk = :pk',
+        ExpressionAttributeValues: { ':pk': indexPk },
+      }),
+    );
+
+    // KEYS_ONLY projection: the index holds the keys and nothing else, which
+    // is all a reminder needs and the least it could hold.
+    return (result.Items ?? []).map((item) => String(item['gsi3sk']).replace('DEV#', ''));
+  }
+
+  /** One claim, on whatever row carries the `reminderSentAt` attribute. */
+  async function claim(key: { pk: string; sk: string }, at: Date): Promise<boolean> {
+    try {
+      await client.send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: key,
+          UpdateExpression: 'SET reminderSentAt = :at',
+          // Once, and by whoever got there first. The job runs every hour and
+          // a thing may sit inside the window of two runs.
+          ConditionExpression: 'attribute_exists(pk) and attribute_not_exists(reminderSentAt)',
+          ExpressionAttributeValues: { ':at': at.toISOString() },
+        }),
+      );
+
+      return true;
+    } catch (error) {
+      if (error instanceof ConditionalCheckFailedException) return false;
+
+      throw error;
+    }
+  }
+
+  async function release(key: { pk: string; sk: string }): Promise<void> {
+    await client.send(
+      new UpdateCommand({
+        TableName: tableName,
+        Key: key,
+        UpdateExpression: 'REMOVE reminderSentAt',
+        ConditionExpression: 'attribute_exists(pk)',
+      }),
+    );
+  }
+
   return {
     async municipalities() {
       // The slug pointers, which are the only list of municipalities that does
@@ -160,24 +278,19 @@ export function createNotificationStore(client: StoreClient, tableName: string):
     },
 
     async eventsStartingBetween(municipalityId, from, to) {
-      const result = await client.send(
-        new QueryCommand({
-          TableName: tableName,
-          IndexName: CALENDAR_INDEX,
-          KeyConditionExpression: 'gsi1pk = :pk and gsi1sk between :from and :to',
-          ExpressionAttributeValues: {
-            ':pk': calendarIndexPk(municipalityId),
-            ':from': from.toISOString(),
-            ':to': to.toISOString(),
-          },
-        }),
-      );
+      const items = await startingBetween(municipalityId, from, to, 'event');
 
       // The calendar index holds cancelled events too, because a neighbour has to
       // find out. What it must not do is remind them to go.
-      return (result.Items ?? [])
-        .map(fromEventItem)
-        .filter((event) => event.status === 'published');
+      return items.map(fromEventItem).filter((event) => event.status === 'published');
+    },
+
+    async activitiesStartingBetween(municipalityId, from, to) {
+      const items = await startingBetween(municipalityId, from, to, 'activity');
+
+      // Same rule, same reason: a cancelled line stays on the programme so the
+      // town can read that it is off, and nobody gets reminded to turn up to it.
+      return items.map(fromActivityItem).filter((activity) => activity.status === 'published');
     },
 
     async getEvent(municipalityId, eventId) {
@@ -189,18 +302,42 @@ export function createNotificationStore(client: StoreClient, tableName: string):
     },
 
     async devicesInterestedIn(eventId) {
-      const result = await client.send(
+      return devicesUnder(`EVT#${eventId}`);
+    },
+
+    async devicesInterestedInActivity(activityId) {
+      return devicesUnder(activityInterestIndexPk(activityId));
+    },
+
+    async devicesToNotifyAbout(municipalityId, eventId) {
+      // The programme is read off the municipality's own partition rather than
+      // the calendar index, because a notice about a cancelled feria has to
+      // reach the people who marked lines that are themselves cancelled — and
+      // those are out of the calendar index by then.
+      const programme = await client.send(
         new QueryCommand({
           TableName: tableName,
-          IndexName: INTERESTS_INDEX,
-          KeyConditionExpression: 'gsi3pk = :pk',
-          ExpressionAttributeValues: { ':pk': `EVT#${eventId}` },
+          KeyConditionExpression: 'pk = :pk and begins_with(sk, :prefix)',
+          ExpressionAttributeValues: {
+            ':pk': municipalityPk(municipalityId),
+            ':prefix': activityPrefixFor(eventId),
+          },
+          ProjectionExpression: 'id',
         }),
       );
 
-      // KEYS_ONLY projection: the index holds the keys and nothing else, which
-      // is all a reminder needs and the least it could hold.
-      return (result.Items ?? []).map((item) => String(item['gsi3sk']).replace('DEV#', ''));
+      const audiences = await Promise.all([
+        devicesUnder(`EVT#${eventId}`),
+        ...(programme.Items ?? []).map((item) =>
+          devicesUnder(activityInterestIndexPk(String(item['id']))),
+        ),
+      ]);
+
+      // One message each, however many lines of the feria they marked. Without
+      // this a neighbour who marked six activities would get six identical
+      // pushes saying the feria is off — and would spend six of their three
+      // notifications for the day doing it.
+      return [...new Set(audiences.flat())];
     },
 
     async devicesFollowing(municipalityId) {
@@ -300,36 +437,19 @@ export function createNotificationStore(client: StoreClient, tableName: string):
     },
 
     async claimReminder(municipalityId, eventId, at) {
-      try {
-        await client.send(
-          new UpdateCommand({
-            TableName: tableName,
-            Key: eventKey(municipalityId, eventId),
-            UpdateExpression: 'SET reminderSentAt = :at',
-            // Once, and by whoever got there first. The job runs every hour and
-            // an event may sit inside the window of two runs.
-            ConditionExpression: 'attribute_exists(pk) and attribute_not_exists(reminderSentAt)',
-            ExpressionAttributeValues: { ':at': at.toISOString() },
-          }),
-        );
-
-        return true;
-      } catch (error) {
-        if (error instanceof ConditionalCheckFailedException) return false;
-
-        throw error;
-      }
+      return claim(eventKey(municipalityId, eventId), at);
     },
 
     async releaseReminder(municipalityId, eventId) {
-      await client.send(
-        new UpdateCommand({
-          TableName: tableName,
-          Key: eventKey(municipalityId, eventId),
-          UpdateExpression: 'REMOVE reminderSentAt',
-          ConditionExpression: 'attribute_exists(pk)',
-        }),
-      );
+      await release(eventKey(municipalityId, eventId));
+    },
+
+    async claimActivityReminder(municipalityId, eventId, activityId, at) {
+      return claim(activityKey(municipalityId, eventId, activityId), at);
+    },
+
+    async releaseActivityReminder(municipalityId, eventId, activityId) {
+      await release(activityKey(municipalityId, eventId, activityId));
     },
 
     async pendingPushes(limit) {

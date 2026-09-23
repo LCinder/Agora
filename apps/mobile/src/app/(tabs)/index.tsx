@@ -1,4 +1,12 @@
-import { filterEvents, groupEvents, type Event, type EventCategory } from '@agora/core';
+import {
+  activitiesOf,
+  filterEvents,
+  groupEvents,
+  matchingActivities,
+  type Activity,
+  type Event,
+  type EventCategory,
+} from '@agora/core';
 import { Redirect, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,7 +30,7 @@ import { FONTS } from '../../theme/theme';
  */
 export default function CalendarScreen() {
   const { municipality, ready, t, theme } = useApp();
-  const { loading, refreshing, refresh, events, categories } = useMunicipalityData();
+  const { loading, refreshing, refresh, events, activities, categories } = useMunicipalityData();
   const clearance = useTabBarClearance(theme.spacing);
   const router = useRouter();
 
@@ -32,11 +40,18 @@ export default function CalendarScreen() {
 
   const filtered = useMemo(
     () =>
-      filterEvents(events, {
-        ...(selectedCategory ? { categoryIds: [selectedCategory] } : {}),
-        freeOnly,
-      }),
-    [events, freeOnly, selectedCategory],
+      filterEvents(
+        events,
+        {
+          ...(selectedCategory ? { categoryIds: [selectedCategory] } : {}),
+          freeOnly,
+        },
+        // A feria whose puppet show is filed under "Infantil" comes back when a
+        // parent taps that chip, even though the feria itself is under
+        // "Fiestas". What they are looking for is in there.
+        activities,
+      ),
+    [activities, events, freeOnly, selectedCategory],
   );
 
   const groups = useMemo(
@@ -44,8 +59,11 @@ export default function CalendarScreen() {
       groupEvents(filtered, {
         now: new Date(),
         timeZone: municipality?.timeZone ?? 'Europe/Madrid',
+        // Without these a four-day feria drops out of "Hoy" on its first
+        // evening and is never seen again while its programme is still to come.
+        activities,
       }),
-    [filtered, municipality],
+    [activities, filtered, municipality],
   );
 
   if (!ready) {
@@ -60,12 +78,36 @@ export default function CalendarScreen() {
     return <Redirect href="/welcome" />;
   }
 
-  const categoriesInUse = categories.filter((category) =>
-    events.some((event) => event.categoryId === category.id),
+  // A category earns a chip if anything in the town is filed under it —
+  // including one line of a programme. A chip that returns nothing is worse than
+  // no chip, and so is a missing one for the only puppet show of the year.
+  const categoriesInUse = categories.filter(
+    (category) =>
+      events.some((event) => event.categoryId === category.id) ||
+      activities.some((activity) => activity.categoryId === category.id),
   );
 
   const hasAnything = groups.today.length + groups.thisWeekend.length + groups.upcoming.length > 0;
   const isFiltered = selectedCategory !== null || freeOnly;
+
+  /**
+   * Why a card is in the list, when the reason is one of its activities.
+   *
+   * Only while a category chip is on. An event that matches on its own gets
+   * nothing: the chip already explains it, and a line saying "1 actividad de
+   * Cultura" under a concert is noise.
+   */
+  const chosenCategory = categories.find((entry) => entry.id === selectedCategory);
+
+  const matchingFor = (event: Event) => {
+    if (chosenCategory === undefined || event.categoryId === chosenCategory.id) return undefined;
+
+    const inside = matchingActivities(event, activities, { categoryIds: [chosenCategory.id] });
+
+    return inside.length === 0
+      ? undefined
+      : { count: inside.length, category: chosenCategory.name };
+  };
 
   return (
     <Screen>
@@ -173,7 +215,7 @@ export default function CalendarScreen() {
         >
           {view === 'month' ? (
             <Animated.View key="month" entering={FadeIn.duration(220)}>
-              <MonthView events={filtered} categories={categories} />
+              <MonthView events={filtered} categories={categories} activities={activities} />
             </Animated.View>
           ) : (
             <Animated.View
@@ -185,18 +227,24 @@ export default function CalendarScreen() {
                 title={t('calendar.today')}
                 events={groups.today}
                 categories={categories}
+                activities={activities}
+                matchingFor={matchingFor}
                 leads={groups.today.length > 0}
               />
               <Section
                 title={t('calendar.thisWeekend')}
                 events={groups.thisWeekend}
                 categories={categories}
+                activities={activities}
+                matchingFor={matchingFor}
                 leads={groups.today.length === 0}
               />
               <Section
                 title={t('calendar.upcoming')}
                 events={groups.upcoming}
                 categories={categories}
+                activities={activities}
+                matchingFor={matchingFor}
                 leads={groups.today.length + groups.thisWeekend.length === 0}
               />
 
@@ -287,11 +335,17 @@ function Section({
   title,
   events,
   categories,
+  activities,
+  matchingFor,
   leads = false,
 }: {
   title: string;
   events: Event[];
   categories: EventCategory[];
+  /** Every programme in the town; each card takes its own out of it. */
+  activities: Activity[];
+  /** Why a card is here, when the reason is inside it rather than on it. */
+  matchingFor: (event: Event) => { count: number; category: string } | undefined;
   leads?: boolean;
 }) {
   const { theme } = useApp();
@@ -304,6 +358,7 @@ function Section({
 
   const categoryOf = (event: Event) =>
     categories.find((category) => category.id === event.categoryId);
+  const programmeOf = (event: Event) => activitiesOf(activities, event.id);
 
   return (
     <View style={{ gap: theme.spacing(4) }}>
@@ -314,7 +369,13 @@ function Section({
 
       {lead ? (
         <Animated.View entering={FadeInDown.duration(380).springify().damping(18)}>
-          <EventCard event={lead} category={categoryOf(lead)} variant="hero" />
+          <EventCard
+            event={lead}
+            category={categoryOf(lead)}
+            activities={programmeOf(lead)}
+            matching={matchingFor(lead)}
+            variant="hero"
+          />
         </Animated.View>
       ) : null}
 
@@ -337,7 +398,12 @@ function Section({
                 }
           }
         >
-          <EventCard event={event} category={categoryOf(event)} />
+          <EventCard
+            event={event}
+            category={categoryOf(event)}
+            activities={programmeOf(event)}
+            matching={matchingFor(event)}
+          />
         </Animated.View>
       ))}
     </View>

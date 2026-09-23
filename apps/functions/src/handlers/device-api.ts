@@ -42,6 +42,20 @@ function municipalityFrom(event: ApiEvent): string | null {
   return value === undefined || value === '' ? null : value;
 }
 
+/**
+ * The event a marked activity belongs to.
+ *
+ * It travels with the request because the counter the mark moves lives on the
+ * activity's row, and that row is keyed by its event as well as itself. Asking
+ * the phone for it costs a query string parameter; looking it up here would cost
+ * a read of every programme in the town.
+ */
+function eventFrom(event: ApiEvent): string | null {
+  const value = event.queryStringParameters?.['eventId'];
+
+  return value === undefined || value === '' ? null : value;
+}
+
 export async function route(
   event: ApiEvent,
   dependencies: DeviceApiDependencies,
@@ -111,6 +125,48 @@ async function dispatch(event: ApiEvent, dependencies: DeviceApiDependencies): P
       // shared link is one of that municipality's neighbours too.
       await store.follow(municipalityId);
       await store.markInterest(municipalityId, pathParameter(event, 'eventId'));
+
+      return noContent();
+    }
+
+    /**
+     * Marking one line of a programme.
+     *
+     * Its own pair of routes rather than an argument on the two above, because a
+     * mark on an activity is a different row, a different counter and a different
+     * reminder. Marking one is following the town for the same reason marking an
+     * event is: somebody who came in through a shared link and marked the
+     * falconry show is one of that municipality's neighbours.
+     */
+    case 'PUT /me/activity-interests/{activityId}': {
+      const municipalityId = municipalityFrom(event);
+      const eventId = eventFrom(event);
+
+      if (municipalityId === null) return badRequest('Falta municipalityId.');
+      if (eventId === null) return badRequest('Falta eventId.');
+
+      await store.follow(municipalityId);
+      await store.markActivityInterest(
+        municipalityId,
+        eventId,
+        pathParameter(event, 'activityId'),
+      );
+
+      return noContent();
+    }
+
+    case 'DELETE /me/activity-interests/{activityId}': {
+      const municipalityId = municipalityFrom(event);
+      const eventId = eventFrom(event);
+
+      if (municipalityId === null) return badRequest('Falta municipalityId.');
+      if (eventId === null) return badRequest('Falta eventId.');
+
+      await store.unmarkActivityInterest(
+        municipalityId,
+        eventId,
+        pathParameter(event, 'activityId'),
+      );
 
       return noContent();
     }

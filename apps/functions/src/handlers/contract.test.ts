@@ -83,6 +83,12 @@ const ROUTES: { method: string; pattern: RegExp; routeKey: string; names: string
   },
   {
     method: 'GET',
+    pattern: /^\/municipalities\/([^/]+)\/activities$/,
+    routeKey: 'GET /municipalities/{municipalityId}/activities',
+    names: ['municipalityId'],
+  },
+  {
+    method: 'GET',
     pattern: /^\/municipalities\/([^/]+)\/categories$/,
     routeKey: 'GET /municipalities/{municipalityId}/categories',
     names: ['municipalityId'],
@@ -106,6 +112,18 @@ const ROUTES: { method: string; pattern: RegExp; routeKey: string; names: string
     pattern: /^\/me\/interests\/([^/]+)$/,
     routeKey: 'DELETE /me/interests/{eventId}',
     names: ['eventId'],
+  },
+  {
+    method: 'PUT',
+    pattern: /^\/me\/activity-interests\/([^/]+)$/,
+    routeKey: 'PUT /me/activity-interests/{activityId}',
+    names: ['activityId'],
+  },
+  {
+    method: 'DELETE',
+    pattern: /^\/me\/activity-interests\/([^/]+)$/,
+    routeKey: 'DELETE /me/activity-interests/{activityId}',
+    names: ['activityId'],
   },
   {
     method: 'PUT',
@@ -624,6 +642,168 @@ describe.skipIf(local === null)('the app against the API', () => {
 
     expect(await panel.getEvent(created.id)).toBeNull();
     expect((await panel.listEvents()).map((found) => found.id)).not.toContain(created.id);
+  });
+
+  /**
+   * A feria, end to end.
+   *
+   * The town hall types the event and its programme, a resident's phone reads
+   * the programme off the public route, marks one line of it, and the reminder
+   * job finds that phone under that line and not under the feria. Every one of
+   * those steps crosses a boundary this test is the only thing watching.
+   */
+  it('runs a feria with a programme, and marks one line of it', async () => {
+    const memberships = createMembershipStore(client, TABLE);
+    const bootstrap = {
+      authUserId: 'auth-feria',
+      municipalityId: ZUBIA,
+      role: 'municipal_admin' as const,
+      organizationId: null,
+    };
+
+    await memberships.grant(bootstrap, {
+      authUserId: 'auth-feria',
+      role: 'municipal_admin',
+      email: 'feria@lazubia.es',
+    });
+
+    const panel = createPanelClient({
+      baseUrl: BASE,
+      fetch: apiAsFetch,
+      municipalityId: ZUBIA,
+      token: () => 'auth-feria',
+    });
+
+    const feria = await panel.createEvent({
+      title: 'Feria Medieval',
+      categoryId: 'cat-fiestas',
+      startAt: new Date('2027-05-14T09:00:00.000Z'),
+      location: { name: 'Casco antiguo', latitude: null, longitude: null },
+      status: 'published',
+    });
+
+    const falcons = await panel.createActivity(feria.id, {
+      title: 'Show de aves rapaces',
+      startAt: new Date('2027-05-15T16:00:00.000Z'),
+      endAt: new Date('2027-05-15T17:00:00.000Z'),
+      categoryId: 'cat-fiestas',
+    });
+    const cheese = await panel.createActivity(feria.id, {
+      title: 'Taller de queso curado',
+      startAt: new Date('2027-05-15T09:00:00.000Z'),
+      isFree: false,
+      priceInfo: '5 €',
+    });
+
+    expect(falcons.eventId).toBe(feria.id);
+    expect(falcons.status).toBe('published');
+    // Left null, which is what "the same as the event" is stored as.
+    expect(cheese.location).toBeNull();
+    expect(cheese.isFree).toBe(false);
+
+    // What a resident's phone reads: the whole town's programmes, off the
+    // calendar index, with real dates.
+    const programme = await data.listActivities(ZUBIA);
+    const mine = programme.filter((activity) => activity.eventId === feria.id);
+
+    expect(mine.map((activity) => activity.id).sort()).toEqual([cheese.id, falcons.id].sort());
+    expect(mine[0]?.startAt).toBeInstanceOf(Date);
+
+    // One line marked, and only that line. The falcons get a mark; the feria
+    // around them does not, which is the whole point of activities being their
+    // own thing.
+    await devices.markActivity(ZUBIA, feria.id, falcons.id);
+
+    const marks = await devices.listInterests();
+    const onFalcons = marks.find((mark) => mark.activityId === falcons.id);
+
+    expect(onFalcons?.eventId).toBe(feria.id);
+    expect(marks.some((mark) => mark.activityId === null && mark.eventId === feria.id)).toBe(false);
+
+    const registration = await devices.register();
+    const notifications = createNotificationStore(client, TABLE);
+
+    // The reminder job finds the phone under the activity and not under the
+    // event: a reminder about the falcons goes to whoever asked about the
+    // falcons.
+    expect(await notifications.devicesInterestedInActivity(falcons.id)).toContain(
+      registration.deviceId,
+    );
+    expect(await notifications.devicesInterestedIn(feria.id)).not.toContain(registration.deviceId);
+
+    // But a notice about the feria reaches them anyway: they are walking to the
+    // same square, and have to be told if it moves.
+    expect(await notifications.devicesToNotifyAbout(ZUBIA, feria.id)).toContain(
+      registration.deviceId,
+    );
+
+    // The count the panel reads, and the only thing it ever learns about who.
+    const counted = (await panel.listActivities()).find((entry) => entry.id === falcons.id);
+
+    expect(counted?.interestCount).toBe(1);
+
+    await devices.unmarkActivity(ZUBIA, feria.id, falcons.id);
+
+    expect((await devices.listInterests()).some((mark) => mark.activityId === falcons.id)).toBe(
+      false,
+    );
+
+    // Deleting the feria takes its programme with it. A line left behind would
+    // sit in the calendar index on its own, and the app would draw it.
+    await panel.deleteEvent(feria.id);
+
+    expect(
+      (await data.listActivities(ZUBIA)).some((activity) => activity.eventId === feria.id),
+    ).toBe(false);
+  });
+
+  it('keeps the programme of an event residents cannot see out of the public calendar', async () => {
+    const memberships = createMembershipStore(client, TABLE);
+    const bootstrap = {
+      authUserId: 'auth-draft',
+      municipalityId: ZUBIA,
+      role: 'municipal_admin' as const,
+      organizationId: null,
+    };
+
+    await memberships.grant(bootstrap, {
+      authUserId: 'auth-draft',
+      role: 'municipal_admin',
+      email: 'borradores@lazubia.es',
+    });
+
+    const panel = createPanelClient({
+      baseUrl: BASE,
+      fetch: apiAsFetch,
+      municipalityId: ZUBIA,
+      token: () => 'auth-draft',
+    });
+
+    const draft = await panel.createEvent({
+      title: 'Semana cultural sin publicar',
+      categoryId: 'cat-fiestas',
+      startAt: new Date('2027-10-01T09:00:00.000Z'),
+      location: { name: 'Teatro', latitude: null, longitude: null },
+      status: 'draft',
+    });
+
+    const hidden = await panel.createActivity(draft.id, {
+      title: 'Presentación del programa',
+      startAt: new Date('2027-10-01T18:00:00.000Z'),
+    });
+
+    // The line says it is published, and it is still invisible: an activity is
+    // only ever as public as the event it hangs off.
+    expect(hidden.status).toBe('published');
+    expect((await data.listActivities(ZUBIA)).map((entry) => entry.id)).not.toContain(hidden.id);
+
+    // Publishing the event brings its whole programme with it, without touching
+    // any of the lines.
+    await panel.approveEvent(draft.id);
+
+    expect((await data.listActivities(ZUBIA)).map((entry) => entry.id)).toContain(hidden.id);
+
+    await panel.deleteEvent(draft.id);
   });
 
   it('refuses the panel to somebody with no membership', async () => {

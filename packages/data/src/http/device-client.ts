@@ -21,9 +21,20 @@ const registrationSchema = z.object({
 
 export type DeviceRegistration = z.infer<typeof registrationSchema>;
 
+/**
+ * A mark, on an event or on one line of its programme.
+ *
+ * `activityId` is null for an event and set for an activity, and the two are
+ * separate marks: a neighbour interested only in the falconry show has not said
+ * anything about the feria, and marking the feria does not mark its twenty
+ * lines. What ties them together is the notices — a cancelled feria reaches
+ * everybody who marked anything in it — and that is the server's job, not this
+ * one's.
+ */
 const interestSchema = z.object({
   municipalityId: z.string().min(1),
   eventId: z.string().min(1),
+  activityId: z.string().min(1).nullable().default(null),
   createdAt: z.coerce.date(),
 });
 
@@ -48,6 +59,15 @@ export interface DeviceClient {
   listInterests(): Promise<RemoteInterest[]>;
   mark(municipalityId: string, eventId: string): Promise<void>;
   unmark(municipalityId: string, eventId: string): Promise<void>;
+  /**
+   * The same thing for one line of a programme.
+   *
+   * Its own pair of calls rather than an argument on the two above, because the
+   * path is what the API routes on and a mark on an activity lands on a different
+   * counter, a different reminder and a different row.
+   */
+  markActivity(municipalityId: string, eventId: string, activityId: string): Promise<void>;
+  unmarkActivity(municipalityId: string, eventId: string, activityId: string): Promise<void>;
   /**
    * Says this phone opened an event, which is what the town hall's "vistas" is.
    *
@@ -127,6 +147,12 @@ export function createDeviceClient(options: DeviceClientOptions): DeviceClient {
   const interestPath = (municipalityId: string, eventId: string) =>
     under('interests', municipalityId, eventId);
 
+  // The event travels too, because the mark is stored under it: a line of a
+  // programme is not addressable without knowing which programme.
+  const activityInterestPath = (municipalityId: string, eventId: string, activityId: string) =>
+    `/me/activity-interests/${encodeURIComponent(activityId)}` +
+    `?municipalityId=${encodeURIComponent(municipalityId)}&eventId=${encodeURIComponent(eventId)}`;
+
   return {
     register,
 
@@ -144,6 +170,16 @@ export function createDeviceClient(options: DeviceClientOptions): DeviceClient {
     async unmark(municipalityId, eventId) {
       await register();
       await api.send('DELETE', interestPath(municipalityId, eventId));
+    },
+
+    async markActivity(municipalityId, eventId, activityId) {
+      await register();
+      await api.send('PUT', activityInterestPath(municipalityId, eventId, activityId));
+    },
+
+    async unmarkActivity(municipalityId, eventId, activityId) {
+      await register();
+      await api.send('DELETE', activityInterestPath(municipalityId, eventId, activityId));
     },
 
     async view(municipalityId, eventId) {

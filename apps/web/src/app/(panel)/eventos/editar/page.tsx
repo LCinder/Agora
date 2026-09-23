@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 
 import { EventForm } from '../../../../components/event-form';
+import { ProgrammeEditor } from '../../../../components/programme-editor';
 import {
   Button,
   Card,
@@ -118,6 +119,11 @@ function EditEventView() {
       />
 
       <EventForm event={event} />
+
+      {/* Under the event's own fields, because that is the order the work
+          happens in: a technician types the feria, saves it, and then works
+          down the poster adding what is inside it. */}
+      <ProgrammeEditor event={event} />
 
       <section className="mt-8 grid gap-6 lg:grid-cols-[2fr_1fr]">
         {municipal ? (

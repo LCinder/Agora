@@ -1,6 +1,16 @@
 'use client';
 
-import { byStartDate, formatWhen, isAwaitingReview } from '@agora/core';
+import {
+  byStartDate,
+  formatWhen,
+  formatLongDate,
+  formatTime,
+  isActivityAwaitingReview,
+  isAwaitingReview,
+  type Activity,
+  type Event,
+} from '@agora/core';
+import Link from 'next/link';
 import { useState } from 'react';
 
 import { Button, Card, Empty, Field, PageHeader, TextArea } from '../../../components/ui';
@@ -14,8 +24,18 @@ import { usePanel } from '../../../lib/panel-store';
  * town hall only says yes or no.
  */
 export default function ReviewPage() {
-  const { approveEvent, events, loading, municipality, organizations, rejectEvent, role } =
-    usePanel();
+  const {
+    activities,
+    approveActivity,
+    approveEvent,
+    events,
+    loading,
+    municipality,
+    organizations,
+    rejectActivity,
+    rejectEvent,
+    role,
+  } = usePanel();
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [reason, setReason] = useState('');
 
@@ -38,6 +58,27 @@ export default function ReviewPage() {
   const pending = events.filter(isAwaitingReview).sort(byStartDate);
   const trusted = organizations.filter((organization) => organization.isTrusted);
 
+  /**
+   * Lines of a programme waiting on a decision: new ones, and edits to published
+   * ones.
+   *
+   * Their event comes with them, because "Taller de queso curado" on its own is
+   * not something anybody can approve — the question is whether it belongs in
+   * that feria. Events still waiting themselves are left out: approving the
+   * feria publishes its programme with it, so listing both would ask the same
+   * question twice.
+   */
+  const pendingActivities = activities
+    .filter(isActivityAwaitingReview)
+    .map((activity) => ({ activity, event: events.find((entry) => entry.id === activity.eventId) }))
+    .filter(
+      (entry): entry is { activity: Activity; event: Event } =>
+        entry.event !== undefined && !isAwaitingReview(entry.event),
+    )
+    .sort(
+      (left, right) => left.activity.startAt.getTime() - right.activity.startAt.getTime(),
+    );
+
   return (
     <>
       <PageHeader
@@ -45,9 +86,9 @@ export default function ReviewPage() {
         description="Eventos que las asociaciones han enviado y esperan tu aprobación."
       />
 
-      {pending.length === 0 ? (
+      {pending.length === 0 && pendingActivities.length === 0 ? (
         <Empty>No hay nada pendiente. Las asociaciones no tienen eventos en cola.</Empty>
-      ) : (
+      ) : pending.length === 0 ? null : (
         <div className="grid gap-3">
           {pending.map((event) => {
             const organization = organizations.find((entry) => entry.id === event.organizationId);
@@ -121,6 +162,105 @@ export default function ReviewPage() {
             );
           })}
         </div>
+      )}
+
+      {pendingActivities.length === 0 ? null : (
+        <section className="mt-8">
+          <h2 className="mb-1 text-lg font-semibold">Actividades dentro de un evento</h2>
+          <p className="mb-3 text-sm text-neutral-600 dark:text-neutral-400">
+            Líneas del programa de un evento ya publicado. Hasta que las apruebes, los vecinos ven
+            el programa como estaba.
+          </p>
+
+          <div className="grid gap-3">
+            {pendingActivities.map(({ activity, event }) => {
+              const organization = organizations.find(
+                (entry) => entry.id === event.organizationId,
+              );
+              const key = `activity-${activity.id}`;
+
+              return (
+                <Card key={activity.id}>
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="font-medium">{activity.title}</p>
+                      <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                        {formatLongDate(activity.startAt, context)} ·{' '}
+                        {formatTime(activity.startAt, context)}
+                      </p>
+                      <p className="mt-1 text-sm">
+                        Dentro de{' '}
+                        <Link
+                          href={`/eventos/editar?id=${event.id}`}
+                          className="font-medium underline"
+                        >
+                          {event.title}
+                        </Link>
+                        {organization ? `, de ${organization.name}` : ''}
+                      </p>
+                      <p className="mt-1 text-xs text-neutral-500">
+                        {activity.pendingPatch === null
+                          ? 'Actividad nueva, todavía no publicada.'
+                          : 'Cambio sobre una actividad que los vecinos ya ven.'}
+                      </p>
+                      {activity.description ? (
+                        <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+                          {activity.description}
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        brand={municipality.branding.primaryColor}
+                        onClick={() => void approveActivity(event.id, activity.id)}
+                      >
+                        {activity.pendingPatch === null ? 'Aprobar y publicar' : 'Aprobar el cambio'}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          setRejecting(rejecting === key ? null : key);
+                          setReason('');
+                        }}
+                      >
+                        Rechazar
+                      </Button>
+                    </div>
+                  </div>
+
+                  {rejecting === key ? (
+                    <div className="mt-4 border-t border-black/10 pt-4 dark:border-white/10">
+                      <Field
+                        label="Motivo del rechazo"
+                        hint="Se lo enviamos a la asociación por email para que pueda corregirlo."
+                      >
+                        <TextArea
+                          value={reason}
+                          onChange={(changeEvent) => setReason(changeEvent.target.value)}
+                          rows={2}
+                          placeholder="Esa hora se solapa con la procesión."
+                        />
+                      </Field>
+                      <div className="mt-3">
+                        <Button
+                          variant="danger"
+                          disabled={reason.trim() === ''}
+                          onClick={() => {
+                            void rejectActivity(event.id, activity.id, reason.trim());
+                            setRejecting(null);
+                          }}
+                        >
+                          Rechazar actividad
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
+                </Card>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       <section className="mt-8">

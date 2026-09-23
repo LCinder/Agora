@@ -1,10 +1,15 @@
 import {
   BRAND,
+  type Activity,
   type Event,
   type Municipality,
   type Organization,
+  activityDefaults,
+  activityHasOwnLocation,
+  activityPrice,
   formatLongDate,
   formatTime,
+  groupActivitiesByDay,
   publicEventPath,
 } from '@agora/core';
 
@@ -47,6 +52,8 @@ export interface EventPageInput {
   municipality: Municipality;
   event: Event;
   organization: Organization | null;
+  /** The programme, for an event that has one. Empty for almost every event. */
+  activities?: readonly Activity[];
   /** Where this page is served from, for the canonical and Open Graph URLs. */
   siteUrl: string;
 }
@@ -71,8 +78,63 @@ function mapUrl(event: Event): string | null {
   return `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=17/${latitude}/${longitude}`;
 }
 
+/**
+ * The programme, printed the way a poster prints it: a heading per day and a
+ * time down the left.
+ *
+ * Empty string for an event with no programme, which is most of them, so the
+ * page gains nothing and loses nothing by asking.
+ *
+ * A cancelled line stays, struck through and labelled. Somebody opening this
+ * link from a WhatsApp group on the Saturday morning is the exact person who
+ * needs to read that the falconry show is off, and a line that quietly
+ * disappeared would send them to the square anyway.
+ */
+function programme(event: Event, activities: readonly Activity[], timeZone: string): string {
+  if (activities.length === 0) return '';
+
+  const context = { now: new Date(), timeZone, locale: 'es' as const };
+  const defaults = activityDefaults(event);
+
+  const days = groupActivitiesByDay(activities, timeZone)
+    .map((day) => {
+      const lines = day.activities
+        .map((activity) => {
+          const cancelled = activity.status === 'cancelled';
+          const price = activityPrice(activity, defaults);
+          const where = activityHasOwnLocation(activity, defaults)
+            ? ` · ${escapeHtml(activity.location?.name ?? '')}`
+            : '';
+          const cost = price.isFree || price.priceInfo === null
+            ? ''
+            : ` · ${escapeHtml(price.priceInfo)}`;
+
+          const time = formatTime(activity.startAt, context);
+          const ends = activity.endAt === null ? '' : `–${formatTime(activity.endAt, context)}`;
+
+          return `<li${cancelled ? ' class="off"' : ''}>
+            <span class="at">${escapeHtml(time)}${escapeHtml(ends)}</span>
+            <span class="what">
+              <strong>${escapeHtml(activity.title)}</strong>${cancelled ? ' <em>Cancelada</em>' : ''}${where}${cost}
+              ${activity.description === '' ? '' : `<span class="note">${escapeHtml(activity.description)}</span>`}
+            </span>
+          </li>`;
+        })
+        .join('\n');
+
+      return `<section class="day">
+        <h3>${escapeHtml(formatLongDate(day.date, context))}</h3>
+        <ul>${lines}</ul>
+      </section>`;
+    })
+    .join('\n');
+
+  return `<div class="programme"><h2>Programa</h2>${days}</div>`;
+}
+
 export function renderEventPage(input: EventPageInput): string {
   const { municipality, event, organization, siteUrl } = input;
+  const activities = input.activities ?? [];
 
   const brand = municipality.branding.primaryColor;
   const schedule = when(event, municipality);
@@ -86,7 +148,12 @@ export function renderEventPage(input: EventPageInput): string {
     siteUrl === ''
       ? null
       : `${siteUrl.replace(/\/$/, '')}${publicEventPath(municipality.slug, event.id)}`;
-  const description = `${schedule} · ${event.location.name}`;
+  // The card a WhatsApp group sees. For something with a programme, how many
+  // things are in it is the fact that makes somebody open the link.
+  const description =
+    activities.length === 0
+      ? `${schedule} · ${event.location.name}`
+      : `${schedule} · ${event.location.name} · ${activities.length} actividades`;
   const place = mapUrl(event);
 
   // The card people see before they decide whether to open the link. The image is
@@ -141,6 +208,19 @@ export function renderEventPage(input: EventPageInput): string {
       a { color: inherit; }
       .poster { margin: 1.75rem 0 0; width: 100%; height: auto; border-radius: 0.75rem; }
       .description { margin: 1.75rem 0 0; white-space: pre-line; }
+      .programme { margin: 2.25rem 0 0; }
+      .programme h2 { margin: 0 0 0.25rem; font-size: 1.25rem; }
+      .day { margin: 1.5rem 0 0; }
+      .day h3 { margin: 0 0 0.5rem; font-size: 0.85rem; font-weight: 650; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+      .day ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.75rem; }
+      .day li { display: grid; grid-template-columns: 5.5rem 1fr; gap: 0.5rem; align-items: baseline; }
+      .at { color: var(--brand); font-variant-numeric: tabular-nums; font-weight: 650; font-size: 0.95rem; }
+      .what { display: grid; gap: 0.15rem; }
+      .note { color: var(--muted); font-size: 0.9rem; }
+      .off { opacity: 0.6; }
+      .off strong { text-decoration: line-through; }
+      .off em { font-style: normal; font-weight: 650; color: #b91c1c; }
+      @media (max-width: 26rem) { .day li { grid-template-columns: 1fr; gap: 0.1rem; } }
       .app { margin: 2.5rem 0 0; padding: 1.25rem; border-radius: 0.9rem; background: var(--brand); color: #fff; }
       .app p { margin: 0; }
       .app .lead { font-size: 1.05rem; font-weight: 650; }
@@ -167,6 +247,7 @@ export function renderEventPage(input: EventPageInput): string {
         ${detail('Precio', escapeHtml(price))}
       </dl>
       ${event.description === '' ? '' : `<p class="description">${escapeHtml(event.description)}</p>`}
+      ${programme(event, activities, municipality.timeZone)}
       <div class="app">
         <p class="lead">Toda la agenda de ${escapeHtml(municipality.name)} en el móvil</p>
         <p class="small">Recibe un recordatorio de lo que te interesa y entérate si algo cambia de hora o se cancela.</p>

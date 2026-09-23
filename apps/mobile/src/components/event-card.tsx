@@ -1,9 +1,12 @@
 import {
+  activitiesWithin,
+  dayRange,
   formatRelativeDay,
   formatTime,
   formatWhen,
   readableOn,
   reportableCount,
+  type Activity,
   type Event,
   type EventCategory,
 } from '@agora/core';
@@ -35,10 +38,21 @@ const HERO_HEIGHT = 264;
 export function EventCard({
   event,
   category,
+  activities = [],
+  matching,
   variant = 'row',
 }: {
   event: Event;
   category: EventCategory | undefined;
+  /** This event's programme, when it has one. The card only counts it. */
+  activities?: readonly Activity[];
+  /**
+   * Why this card is in a filtered list, when the reason is inside it.
+   *
+   * Tapping "Infantil" and getting a four-day feria back is confusing until the
+   * card says "3 actividades de Infantil", which is the true and useful answer.
+   */
+  matching?: { count: number; category: string };
   variant?: 'hero' | 'row';
 }) {
   const { locale, municipality, t, theme, isInterested } = useApp();
@@ -50,6 +64,26 @@ export function EventCard({
   const when = formatWhen(event, context);
   const cancelled = event.status === 'cancelled';
   const saved = isInterested(event.id);
+
+  /**
+   * What the card says about the programme, if there is one.
+   *
+   * Three answers in order of how much the reader needs them. Why this card is
+   * in a filtered list beats everything: they asked a question and this is the
+   * answer. Then what is on **today**, which is what somebody has on the
+   * Saturday morning of a four-day feria. Then how big the thing is, which is
+   * what makes them tap on the days before.
+   */
+  const today = dayRange(context.now, municipality.timeZone);
+  const onToday = activitiesWithin(activities, today);
+  const programmeLabel =
+    matching !== undefined && matching.count > 0
+      ? t('programme.matchingCount', { count: matching.count, category: matching.category })
+      : activities.length === 0
+        ? null
+        : onToday.length > 0
+          ? t('programme.todayCount', { count: onToday.length })
+          : t('programme.activityCount', { count: activities.length });
 
   // The category colour is authored for print; on this ground it has to be
   // lifted to stay legible as a label (see `readableOn`).
@@ -75,7 +109,9 @@ export function EventCard({
       <Pressable
         onPress={() => router.push(`/event/${event.id}`)}
         accessibilityRole="button"
-        accessibilityLabel={`${event.title}. ${when}. ${event.location.name}`}
+        accessibilityLabel={[event.title, when, event.location.name, programmeLabel]
+          .filter((part): part is string => part !== null)
+          .join('. ')}
         style={({ pressed }) => [
           {
             opacity: pressed ? 0.92 : cancelled ? 0.7 : 1,
@@ -126,6 +162,12 @@ export function EventCard({
               {event.title}
             </Text>
 
+            {programmeLabel === null ? null : (
+              <Text style={[styles.heroMeta, styles.programme, { marginTop: theme.spacing(1) }]}>
+                {programmeLabel}
+              </Text>
+            )}
+
             <View style={[styles.row, { gap: theme.spacing(2), marginTop: theme.spacing(2) }]}>
               <Text style={styles.heroMeta}>{formatTime(event.startAt, context)}</Text>
               <Text style={styles.heroDot}>·</Text>
@@ -147,7 +189,9 @@ export function EventCard({
     <Pressable
       onPress={() => router.push(`/event/${event.id}`)}
       accessibilityRole="button"
-      accessibilityLabel={`${event.title}. ${when}. ${event.location.name}`}
+      accessibilityLabel={[event.title, when, event.location.name, programmeLabel]
+        .filter((part): part is string => part !== null)
+        .join('. ')}
       style={({ pressed }) => [
         styles.row,
         {
@@ -170,6 +214,14 @@ export function EventCard({
           {formatRelativeDay(event.startAt, context)} · {formatTime(event.startAt, context)} ·{' '}
           {event.location.name}
         </Text>
+        {programmeLabel === null ? null : (
+          <Text
+            numberOfLines={1}
+            style={[styles.rowMeta, styles.programme, { color: theme.colors.primary }]}
+          >
+            {programmeLabel}
+          </Text>
+        )}
       </View>
 
       <Interest event={event} saved={saved} />
@@ -250,6 +302,7 @@ const styles = StyleSheet.create({
     lineHeight: 29,
   },
   onCover: { color: 'rgba(255,255,255,0.85)' },
+  programme: { fontFamily: FONTS.semibold },
   row: { alignItems: 'center', flexDirection: 'row' },
   rowMeta: { fontFamily: FONTS.regular, fontSize: 15 },
   rowTitle: { fontFamily: FONTS.bold, fontSize: 19, letterSpacing: -0.3, lineHeight: 22 },

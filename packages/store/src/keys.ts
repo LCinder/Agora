@@ -52,11 +52,40 @@ export function eventKey(municipalityId: string, eventId: string): { pk: string;
   return { pk: municipalityPk(municipalityId), sk: `EVT#${eventId}` };
 }
 
+/**
+ * One line of an event's programme.
+ *
+ * Under the municipality and not under the event, unlike the notices and the
+ * pending changes next door. Those are read one event at a time, from a screen
+ * that already knows which event it is on; a programme is read both ways — the
+ * detail screen wants one event's lines, and the calendar wants every programme
+ * in the town at once to know which cards say "12 actividades" and how long the
+ * feria really runs. Filing them under the municipality answers both with one
+ * query shape, and keeps the rule that everything belonging to a town sits in
+ * its partition.
+ *
+ * The event id is in the sort key rather than only in an attribute so that
+ * `begins_with(sk, "ACT#<eventId>#")` returns exactly one programme.
+ */
+export function activityKey(
+  municipalityId: string,
+  eventId: string,
+  activityId: string,
+): { pk: string; sk: string } {
+  return { pk: municipalityPk(municipalityId), sk: `ACT#${eventId}#${activityId}` };
+}
+
+/** The prefix that selects one event's programme and nothing else. */
+export function activityPrefixFor(eventId: string): string {
+  return `ACT#${eventId}#`;
+}
+
 /** Prefix used to list one kind of row inside a municipality. */
 export const SK_PREFIX = {
   category: 'CAT#',
   organization: 'ORG#',
   event: 'EVT#',
+  activity: 'ACT#',
 } as const;
 
 export function eventUpdateKey(
@@ -178,6 +207,30 @@ export function interestKey(
 ): { pk: string; sk: string } {
   return { pk: `DEV#${deviceId}`, sk: `INT#${municipalityId}#${eventId}` };
 }
+
+/**
+ * The same, for one line of a programme.
+ *
+ * Its own prefix rather than a longer `INT#`: "borrar mis datos" walks the
+ * device's rows and has to decrement the right counter for each one, and telling
+ * the two apart by counting the hashes in a sort key is the kind of thing that
+ * works until an id contains a hash.
+ *
+ * It carries the event as well as the activity because the counter it moves
+ * lives on the activity row, and that row is keyed by both.
+ */
+export function activityInterestKey(
+  deviceId: string,
+  municipalityId: string,
+  eventId: string,
+  activityId: string,
+): { pk: string; sk: string } {
+  return { pk: devicePk(deviceId), sk: `IAC#${municipalityId}#${eventId}#${activityId}` };
+}
+
+export const INTEREST_PREFIX = 'INT#';
+
+export const ACTIVITY_INTEREST_PREFIX = 'IAC#';
 
 /**
  * That this phone already opened this event today.
@@ -313,6 +366,18 @@ export function reviewIndexPk(municipalityId: string): string {
 }
 
 /**
+ * Where a mark on one line of a programme is filed, on the same restricted index
+ * as the marks on events.
+ *
+ * `ACT#` and not `EVT#`, so a reminder about the falconry show reaches the people
+ * who asked about the falconry show and not everybody who marked the feria. The
+ * two never collide: the prefix is part of the key.
+ */
+export function activityInterestIndexPk(activityId: string): string {
+  return `ACT#${activityId}`;
+}
+
+/**
  * Everybody who follows a municipality, on the same index as the interests.
  *
  * Deliberately `gsi3` and not a fourth index. That index is the one place in the
@@ -365,4 +430,46 @@ export function indexAttributesFor(event: {
   }
 
   return {};
+}
+
+/**
+ * Where one line of a programme appears, given its state and its event's.
+ *
+ * The parent's state comes first and is the whole reason this is a separate
+ * function: an activity is only ever as public as the event it hangs off. The
+ * programme of a draft is not in the calendar index however published each line
+ * claims to be, which is what stops a feria the town hall is still writing from
+ * leaking one activity at a time.
+ *
+ * It can be in both indexes at once, and that is correct: a published line with
+ * an edit waiting is what the neighbours read *and* what the town hall has to
+ * decide on. Its calendar entry shows the published values, because those are
+ * the ones on the row — the change lives in `pendingPatch` and touches nothing
+ * else until it is approved.
+ */
+export function activityIndexAttributesFor(activity: {
+  municipalityId: string;
+  status: string;
+  /** The status of the event it belongs to. */
+  parentStatus: string;
+  startAt: Date;
+  createdAt: Date;
+  pendingPatch: unknown;
+}): IndexAttributes {
+  const attributes: IndexAttributes = {};
+
+  const parentVisible = activity.parentStatus === 'published' || activity.parentStatus === 'cancelled';
+  const visible = activity.status === 'published' || activity.status === 'cancelled';
+
+  if (parentVisible && visible) {
+    attributes.gsi1pk = calendarIndexPk(activity.municipalityId);
+    attributes.gsi1sk = activity.startAt.toISOString();
+  }
+
+  if (activity.status === 'pending_review' || activity.pendingPatch != null) {
+    attributes.gsi2pk = reviewIndexPk(activity.municipalityId);
+    attributes.gsi2sk = activity.createdAt.toISOString();
+  }
+
+  return attributes;
 }

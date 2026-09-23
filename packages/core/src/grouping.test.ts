@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { groupEvents } from './grouping';
 import { DEFAULT_TIME_ZONE } from './municipality';
-import { makeEvent } from './test-fixtures';
+import { makeActivity, makeEvent } from './test-fixtures';
 
 const MADRID = DEFAULT_TIME_ZONE;
 
@@ -105,6 +105,42 @@ describe('groupEvents', () => {
 
     expect(ids(groups.today)).toEqual(['friday-morning']);
     expect(groups.thisWeekend).toHaveLength(0);
+  });
+
+  /**
+   * The case programmes exist for.
+   *
+   * A town hall types "Feria medieval, empieza el martes" and leaves the end
+   * blank, because the end is on the poster as a list of activities. Without the
+   * programme the feria falls out of "Hoy" on the Tuesday evening and is never
+   * seen again while half of it is still to happen.
+   */
+  it('keeps a feria in today while its programme is still running', () => {
+    const feria = makeEvent({ id: 'feria', startAt: '2026-09-08T18:00:00Z', endAt: null });
+    const programme = [
+      makeActivity({ id: 'tuesday', eventId: 'feria', startAt: '2026-09-08T19:00:00Z' }),
+      makeActivity({ id: 'saturday', eventId: 'feria', startAt: '2026-09-12T19:00:00Z' }),
+    ];
+
+    expect(ids(groupEvents([feria], { now: THURSDAY, timeZone: MADRID }).past)).toEqual(['feria']);
+
+    const groups = groupEvents([feria], {
+      now: THURSDAY,
+      timeZone: MADRID,
+      activities: programme,
+    });
+
+    expect(ids(groups.today)).toEqual(['feria']);
+    expect(groups.past).toHaveLength(0);
+  });
+
+  it('ignores the programme of another event', () => {
+    const feria = makeEvent({ id: 'feria', startAt: '2026-09-08T18:00:00Z', endAt: null });
+    const other = [makeActivity({ id: 'elsewhere', eventId: 'other', startAt: '2026-09-12T19:00:00Z' })];
+
+    expect(
+      ids(groupEvents([feria], { now: THURSDAY, timeZone: MADRID, activities: other }).past),
+    ).toEqual(['feria']);
   });
 
   it('returns empty groups for an empty calendar', () => {

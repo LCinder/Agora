@@ -1,5 +1,7 @@
 import {
+  residentVisibleActivitiesFor,
   residentVisibleEvents,
+  type Activity,
   type Event,
   type EventCategory,
   type Organization,
@@ -19,13 +21,24 @@ import { useApp } from '../providers/app-provider';
 
 /** One read of everything a municipality's screens need. */
 async function readAll(municipalityId: string) {
-  const [events, categories, organizations] = await Promise.all([
+  const [events, activities, categories, organizations] = await Promise.all([
     dataSource.listEvents(municipalityId),
+    dataSource.listActivities(municipalityId),
     dataSource.listCategories(municipalityId),
     dataSource.listOrganizations(municipalityId),
   ]);
 
-  return { events: residentVisibleEvents(events), categories, organizations };
+  const visible = residentVisibleEvents(events);
+
+  return {
+    events: visible,
+    // Narrowed against the events that survived, not against a status: an
+    // activity is only ever as public as the event it belongs to, and filtering
+    // the two lists independently would let the programme of a draft through.
+    activities: residentVisibleActivitiesFor(activities, visible),
+    categories,
+    organizations,
+  };
 }
 
 export interface MunicipalityData {
@@ -40,6 +53,8 @@ export interface MunicipalityData {
    */
   refreshing: boolean;
   events: Event[];
+  /** Every programme in the town, for the events above. Empty most of the year. */
+  activities: Activity[];
   categories: EventCategory[];
   organizations: Organization[];
   reload: () => void;
@@ -56,6 +71,7 @@ export function useMunicipalityData(): MunicipalityData {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [categories, setCategories] = useState<EventCategory[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [nonce, setNonce] = useState(0);
@@ -71,6 +87,7 @@ export function useMunicipalityData(): MunicipalityData {
       const fresh = await readAll(municipality.id);
 
       setEvents(fresh.events);
+      setActivities(fresh.activities);
       setCategories(fresh.categories);
       setOrganizations(fresh.organizations);
     } catch {
@@ -97,6 +114,7 @@ export function useMunicipalityData(): MunicipalityData {
       if (!active) return;
 
       setEvents(fresh.events);
+      setActivities(fresh.activities);
       setCategories(fresh.categories);
       setOrganizations(fresh.organizations);
       setLoading(false);
@@ -109,5 +127,14 @@ export function useMunicipalityData(): MunicipalityData {
     };
   }, [municipality, nonce]);
 
-  return { loading, refreshing, events, categories, organizations, reload, refresh };
+  return {
+    loading,
+    refreshing,
+    events,
+    activities,
+    categories,
+    organizations,
+    reload,
+    refresh,
+  };
 }

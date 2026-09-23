@@ -3,6 +3,7 @@ import {
   formatTime,
   hourInZone,
   nextDayRange,
+  type Activity,
   type Event,
   type FormatLocale,
 } from '@agora/core';
@@ -119,6 +120,37 @@ function reminderMessage(
   };
 }
 
+/**
+ * The reminder for one line of a programme.
+ *
+ * The title is the activity and the body says which event it is part of, which
+ * is the way round a neighbour reads it: "Show de aves rapaces" is what they
+ * marked, and "Mañana en Feria medieval, a las 18:00" is what tells them where
+ * to go. A reminder titled "Feria medieval" would be the reminder they did not
+ * ask for.
+ */
+function activityReminderMessage(
+  activity: Activity,
+  event: Event,
+  target: PushTarget,
+  town: JobMunicipality,
+  now: Date,
+): PushMessage {
+  const { t, locale } = copyFor(target);
+  const time = formatTime(activity.startAt, { now, timeZone: town.timeZone, locale });
+
+  return {
+    to: target.token,
+    title: activity.title,
+    body: t('push.activityReminderBody', { event: event.title, time }),
+    data: {
+      eventId: event.id,
+      activityId: activity.id,
+      municipalityId: town.id,
+    },
+  };
+}
+
 function outboxMessage(pending: PendingPush, event: Event, target: PushTarget): PushMessage {
   const { t } = copyFor(target);
 
@@ -222,6 +254,66 @@ async function runReminders(dependencies: NotificationDependencies): Promise<Job
         await store.releaseReminder(town.id, event.id);
       }
     }
+
+    // And the programmes. A line of a feria is reminded on its own, to the
+    // people who marked that line — which is the whole reason an activity can be
+    // marked at all. The feria's own reminder went out above, to the people who
+    // marked the feria; somebody who did both gets two, and that is correct, as
+    // long as the daily cap below has the last word.
+    const programme = await store.activitiesStartingBetween(
+      town.id,
+      tomorrow.start,
+      tomorrow.end,
+    );
+
+    for (const activity of programme) {
+      result.considered += 1;
+
+      // The event, for the sentence that says which feria this is part of. An
+      // activity whose event has gone is not a reminder anybody can act on.
+      const parent = await store.getEvent(town.id, activity.eventId);
+
+      if (parent === null || parent.status !== 'published') continue;
+
+      if (!(await store.claimActivityReminder(town.id, activity.eventId, activity.id, now))) {
+        continue;
+      }
+
+      const targets = await store.pushTargets(
+        await store.devicesInterestedInActivity(activity.id),
+      );
+      const messages: PushMessage[] = [];
+
+      for (const target of targets) {
+        const allowed = await store.reserveDailyNotification(
+          target.deviceId,
+          town.id,
+          day,
+          town.maxDailyNotifications,
+        );
+
+        if (!allowed) {
+          result.capped += 1;
+
+          continue;
+        }
+
+        messages.push(activityReminderMessage(activity, parent, target, town, now));
+      }
+
+      if (messages.length === 0) continue;
+
+      const outcome = await push.send(messages);
+
+      result.sent += outcome.sent;
+      result.failed += outcome.failed;
+
+      await forget(store, targets, outcome.unregistered);
+
+      if (outcome.sent === 0 && outcome.failed > 0) {
+        await store.releaseActivityReminder(town.id, activity.eventId, activity.id);
+      }
+    }
   }
 
   return result;
@@ -258,10 +350,15 @@ async function runOutbox(dependencies: NotificationDependencies): Promise<JobRes
     // A featured event is the only notice addressed to a town rather than to the
     // people who marked something, so it is the only one that asks who follows
     // the municipality at all.
+    //
+    // Everything else goes to everybody with a stake in the event, programme
+    // included: the neighbour who only marked the falconry show is walking to
+    // the same square, and has to be told the feria moved. Deduplicated on the
+    // way out, so marking six lines of it does not mean six identical pushes.
     const audience =
       pending.kind === 'featured'
         ? await store.devicesFollowing(pending.municipalityId)
-        : await store.devicesInterestedIn(pending.eventId);
+        : await store.devicesToNotifyAbout(pending.municipalityId, pending.eventId);
 
     const targets = await store.pushTargets(audience);
     const day = dayKeyInZone(now, town.timeZone);

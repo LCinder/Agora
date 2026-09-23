@@ -6,6 +6,7 @@
  * backend when it arrives in phase 2.
  */
 
+export * from './activity';
 export * from './brand';
 export * from './company';
 export * from './category';

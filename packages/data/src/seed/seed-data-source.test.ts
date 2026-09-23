@@ -109,6 +109,64 @@ describe('events', () => {
   });
 });
 
+describe('programmes', () => {
+  it('loads the lines of a seeded feria, each anchored to its own day', async () => {
+    const activities = await source().listActivities('la-zubia');
+    const feria = activities.filter((activity) => activity.eventId === 'lz-feria-medieval');
+
+    expect(feria.length).toBeGreaterThan(5);
+
+    const falcons = feria.find((activity) => activity.id === 'lz-feria-aves');
+
+    // Seeded for today at 18:00 Madrid, which in September is 16:00 UTC.
+    expect(falcons?.startAt.toISOString()).toBe('2026-09-10T16:00:00.000Z');
+    expect(falcons?.categoryId).toBe('infantil');
+
+    // And one seeded two days out, so a demo opened on any day has a feria with
+    // a programme still to come.
+    const joust = feria.find((activity) => activity.id === 'lz-feria-justa');
+
+    expect(joust?.startAt.toISOString()).toBe('2026-09-12T16:00:00.000Z');
+  });
+
+  it('leaves as null everything a line takes from its event', async () => {
+    const activities = await source().listActivities('la-zubia');
+    const tombola = activities.find((activity) => activity.id === 'lz-feria-tombola');
+
+    expect(tombola?.location).toBeNull();
+    expect(tombola?.isFree).toBeNull();
+    expect(tombola?.priceInfo).toBeNull();
+  });
+
+  it('keeps a line that says something of its own', async () => {
+    const activities = await source().listActivities('la-zubia');
+    const dinner = activities.find((activity) => activity.id === 'lz-feria-cena');
+    const archery = activities.find((activity) => activity.id === 'lz-feria-arco');
+
+    expect(dinner?.isFree).toBe(false);
+    expect(dinner?.priceInfo).toBe('15 € por persona');
+    expect(archery?.location?.name).toBe('Explanada del pabellón');
+  });
+
+  it('carries a line an association is waiting to have approved', async () => {
+    const activities = await source().listActivities('la-zubia');
+    const waiting = activities.find((activity) => activity.id === 'lz-flamenca-taller');
+
+    expect(waiting?.status).toBe('pending_review');
+    expect(waiting?.eventId).toBe('lz-noche-flamenca');
+  });
+
+  it('gives an empty programme to a municipality whose events are all single things', async () => {
+    expect(await source().listActivities('cajar')).toEqual([]);
+  });
+
+  it('never leaks the programme of another municipality', async () => {
+    const activities = await source().listActivities('la-zubia');
+
+    expect(activities.every((activity) => activity.municipalityId === 'la-zubia')).toBe(true);
+  });
+});
+
 describe('organizations and route', () => {
   it('loads the associations of the municipality', async () => {
     const organizations = await source().listOrganizations('la-zubia');

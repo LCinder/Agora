@@ -26,6 +26,42 @@ export function interestKey(municipalityId: string, eventId: string): InterestKe
   return `${municipalityId}/${eventId}`;
 }
 
+/**
+ * A mark on one line of a programme.
+ *
+ * Kept in the same list as the events' marks, told apart by a third segment.
+ * One list rather than two because everything that touches it — saving,
+ * syncing, "borrar mis datos" — would otherwise have to do everything twice,
+ * and the one that gets forgotten is the wipe.
+ *
+ * The event is in the key because the API needs it to find the line: an
+ * activity is not addressable without its programme.
+ */
+export function activityInterestKey(
+  municipalityId: string,
+  eventId: string,
+  activityId: string,
+): InterestKey {
+  return `${municipalityId}/${eventId}/${activityId}`;
+}
+
+/** What a stored key refers to, or null when it is not one of ours. */
+export function parseInterestKey(
+  key: InterestKey,
+): { municipalityId: string; eventId: string; activityId: string | null } | null {
+  const parts = key.split('/');
+  const [municipalityId, eventId, activityId] = parts;
+
+  if (municipalityId === undefined || municipalityId === '') return null;
+  if (eventId === undefined || eventId === '') return null;
+  if (parts.length === 2) return { municipalityId, eventId, activityId: null };
+  if (parts.length === 3 && activityId !== undefined && activityId !== '') {
+    return { municipalityId, eventId, activityId };
+  }
+
+  return null;
+}
+
 async function readJson<T>(key: string, fallback: T): Promise<T> {
   try {
     const raw = await AsyncStorage.getItem(key);

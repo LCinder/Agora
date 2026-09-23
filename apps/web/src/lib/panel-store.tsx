@@ -1,6 +1,7 @@
 'use client';
 
 import type {
+  Activity,
   Event,
   EventCategory,
   Municipality,
@@ -9,9 +10,11 @@ import type {
   OrganizationType,
 } from '@agora/core';
 import {
+  type ActivityPatchInput,
   type AuditEntry,
   type LiveSession,
   type Membership,
+  type NewActivityInput,
   type NewEventInput,
   type PanelClient,
   type PanelStats,
@@ -77,8 +80,10 @@ interface StoredState {
   notices: EventNotice[];
   /** Added later than the rest, so a stored state without it is still valid. */
   organizations?: Organization[];
-  /** The demo's activity log. Also added later, also optional. */
+  /** The demo's audit trail. Also added later, also optional. */
   audit?: AuditEntry[];
+  /** The programmes. Newer still, and absent in a browser that has an older state. */
+  activities?: Activity[];
 }
 
 /**
@@ -149,6 +154,15 @@ export interface PanelState {
   categories: EventCategory[];
   organizations: Organization[];
   events: Event[];
+  /**
+   * Every programme in the municipality, flat.
+   *
+   * One list rather than a field on each event, because that is how the API
+   * answers and how the table keeps them: an activity is its own row, with its
+   * own state, its own review and its own count of interested neighbours. The
+   * screens take one event's lines out of it with `activitiesOf`.
+   */
+  activities: Activity[];
   notices: EventNotice[];
   /**
    * The aggregate numbers, from the API. Null in the demo, which invents its own
@@ -212,6 +226,26 @@ export interface PanelState {
   featureEvent: (eventId: string, message: string) => Promise<void>;
   /** Loads the notices of one event. A no-op in the demo, which holds them all. */
   refreshNotices: (eventId: string) => Promise<void>;
+
+  // --- programmes ----------------------------------------------------------
+  //
+  // Every one of these names the event as well as the activity, because that is
+  // what the API asks for and because it is true: a line of a programme is not
+  // reachable, or refusable, without knowing whose programme it is.
+
+  createActivity: (eventId: string, draft: NewActivityInput) => Promise<void>;
+  updateActivity: (
+    eventId: string,
+    activityId: string,
+    patch: ActivityPatchInput,
+  ) => Promise<void>;
+  /** Struck through on the programme rather than gone: the rain got that one. */
+  cancelActivity: (eventId: string, activityId: string) => Promise<void>;
+  /** Off the programme for good. For the line typed into the wrong feria. */
+  deleteActivity: (eventId: string, activityId: string) => Promise<void>;
+  /** Publishes a line waiting for review, or applies the edit waiting on one. */
+  approveActivity: (eventId: string, activityId: string) => Promise<void>;
+  rejectActivity: (eventId: string, activityId: string, reason: string) => Promise<void>;
 
   // --- associations --------------------------------------------------------
   createOrganization: (input: {
@@ -291,6 +325,16 @@ function reviveEvent(raw: Event): Event {
   };
 }
 
+function reviveActivity(raw: Activity): Activity {
+  return {
+    ...raw,
+    startAt: new Date(raw.startAt),
+    endAt: raw.endAt === null ? null : new Date(raw.endAt),
+    createdAt: new Date(raw.createdAt),
+    updatedAt: new Date(raw.updatedAt),
+  };
+}
+
 function readStored(): StoredState | null {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -302,6 +346,12 @@ function readStored(): StoredState | null {
       events: parsed.events.map(reviveEvent),
       notices: parsed.notices,
       ...(parsed.organizations === undefined ? {} : { organizations: parsed.organizations }),
+      // Absent stays absent, like the associations above: a browser holding a
+      // state written before programmes existed has to fall back to the seed's,
+      // and an empty list here would mean a feria with no programme for ever.
+      ...(parsed.activities === undefined
+        ? {}
+        : { activities: parsed.activities.map(reviveActivity) }),
       audit: (parsed.audit ?? []).map((entry) => ({
         ...entry,
         createdAt: new Date(entry.createdAt),
@@ -380,26 +430,40 @@ export function PanelProvider({ children }: { children: ReactNode }) {
   const [categories, setCategories] = useState<EventCategory[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [notices, setNotices] = useState<EventNotice[]>([]);
   const [stats, setStats] = useState<PanelStats | null>(null);
   const [demoAudit, setDemoAudit] = useState<AuditEntry[]>([]);
 
-  /** The demo's own store: whatever a councillor changed, kept across reloads. */
+  /**
+   * The demo's own store: whatever a councillor changed, kept across reloads.
+   *
+   * A patch rather than a positional list, because there are now four things it
+   * can hold and "the third argument is the associations" was already a comment
+   * waiting to be wrong. What is left out is left alone.
+   */
   const persist = useCallback(
-    (nextEvents: Event[], nextNotices: EventNotice[], nextOrganizations?: Organization[]) => {
-      setEvents(nextEvents);
-      setNotices(nextNotices);
+    (patch: {
+      events?: Event[];
+      notices?: EventNotice[];
+      organizations?: Organization[];
+      activities?: Activity[];
+    }) => {
+      const next = {
+        events: patch.events ?? events,
+        notices: patch.notices ?? notices,
+        organizations: patch.organizations ?? organizations,
+        activities: patch.activities ?? activities,
+      };
 
-      if (nextOrganizations !== undefined) setOrganizations(nextOrganizations);
+      setEvents(next.events);
+      setNotices(next.notices);
+      setOrganizations(next.organizations);
+      setActivities(next.activities);
 
-      writeStored({
-        events: nextEvents,
-        notices: nextNotices,
-        organizations: nextOrganizations ?? organizations,
-        audit: readStored()?.audit ?? [],
-      });
+      writeStored({ ...next, audit: readStored()?.audit ?? [] });
     },
-    [organizations],
+    [activities, events, notices, organizations],
   );
 
   // -------------------------------------------------------------------------
@@ -409,13 +473,19 @@ export function PanelProvider({ children }: { children: ReactNode }) {
   const loadSeed = useCallback(async (fromSeed: boolean) => {
     const source = createSeedDataSource();
 
-    const [loadedMunicipality, loadedCategories, loadedOrganizations, seedEvents] =
-      await Promise.all([
-        source.getMunicipalityBySlug(DEMO_MUNICIPALITY_SLUG),
-        source.listCategories(DEMO_MUNICIPALITY_ID),
-        source.listOrganizations(DEMO_MUNICIPALITY_ID),
-        source.listEvents(DEMO_MUNICIPALITY_ID),
-      ]);
+    const [
+      loadedMunicipality,
+      loadedCategories,
+      loadedOrganizations,
+      seedEvents,
+      seedActivities,
+    ] = await Promise.all([
+      source.getMunicipalityBySlug(DEMO_MUNICIPALITY_SLUG),
+      source.listCategories(DEMO_MUNICIPALITY_ID),
+      source.listOrganizations(DEMO_MUNICIPALITY_ID),
+      source.listEvents(DEMO_MUNICIPALITY_ID),
+      source.listActivities(DEMO_MUNICIPALITY_ID),
+    ]);
 
     setMunicipality(loadedMunicipality);
     setCategories(loadedCategories);
@@ -424,8 +494,10 @@ export function PanelProvider({ children }: { children: ReactNode }) {
     const nextEvents = stored?.events ?? seedEvents;
     const nextNotices = stored?.notices ?? [];
     const nextOrganizations = stored?.organizations ?? loadedOrganizations;
+    const nextActivities = stored?.activities ?? seedActivities;
 
     setEvents(nextEvents);
+    setActivities(nextActivities);
     setNotices(nextNotices);
     setOrganizations(nextOrganizations);
     setDemoAudit(stored?.audit ?? []);
@@ -435,6 +507,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
         events: nextEvents,
         notices: nextNotices,
         organizations: nextOrganizations,
+        activities: nextActivities,
         audit: [],
       });
     }
@@ -499,22 +572,30 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       }
       const publicData = createHttpDataSource({ baseUrl: config.apiBaseUrl });
 
-      const [loadedMunicipality, loadedCategories, loadedOrganizations, loadedEvents, loadedStats] =
-        await Promise.all([
-          panel.getMunicipality(),
-          publicData.listCategories(membership.municipalityId),
-          panel.listOrganizations(),
-          panel.listEvents(),
-          // An association gets a refusal here, and that is not a failure: it sees
-          // its own events' numbers and not the municipality's.
-          panel.stats().catch(() => null),
-        ]);
+      const [
+        loadedMunicipality,
+        loadedCategories,
+        loadedOrganizations,
+        loadedEvents,
+        loadedActivities,
+        loadedStats,
+      ] = await Promise.all([
+        panel.getMunicipality(),
+        publicData.listCategories(membership.municipalityId),
+        panel.listOrganizations(),
+        panel.listEvents(),
+        panel.listActivities(),
+        // An association gets a refusal here, and that is not a failure: it sees
+        // its own events' numbers and not the municipality's.
+        panel.stats().catch(() => null),
+      ]);
 
       setClient(panel);
       setMunicipality(loadedMunicipality);
       setCategories(loadedCategories);
       setOrganizations(loadedOrganizations);
       setEvents(loadedEvents);
+      setActivities(loadedActivities);
       setNotices([]);
       setStats(loadedStats);
       setLoading(false);
@@ -561,9 +642,15 @@ export function PanelProvider({ children }: { children: ReactNode }) {
     else void loadRemote();
   }, [demo, loadRemote, loadSeed]);
 
-  /** After every write: the list the API holds, which may differ from ours. */
+  /** After every write: the lists the API holds, which may differ from ours. */
   const reload = useCallback(async (panel: PanelClient) => {
-    setEvents(await panel.listEvents());
+    const [freshEvents, freshActivities] = await Promise.all([
+      panel.listEvents(),
+      panel.listActivities(),
+    ]);
+
+    setEvents(freshEvents);
+    setActivities(freshActivities);
   }, []);
 
   /**
@@ -591,12 +678,12 @@ export function PanelProvider({ children }: { children: ReactNode }) {
         // Written straight through rather than in an effect: the screen that reads
         // it is reached by a full page load, and a log that empties when you
         // navigate to it is worse than no log at all.
-        writeStored({ ...(readStored() ?? { events, notices }), audit: next });
+        writeStored({ ...(readStored() ?? { events, notices, activities }), audit: next });
 
         return next;
       });
     },
-    [events, notices],
+    [activities, events, notices],
   );
 
   const createEvent = useCallback(
@@ -643,11 +730,11 @@ export function PanelProvider({ children }: { children: ReactNode }) {
         publishedAt: now,
       };
 
-      persist([event, ...events], notices);
+      persist({ events: [event, ...events] });
 
       return 'applied';
     },
-    [client, events, municipality, notices, persist, reload],
+    [client, events, municipality, persist, reload],
   );
 
   const updateEvent = useCallback(
@@ -681,8 +768,8 @@ export function PanelProvider({ children }: { children: ReactNode }) {
         return result.kind === 'queued' ? 'queued' : 'applied';
       }
 
-      persist(
-        events.map((event) =>
+      persist({
+        events: events.map((event) =>
           event.id === id
             ? {
                 ...event,
@@ -708,18 +795,17 @@ export function PanelProvider({ children }: { children: ReactNode }) {
               }
             : event,
         ),
-        notices,
-      );
+      });
 
       return 'applied';
     },
-    [client, events, notices, persist, reload],
+    [client, events, persist, reload],
   );
 
   const setStatus = useCallback(
     (id: string, status: Event['status'], reason: string | null = null) => {
-      persist(
-        events.map((event) =>
+      persist({
+        events: events.map((event) =>
           event.id === id
             ? {
                 ...event,
@@ -730,10 +816,9 @@ export function PanelProvider({ children }: { children: ReactNode }) {
               }
             : event,
         ),
-        notices,
-      );
+      });
     },
-    [events, notices, persist],
+    [events, persist],
   );
 
   const cancelEvent = useCallback(
@@ -754,10 +839,14 @@ export function PanelProvider({ children }: { children: ReactNode }) {
   const deleteEvent = useCallback(
     async (id: string) => {
       if (client === null) {
-        persist(
-          events.filter((entry) => entry.id !== id),
-          notices.filter((notice) => notice.eventId !== id),
-        );
+        persist({
+          events: events.filter((entry) => entry.id !== id),
+          notices: notices.filter((notice) => notice.eventId !== id),
+          // The programme goes with the event, the way the store does it: a line
+          // left behind would sit in "Mis eventos" on a phone pointing at
+          // nothing.
+          activities: activities.filter((entry) => entry.eventId !== id),
+        });
         noteDemo('event.delete', 'event', id);
 
         return;
@@ -766,20 +855,19 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       await client.deleteEvent(id);
       await reload(client);
     },
-    [client, events, noteDemo, notices, persist, reload],
+    [activities, client, events, noteDemo, notices, persist, reload],
   );
 
   /** The demo's poster, and the real one's, through one shape. */
   const putImage = useCallback(
     (id: string, imageUrl: string | null) => {
-      persist(
-        events.map((event) =>
+      persist({
+        events: events.map((event) =>
           event.id === id ? { ...event, imageUrl, updatedAt: new Date() } : event,
         ),
-        notices,
-      );
+      });
     },
-    [events, notices, persist],
+    [events, persist],
   );
 
   const setEventImage = useCallback(
@@ -882,9 +970,168 @@ export function PanelProvider({ children }: { children: ReactNode }) {
         createdAt: new Date().toISOString(),
       };
 
-      persist(events, [entry, ...notices]);
+      persist({ notices: [entry, ...notices] });
     },
-    [client, events, notices, persist, refreshNotices],
+    [client, notices, persist, refreshNotices],
+  );
+
+  // -------------------------------------------------------------------------
+  // Programmes
+  //
+  // The demo writes them into the same local state as everything else, and the
+  // real one goes through the API and re-reads. Both answer the same two
+  // outcomes as an event's edit, because the rule is the same: an association
+  // without trust does not change a published programme under the neighbours
+  // reading it.
+  // -------------------------------------------------------------------------
+
+  const createActivity = useCallback(
+    async (eventId: string, draft: NewActivityInput) => {
+      if (client !== null) {
+        await client.createActivity(eventId, draft);
+        await reload(client);
+
+        return;
+      }
+
+      const now = new Date();
+      const created: Activity = {
+        id: draft.id ?? `act-${now.getTime().toString(36)}`,
+        municipalityId: DEMO_MUNICIPALITY_ID,
+        eventId,
+        title: draft.title,
+        description: draft.description ?? '',
+        categoryId: draft.categoryId ?? null,
+        startAt: draft.startAt,
+        endAt: draft.endAt ?? null,
+        location: draft.location ?? null,
+        isFree: draft.isFree ?? null,
+        priceInfo: draft.priceInfo ?? null,
+        status: 'published',
+        rejectionReason: null,
+        pendingPatch: null,
+        // Typed into the demo a minute ago. The seed's lines carry invented
+        // tallies so a feria looks alive; this one honestly has none.
+        interestCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      persist({ activities: [...activities, created] });
+      noteDemo('activity.create', 'activity', created.id);
+    },
+    [activities, client, noteDemo, persist, reload],
+  );
+
+  const updateActivity = useCallback(
+    async (eventId: string, activityId: string, patch: ActivityPatchInput) => {
+      if (client !== null) {
+        await client.updateActivity(eventId, activityId, patch);
+        await reload(client);
+
+        return;
+      }
+
+      persist({
+        activities: activities.map((activity) =>
+          activity.id === activityId
+            ? {
+                ...activity,
+                ...(patch.title === undefined ? {} : { title: patch.title }),
+                ...(patch.description === undefined ? {} : { description: patch.description }),
+                ...(patch.categoryId === undefined ? {} : { categoryId: patch.categoryId }),
+                ...(patch.startAt === undefined ? {} : { startAt: patch.startAt }),
+                ...(patch.endAt === undefined ? {} : { endAt: patch.endAt }),
+                ...(patch.location === undefined ? {} : { location: patch.location }),
+                ...(patch.isFree === undefined ? {} : { isFree: patch.isFree }),
+                ...(patch.priceInfo === undefined ? {} : { priceInfo: patch.priceInfo }),
+                updatedAt: new Date(),
+              }
+            : activity,
+        ),
+      });
+      noteDemo('activity.update', 'activity', activityId);
+    },
+    [activities, client, noteDemo, persist, reload],
+  );
+
+  const setActivityStatus = useCallback(
+    (activityId: string, status: Activity['status'], reason: string | null = null) => {
+      persist({
+        activities: activities.map((activity) =>
+          activity.id === activityId
+            ? {
+                ...activity,
+                status,
+                rejectionReason: reason,
+                pendingPatch: null,
+                updatedAt: new Date(),
+              }
+            : activity,
+        ),
+      });
+    },
+    [activities, persist],
+  );
+
+  const cancelActivity = useCallback(
+    async (eventId: string, activityId: string) => {
+      if (client === null) {
+        setActivityStatus(activityId, 'cancelled');
+        noteDemo('activity.cancel', 'activity', activityId);
+
+        return;
+      }
+
+      await client.cancelActivity(eventId, activityId);
+      await reload(client);
+    },
+    [client, noteDemo, reload, setActivityStatus],
+  );
+
+  const approveActivity = useCallback(
+    async (eventId: string, activityId: string) => {
+      if (client === null) {
+        setActivityStatus(activityId, 'published');
+        noteDemo('activity.approve', 'activity', activityId);
+
+        return;
+      }
+
+      await client.approveActivity(eventId, activityId);
+      await reload(client);
+    },
+    [client, noteDemo, reload, setActivityStatus],
+  );
+
+  const rejectActivity = useCallback(
+    async (eventId: string, activityId: string, reason: string) => {
+      if (client === null) {
+        setActivityStatus(activityId, 'rejected', reason);
+        noteDemo('activity.reject', 'activity', activityId);
+
+        return;
+      }
+
+      await client.rejectActivity(eventId, activityId, reason);
+      await reload(client);
+    },
+    [client, noteDemo, reload, setActivityStatus],
+  );
+
+  const deleteActivity = useCallback(
+    async (eventId: string, activityId: string) => {
+      if (client === null) {
+        persist({ activities: activities.filter((entry) => entry.id !== activityId) });
+        noteDemo('activity.delete', 'activity', activityId);
+
+        return;
+      }
+
+      await client.deleteActivity(eventId, activityId);
+      await reload(client);
+    },
+    [activities, client, noteDemo, persist, reload],
   );
 
   const featureEvent = useCallback(
@@ -929,9 +1176,9 @@ export function PanelProvider({ children }: { children: ReactNode }) {
         logoUrl: null,
       };
 
-      persist(events, notices, [...organizations, created]);
+      persist({ organizations: [...organizations, created] });
     },
-    [client, events, notices, organizations, persist],
+    [client, organizations, persist],
   );
 
   const setOrganizationTrusted = useCallback(
@@ -943,15 +1190,13 @@ export function PanelProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      persist(
-        events,
-        notices,
-        organizations.map((organization) =>
+      persist({
+        organizations: organizations.map((organization) =>
           organization.id === organizationId ? { ...organization, isTrusted } : organization,
         ),
-      );
+      });
     },
-    [client, events, notices, organizations, persist],
+    [client, organizations, persist],
   );
 
   const setOrganizationStatus = useCallback(
@@ -963,15 +1208,13 @@ export function PanelProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      persist(
-        events,
-        notices,
-        organizations.map((organization) =>
+      persist({
+        organizations: organizations.map((organization) =>
           organization.id === organizationId ? { ...organization, status } : organization,
         ),
-      );
+      });
     },
-    [client, events, notices, organizations, persist],
+    [client, organizations, persist],
   );
 
   // -------------------------------------------------------------------------
@@ -1080,16 +1323,15 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       };
 
       setDemoSessions((current) => ({ ...current, [eventId]: session }));
-      persist(
-        events.map((event) =>
+      persist({
+        events: events.map((event) =>
           event.id === eventId ? { ...event, liveTrackingEnabled: true } : event,
         ),
-        notices,
-      );
+      });
 
       return session;
     },
-    [client, events, notices, persist, reload],
+    [client, events, persist, reload],
   );
 
   const runLive = useCallback(
@@ -1131,12 +1373,19 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       categories,
       organizations,
       events,
+      activities,
       notices,
       stats,
       createEvent,
       updateEvent,
       cancelEvent,
       deleteEvent,
+      createActivity,
+      updateActivity,
+      cancelActivity,
+      deleteActivity,
+      approveActivity,
+      rejectActivity,
       setEventImage,
       removeEventImage,
       approveEvent,
@@ -1164,6 +1413,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
         setMembership(null);
         setClient(null);
         setEvents([]);
+        setActivities([]);
         setStats(null);
       },
       resetToSeed: () => {
@@ -1172,12 +1422,17 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       },
     }),
     [
+      activities,
       addNotice,
+      approveActivity,
       approveEvent,
+      cancelActivity,
       cancelEvent,
       categories,
+      createActivity,
       createEvent,
       createOrganization,
+      deleteActivity,
       deleteEvent,
       demo,
       events,
@@ -1199,6 +1454,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       notices,
       organizations,
       refreshNotices,
+      rejectActivity,
       rejectEvent,
       removeEventImage,
       revokeStaff,
@@ -1208,6 +1464,7 @@ export function PanelProvider({ children }: { children: ReactNode }) {
       setOrganizationStatus,
       setOrganizationTrusted,
       stats,
+      updateActivity,
       updateEvent,
     ],
   );

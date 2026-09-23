@@ -231,7 +231,30 @@
     "audienceTags": ["seniors"],
     "status": "published",
     "isFeatured": false,
-    "liveTrackingEnabled": false
+    "liveTrackingEnabled": false,
+    "activities": [
+      {
+        "id": "lz-flamenca-cante",
+        "title": "Cante jondo: seguiriyas y soleás",
+        "description": "Primera parte de la noche, con guitarra.",
+        "when": { "kind": "relative", "startsInDays": 5, "startTime": "21:30", "endTime": "22:20" }
+      },
+      {
+        "id": "lz-flamenca-baile",
+        "title": "Baile por bulerías",
+        "description": "Cuadro de baile de la propia peña.",
+        "when": { "kind": "relative", "startsInDays": 5, "startTime": "22:30", "endTime": "23:30" }
+      },
+      {
+        "id": "lz-flamenca-taller",
+        "title": "Taller abierto de palmas y compás",
+        "description": "Media hora antes del cante, para quien quiera aprender a acompañar.",
+        "categoryId": "infantil",
+        "when": { "kind": "relative", "startsInDays": 5, "startTime": "20:45", "endTime": "21:20" },
+        "isFree": true,
+        "status": "pending_review"
+      }
+    ]
   },
   {
     "id": "lz-taller-informatica",
@@ -587,5 +610,142 @@
     "status": "published",
     "isFeatured": true,
     "liveTrackingEnabled": true
+  },
+  {
+    "id": "lz-feria-medieval",
+    "organizationId": null,
+    "title": "Feria Medieval de La Zubia",
+    "description": "Tres días de mercado, oficios y espectáculos en el casco antiguo. Entrada libre; algunos talleres se pagan aparte.",
+    "categoryId": "fiestas",
+    "when": {
+      "kind": "relative",
+      "startsInDays": 0,
+      "startTime": "11:00"
+    },
+    "allDay": false,
+    "location": {
+      "name": "Casco antiguo",
+      "latitude": 37.1201,
+      "longitude": -3.5828
+    },
+    "imageUrl": null,
+    "priceInfo": null,
+    "isFree": true,
+    "audienceTags": ["families", "children"],
+    "status": "published",
+    "isFeatured": false,
+    "liveTrackingEnabled": false,
+    "activities": [
+      {
+        "id": "lz-feria-apertura",
+        "title": "Apertura del mercado y pregón",
+        "description": "Pasacalles desde la plaza y pregón a cargo del grupo de teatro local.",
+        "categoryId": "cultura",
+        "when": { "kind": "relative", "startsInDays": 0, "startTime": "11:00", "endTime": "12:00" }
+      },
+      {
+        "id": "lz-feria-juglares",
+        "title": "Pasacalles de juglares",
+        "description": "Música, zancudos y malabares recorriendo las calles del mercado.",
+        "categoryId": "infantil",
+        "when": { "kind": "relative", "startsInDays": 0, "startTime": "12:30", "endTime": "13:30" }
+      },
+      {
+        "id": "lz-feria-aves",
+        "title": "Show de aves rapaces",
+        "description": "Exhibición de cetrería con halcones, búhos y águilas. Se recomienda llegar con antelación.",
+        "categoryId": "infantil",
+        "when": { "kind": "relative", "startsInDays": 0, "startTime": "18:00", "endTime": "19:00" }
+      },
+      {
+        "id": "lz-feria-cena",
+        "title": "Cena medieval con música en vivo",
+        "description": "Menú de la época servido en mesas corridas. Aforo limitado, con reserva en la caseta de información.",
+        "categoryId": null,
+        "when": { "kind": "relative", "startsInDays": 0, "startTime": "20:30", "endTime": "23:00" },
+        "isFree": false,
+        "priceInfo": "15 € por persona"
+      },
+      {
+        "id": "lz-feria-queso",
+        "title": "Taller de queso curado",
+        "description": "Elaboración artesanal de queso de cabra con quesero de la comarca. Plazas limitadas.",
+        "categoryId": "cultura",
+        "when": { "kind": "relative", "startsInDays": 1, "startTime": "11:00", "endTime": "13:00" },
+        "isFree": false,
+        "priceInfo": "5 € por persona"
+      },
+      {
+        "id": "lz-feria-tombola",
+        "title": "Tómbola con productos locales",
+        "description": "Cestas de productos de la vega donadas por los comercios del municipio.",
+        "categoryId": "fiestas",
+        "when": { "kind": "relative", "startsInDays": 1, "startTime": "13:00", "endTime": "15:00" }
+      },
+      {
+        "id": "lz-feria-forja",
+        "title": "Taller de forja para niños",
+        "description": "Los más pequeños trabajan el metal frío con el herrero, con guantes y supervisión.",
+        "categoryId": "infantil",
+        "when": { "kind": "relative", "startsInDays": 1, "startTime": "17:00", "endTime": "18:30" }
+      },
+      {
+        "id": "lz-feria-arco",
+        "title": "Torneo de tiro con arco",
+        "description": "Abierto a mayores de 14 años. Inscripción en la propia carpa hasta media hora antes.",
+        "categoryId": "deporte",
+        "when": { "kind": "relative", "startsInDays": 1, "startTime": "19:00", "endTime": "21:00" },
+        "location": {
+          "name": "Explanada del pabellón",
+          "latitude": 37.1176,
+          "longitude": -3.5845
+        }
+      },
+      {
+        "id": "lz-feria-fuego",
+        "title": "Espectáculo de fuego y malabares",
+        "description": "Cierre de la jornada en la plaza, con la compañía de calle invitada.",
+        "categoryId": "cultura",
+        "when": { "kind": "relative", "startsInDays": 1, "startTime": "22:00", "endTime": "23:00" }
+      },
+      {
+        "id": "lz-feria-misa",
+        "title": "Misa con canto gregoriano",
+        "description": "En la iglesia parroquial, con la coral del municipio.",
+        "categoryId": "religioso",
+        "when": { "kind": "relative", "startsInDays": 2, "startTime": "12:00", "endTime": "13:00" },
+        "location": {
+          "name": "Iglesia de la Asunción",
+          "latitude": 37.1193,
+          "longitude": -3.5821
+        }
+      },
+      {
+        "id": "lz-feria-migas",
+        "title": "Comida popular de migas",
+        "description": "Migas para todo el que se acerque, mientras haya. Trae tu plato si puedes.",
+        "categoryId": "fiestas",
+        "when": { "kind": "relative", "startsInDays": 2, "startTime": "13:30", "endTime": "15:30" }
+      },
+      {
+        "id": "lz-feria-justa",
+        "title": "Justa medieval a caballo",
+        "description": "El plato fuerte de la feria: dos compañías de recreación se enfrentan en la explanada.",
+        "categoryId": "fiestas",
+        "when": { "kind": "relative", "startsInDays": 2, "startTime": "18:00", "endTime": "19:30" },
+        "location": {
+          "name": "Explanada del pabellón",
+          "latitude": 37.1176,
+          "longitude": -3.5845
+        }
+      },
+      {
+        "id": "lz-feria-clausura",
+        "title": "Clausura: baile de la corte",
+        "description": "Danzas de época abiertas a todo el mundo, se sepa bailar o no.",
+        "categoryId": "cultura",
+        "when": { "kind": "relative", "startsInDays": 2, "startTime": "20:00", "endTime": "21:30" }
+      }
+    ]
   }
 ]
