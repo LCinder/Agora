@@ -158,7 +158,7 @@ export function liveCodeKey(code: string): { pk: string; sk: string } {
  * It counts **additions**, never subtractions. A neighbour who unmarks an event
  * three months later cannot un-happen the interest they showed in June, and
  * deciding which month to take it off is a question with no good answer — so the
- * series says "marcas nuevas por mes", which is what it is.
+ * series says "Asistentes por mes", which is what it is.
  */
 export function monthlyStatsKey(municipalityId: string, month: string): { pk: string; sk: string } {
   return { pk: municipalityPk(municipalityId), sk: `MONTH#${month}` };
