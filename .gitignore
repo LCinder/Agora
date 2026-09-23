@@ -81,3 +81,17 @@ crash.log
 # Written from the store credentials at build time, never committed: the
 # fingerprint and the team id belong to accounts, not to the repository.
 apps/web/public/.well-known/
+
+# Credencial del proyecto de Firebase. La escribe la CI desde un secreto.
+# Sin ruta: el fichero se descarga a donde sea y una credencial en un
+# repositorio publico no se arregla borrandola despues.
+google-services.json
+
+# La clave de servicio de Firebase, que es la credencial de verdad: da acceso
+# a los servicios del proyecto. Se sube a Expo desde el navegador o la CLI y
+# no deberia vivir aqui, pero acaba en la carpeta del proyecto mas de una vez.
+#
+# El patron dice `adminsdk` y no solo `firebase` a proposito: `*firebase*` se
+# tragaria tambien un fichero de codigo llamado, por ejemplo, firebase-push.ts,
+# y un fuente ignorado en silencio es un fallo que cuesta horas encontrar.
+*firebase-adminsdk*.json

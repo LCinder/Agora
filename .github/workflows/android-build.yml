@@ -86,6 +86,30 @@ jobs:
       #
       # The image already ships the SDK with its licences accepted, which is all
       # a prebuild and a gradle assemble need. One fewer action to break.
+      # Without this file Android cannot give out an Expo push token: the call
+      # throws, the app catches it, and the phone silently ends up with no
+      # address to be notified at. It is a credential of the Firebase project
+      # and this repository is public, so it lives in a secret and is written
+      # here, never committed.
+      #
+      # Absent, the build still works. Everything but notifications does too,
+      # which is what a demo APK wants.
+      - name: Write google-services.json, if there is one
+        env:
+          GOOGLE_SERVICES: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GOOGLE_SERVICES:-}" ]; then
+            echo 'No GOOGLE_SERVICES_JSON secret: this APK will not be able to receive notifications.'
+            exit 0
+          fi
+          printf '%s' "$GOOGLE_SERVICES" > apps/mobile/google-services.json
+          # Fail here rather than three steps later with a gradle error nobody
+          # can read: a malformed secret is the likely mistake.
+          node -e "JSON.parse(require('fs').readFileSync('apps/mobile/google-services.json','utf8'))"
+          echo "GOOGLE_SERVICES_JSON=$PWD/apps/mobile/google-services.json" >> "$GITHUB_ENV"
+          echo 'google-services.json written; this APK can register for push.'
+
       - name: Say which backend this APK will talk to
         run: |
           set -euo pipefail
