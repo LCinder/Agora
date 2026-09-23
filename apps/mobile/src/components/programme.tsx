@@ -183,11 +183,7 @@ function ActivityRow({
 
         <View style={[styles.grow, { gap: 2 }]}>
           <Text
-            style={[
-              styles.title,
-              { color: theme.colors.text },
-              cancelled ? styles.struck : null,
-            ]}
+            style={[styles.title, { color: theme.colors.text }, cancelled ? styles.struck : null]}
           >
             {activity.title}
           </Text>
@@ -222,9 +218,7 @@ function ActivityRow({
           disabled={cancelled}
           accessibilityRole="button"
           accessibilityState={{ selected: marked }}
-          accessibilityLabel={
-            marked ? t('programme.interestedDone') : t('programme.interested')
-          }
+          accessibilityLabel={marked ? t('programme.interestedDone') : t('programme.interested')}
           hitSlop={10}
           style={({ pressed }) => [
             styles.heart,

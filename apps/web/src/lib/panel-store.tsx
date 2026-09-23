@@ -234,11 +234,7 @@ export interface PanelState {
   // reachable, or refusable, without knowing whose programme it is.
 
   createActivity: (eventId: string, draft: NewActivityInput) => Promise<void>;
-  updateActivity: (
-    eventId: string,
-    activityId: string,
-    patch: ActivityPatchInput,
-  ) => Promise<void>;
+  updateActivity: (eventId: string, activityId: string, patch: ActivityPatchInput) => Promise<void>;
   /** Struck through on the programme rather than gone: the rain got that one. */
   cancelActivity: (eventId: string, activityId: string) => Promise<void>;
   /** Off the programme for good. For the line typed into the wrong feria. */
@@ -473,19 +469,14 @@ export function PanelProvider({ children }: { children: ReactNode }) {
   const loadSeed = useCallback(async (fromSeed: boolean) => {
     const source = createSeedDataSource();
 
-    const [
-      loadedMunicipality,
-      loadedCategories,
-      loadedOrganizations,
-      seedEvents,
-      seedActivities,
-    ] = await Promise.all([
-      source.getMunicipalityBySlug(DEMO_MUNICIPALITY_SLUG),
-      source.listCategories(DEMO_MUNICIPALITY_ID),
-      source.listOrganizations(DEMO_MUNICIPALITY_ID),
-      source.listEvents(DEMO_MUNICIPALITY_ID),
-      source.listActivities(DEMO_MUNICIPALITY_ID),
-    ]);
+    const [loadedMunicipality, loadedCategories, loadedOrganizations, seedEvents, seedActivities] =
+      await Promise.all([
+        source.getMunicipalityBySlug(DEMO_MUNICIPALITY_SLUG),
+        source.listCategories(DEMO_MUNICIPALITY_ID),
+        source.listOrganizations(DEMO_MUNICIPALITY_ID),
+        source.listEvents(DEMO_MUNICIPALITY_ID),
+        source.listActivities(DEMO_MUNICIPALITY_ID),
+      ]);
 
     setMunicipality(loadedMunicipality);
     setCategories(loadedCategories);

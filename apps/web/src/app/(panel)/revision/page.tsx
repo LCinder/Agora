@@ -75,9 +75,7 @@ export default function ReviewPage() {
       (entry): entry is { activity: Activity; event: Event } =>
         entry.event !== undefined && !isAwaitingReview(entry.event),
     )
-    .sort(
-      (left, right) => left.activity.startAt.getTime() - right.activity.startAt.getTime(),
-    );
+    .sort((left, right) => left.activity.startAt.getTime() - right.activity.startAt.getTime());
 
   return (
     <>
@@ -174,9 +172,7 @@ export default function ReviewPage() {
 
           <div className="grid gap-3">
             {pendingActivities.map(({ activity, event }) => {
-              const organization = organizations.find(
-                (entry) => entry.id === event.organizationId,
-              );
+              const organization = organizations.find((entry) => entry.id === event.organizationId);
               const key = `activity-${activity.id}`;
 
               return (
@@ -215,7 +211,9 @@ export default function ReviewPage() {
                         brand={municipality.branding.primaryColor}
                         onClick={() => void approveActivity(event.id, activity.id)}
                       >
-                        {activity.pendingPatch === null ? 'Aprobar y publicar' : 'Aprobar el cambio'}
+                        {activity.pendingPatch === null
+                          ? 'Aprobar y publicar'
+                          : 'Aprobar el cambio'}
                       </Button>
                       <Button
                         variant="secondary"

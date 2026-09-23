@@ -136,7 +136,9 @@ describe('groupEvents', () => {
 
   it('ignores the programme of another event', () => {
     const feria = makeEvent({ id: 'feria', startAt: '2026-09-08T18:00:00Z', endAt: null });
-    const other = [makeActivity({ id: 'elsewhere', eventId: 'other', startAt: '2026-09-12T19:00:00Z' })];
+    const other = [
+      makeActivity({ id: 'elsewhere', eventId: 'other', startAt: '2026-09-12T19:00:00Z' }),
+    ];
 
     expect(
       ids(groupEvents([feria], { now: THURSDAY, timeZone: MADRID, activities: other }).past),

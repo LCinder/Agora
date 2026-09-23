@@ -192,10 +192,7 @@ export function activityEndsAt(activity: Pick<Activity, 'startAt' | 'endAt'>): D
 }
 
 /** The activities of one event, in the order the programme is read. */
-export function activitiesOf(
-  activities: readonly Activity[],
-  eventId: string,
-): Activity[] {
+export function activitiesOf(activities: readonly Activity[], eventId: string): Activity[] {
   return activities
     .filter((activity) => activity.eventId === eventId)
     .sort((a, b) => a.startAt.getTime() - b.startAt.getTime());

@@ -426,11 +426,7 @@ export default function DataPage() {
         <>
           <Table rows={byEvent} />
           {byActivity.length === 0 ? null : (
-            <Table
-              caption="Actividades con más interesados"
-              column="Actividad"
-              rows={byActivity}
-            />
+            <Table caption="Actividades con más interesados" column="Actividad" rows={byActivity} />
           )}
         </>
       ) : (

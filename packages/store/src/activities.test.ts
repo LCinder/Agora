@@ -363,9 +363,9 @@ describe.skipIf(local === null)('programmes', () => {
     // decision somebody already made.
     const queue = await staff(admin).reviewQueue();
 
-    expect(queue.flatMap((item) => (item.kind === 'activity' ? [item.activity.id] : []))).not.toContain(
-      line.id,
-    );
+    expect(
+      queue.flatMap((item) => (item.kind === 'activity' ? [item.activity.id] : [])),
+    ).not.toContain(line.id);
 
     await staff(admin).deleteEvent(penaEvent.id);
   });
@@ -402,9 +402,9 @@ describe.skipIf(local === null)('programmes', () => {
 
     const device = createDeviceStore(client, TABLE, DEVICE_ONE);
 
-    await device.markActivity(ZUBIA, EVENTS.zubiaPublished, line.id);
+    await device.markActivityInterest(ZUBIA, EVENTS.zubiaPublished, line.id);
     // Twice is once: the mark's own condition makes a double tap harmless.
-    await device.markActivity(ZUBIA, EVENTS.zubiaPublished, line.id);
+    await device.markActivityInterest(ZUBIA, EVENTS.zubiaPublished, line.id);
 
     const counted = (await staff(admin).listActivities(EVENTS.zubiaPublished)).find(
       (entry) => entry.id === line.id,
@@ -416,9 +416,7 @@ describe.skipIf(local === null)('programmes', () => {
 
     const marks = await device.listInterests();
 
-    expect(marks.find((mark) => mark.activityId === line.id)?.eventId).toBe(
-      EVENTS.zubiaPublished,
-    );
+    expect(marks.find((mark) => mark.activityId === line.id)?.eventId).toBe(EVENTS.zubiaPublished);
 
     // The reminder job finds the phone under the line, and not under the event.
     const notifications = createNotificationStore(client, TABLE);
@@ -434,7 +432,7 @@ describe.skipIf(local === null)('programmes', () => {
       DEVICE_ONE,
     );
 
-    await device.unmarkActivity(ZUBIA, EVENTS.zubiaPublished, line.id);
+    await device.unmarkActivityInterest(ZUBIA, EVENTS.zubiaPublished, line.id);
 
     const after = (await staff(admin).listActivities(EVENTS.zubiaPublished)).find(
       (entry) => entry.id === line.id,
@@ -450,7 +448,7 @@ describe.skipIf(local === null)('programmes', () => {
     const device = createDeviceStore(client, TABLE, DEVICE_ONE);
 
     await expect(
-      device.markActivity(ZUBIA, EVENTS.zubiaPublished, 'act-does-not-exist'),
+      device.markActivityInterest(ZUBIA, EVENTS.zubiaPublished, 'act-does-not-exist'),
     ).rejects.toBeInstanceOf(StoreError);
   });
 
@@ -464,7 +462,7 @@ describe.skipIf(local === null)('programmes', () => {
     const device = createDeviceStore(client, TABLE, 'device-forgetful');
 
     await device.register({ platform: 'android', locale: 'es' });
-    await device.markActivity(ZUBIA, EVENTS.zubiaPublished, line.id);
+    await device.markActivityInterest(ZUBIA, EVENTS.zubiaPublished, line.id);
     await device.forget();
 
     const counted = (await staff(admin).listActivities(EVENTS.zubiaPublished)).find(
@@ -490,7 +488,7 @@ describe.skipIf(local === null)('programmes', () => {
 
     const device = createDeviceStore(client, TABLE, DEVICE_ONE);
 
-    await device.markActivity(ZUBIA, EVENTS.zubiaPublished, line.id);
+    await device.markActivityInterest(ZUBIA, EVENTS.zubiaPublished, line.id);
 
     const summary = await createStatsStore(client, TABLE, admin).summary();
 
@@ -504,7 +502,7 @@ describe.skipIf(local === null)('programmes', () => {
     ).toBeNull();
     expect(summary.interests.total).toBeGreaterThan(0);
 
-    await device.unmarkActivity(ZUBIA, EVENTS.zubiaPublished, line.id);
+    await device.unmarkActivityInterest(ZUBIA, EVENTS.zubiaPublished, line.id);
     await staff(admin).deleteActivity(EVENTS.zubiaPublished, line.id);
   });
 
@@ -531,9 +529,7 @@ describe.skipIf(local === null)('programmes', () => {
     // Nothing left in the calendar index pointing at an event that is gone: the
     // app would otherwise draw the line on a day of its own.
     expect(
-      (await publicStore().listActivities(ZUBIA)).some(
-        (activity) => activity.eventId === feria.id,
-      ),
+      (await publicStore().listActivities(ZUBIA)).some((activity) => activity.eventId === feria.id),
     ).toBe(false);
   });
 });

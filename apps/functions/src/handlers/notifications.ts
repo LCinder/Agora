@@ -260,11 +260,7 @@ async function runReminders(dependencies: NotificationDependencies): Promise<Job
     // marked at all. The feria's own reminder went out above, to the people who
     // marked the feria; somebody who did both gets two, and that is correct, as
     // long as the daily cap below has the last word.
-    const programme = await store.activitiesStartingBetween(
-      town.id,
-      tomorrow.start,
-      tomorrow.end,
-    );
+    const programme = await store.activitiesStartingBetween(town.id, tomorrow.start, tomorrow.end);
 
     for (const activity of programme) {
       result.considered += 1;
@@ -279,9 +275,7 @@ async function runReminders(dependencies: NotificationDependencies): Promise<Job
         continue;
       }
 
-      const targets = await store.pushTargets(
-        await store.devicesInterestedInActivity(activity.id),
-      );
+      const targets = await store.pushTargets(await store.devicesInterestedInActivity(activity.id));
       const messages: PushMessage[] = [];
 
       for (const target of targets) {
