@@ -34,6 +34,32 @@
     --cat-mayores: #a16207;
     --cat-religioso: #7c2d12;
 
+    /* ── Los dos números de la impresión ──────────────────────────
+
+       Cambia estos dos y se reajusta el documento entero: todo el bloque de
+       @media print está atado a ellos. No hay ningún tercer sitio que tocar.
+
+       --print-side  Guarda izquierda y derecha del contenido.
+       --print-edge  Guarda de arriba y de abajo.
+
+       Los dos son padding del propio bloque, no margen de @page, y eso es a
+       propósito: el margen de @page lo pisa el desplegable «Márgenes» del
+       diálogo de impresión en cuanto alguien lo toca una vez, y Chrome se lo
+       guarda para siempre. Con el aire dentro del bloque no hay ajuste del
+       diálogo que lo pueda quitar.
+
+       El fondo de cada sección llega al filo del papel por los cuatro lados;
+       lo que se mueve es el texto. Lo que la impresora no alcance a imprimir
+       —unos 4 mm— será siempre fondo, nunca una letra.
+
+       --print-edge es también la separación entre una sección y la siguiente
+       cuando van en la misma hoja, así que subírlo airea el documento entero.
+       Referencia en A4: hasta 13mm de borde y 25mm de lado caben en 4 hojas.
+       Pasarse no rompe nada; el documento se repagina y gana hojas.
+    */
+    --print-side: 20mm;
+    --print-edge: 12mm;
+
     --display: 'Archivo Black', 'Archivo', system-ui, sans-serif;
     --sans: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
     --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
@@ -228,6 +254,16 @@
   section.tint {
     background: var(--mist);
     border-bottom-color: var(--paper);
+  }
+
+  /* Una sección que continúa la de arriba: mismo bloque a la vista, dos bloques
+     para la paginación. */
+  section.cont {
+    padding-top: 0;
+  }
+
+  section.nb {
+    border-bottom: none;
   }
 
   section > h2 {
@@ -770,7 +806,7 @@
   }
 
   /* ── móvil ──────────────────────────────────────────────────────────── */
-  @media (max-width: 720px) {
+  @media screen and (max-width: 720px) {
     .hero,
     section,
     .footer {
@@ -807,10 +843,8 @@
 
   /* ── impresión: A4, a sangre, con los cortes puestos a mano ──────── */
 
-  /* Margen cero y el aire lo pone cada bloque por dentro. Así el negro de la
-     portada, la franja de categorías y los fondos tintados llegan al borde del
-     papel en vez de quedarse flotando en un marco blanco, que es lo que separa
-     un documento impreso de una página web impresa. */
+  /* Cero por los cuatro lados: todo el aire lo pone cada bloque por dentro, con
+     --print-side y --print-edge. Ver el comentario de esas dos variables. */
   @page {
     size: A4;
     margin: 0;
@@ -819,8 +853,8 @@
   @media print {
     body {
       background: var(--paper);
-      font-size: 9.2pt;
-      line-height: 1.38;
+      font-size: 8.9pt;
+      line-height: 1.33;
     }
 
     .doc {
@@ -829,22 +863,54 @@
       max-width: none;
     }
 
+    /* En pantalla la línea separa una sección de la siguiente; en papel, cuando
+       la sección termina abajo del todo, la línea se queda cruzando el pie de la
+       hoja sin separar nada de nada. El fondo alternado y el aire de arriba y
+       abajo ya hacen ese trabajo. */
+    section {
+      border-bottom: none;
+    }
+
+    /* El pie, al fondo de la última hoja, siempre.
+       Las dos últimas secciones y el pie van dentro de un envoltorio que mide
+       una hoja entera —en papel, 100vh es exactamente la caja de una página— y
+       el pie se va a su borde inferior con `margin-top: auto`. Es la única
+       forma en CSS de pegar algo al fondo de una hoja: lo demás es calcular a
+       mano lo que sobra, y lo que sobra cambia con el papel, con --print-edge y
+       con la tipografía que llegue a cargar. */
+    .tail {
+      break-before: page;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tail .footer {
+      margin-top: auto;
+    }
+
+    /* Todo el aire, de los cuatro lados, sale de las dos variables. La portada
+       lleva algo más por arriba porque es una portada. */
     .hero {
-      padding: 24mm 15mm 16mm;
+      padding: calc(var(--print-edge) + 9mm) var(--print-side)
+        calc(var(--print-edge) + 3mm);
     }
 
     section {
-      padding: 10mm 15mm;
+      padding: var(--print-edge) var(--print-side);
     }
 
     .footer {
-      padding: 11mm 15mm 13mm;
+      padding: var(--print-edge) var(--print-side);
     }
 
-    /* Dónde empieza cada hoja. Dejado al azar, el documento partía un pilar por
-       la mitad y mandaba el pie solo a una quinta página. */
-    section.sheet {
-      break-before: page;
+    /* Ninguna sección se parte. El navegador mete en cada hoja las que quepan
+       enteras y baja la siguiente, así que el documento se repagina solo si
+       cambia el papel o el margen en vez de romperse por donde no debe. */
+    .hero,
+    section,
+    .footer {
+      break-inside: avoid;
     }
 
     h1 {
@@ -852,7 +918,7 @@
     }
 
     h2 {
-      font-size: 14.5pt;
+      font-size: 13.5pt;
     }
 
     h3 {
@@ -864,7 +930,7 @@
     }
 
     .lead {
-      font-size: 10.6pt;
+      font-size: 10pt;
     }
 
     .brand {
@@ -907,12 +973,20 @@
     }
 
     .pillar {
-      padding: 12px 15px;
+      padding: 8px 13px;
       gap: 13px;
     }
 
+    .pillar h3 {
+      margin-bottom: 5px;
+    }
+
+    .pillar .who {
+      margin-bottom: 6px;
+    }
+
     .pillars {
-      gap: 9px;
+      gap: 7px;
     }
 
     .pillar .n {
@@ -922,36 +996,36 @@
     /* Los cuerpos de texto de las rejillas van en px, que en pantalla es lo
        correcto y en papel los deja mas grandes que el texto corrido. */
     .pillar p {
-      font-size: 9.6pt;
+      font-size: 9pt;
     }
 
     .pain p,
     .split li {
-      font-size: 9.2pt;
-      line-height: 1.4;
+      font-size: 8.9pt;
+      line-height: 1.36;
     }
 
     .extra p,
     .chip .v {
-      font-size: 8.8pt;
+      font-size: 8.5pt;
       line-height: 1.4;
     }
 
     .split ul {
-      gap: 7px;
+      gap: 5px;
     }
 
     .panel {
       margin-top: 11px;
-      padding: 14px 15px 12px;
+      padding: 11px 13px 10px;
     }
 
     .panel .head {
-      padding-bottom: 10px;
+      padding-bottom: 8px;
     }
 
     .tile {
-      padding: 10px 3px 11px;
+      padding: 7px 3px 8px;
     }
 
     .tile .v {
@@ -959,31 +1033,28 @@
     }
 
     .charts {
-      padding-top: 13px;
+      padding-top: 10px;
       gap: 19px;
     }
 
     .bars,
     .ranking {
-      gap: 7px;
+      gap: 6px;
     }
 
     .months {
-      height: 62px;
+      height: 52px;
     }
 
     .panel figcaption {
-      margin-top: 12px;
-      padding-top: 10px;
+      margin-top: 10px;
+      padding-top: 8px;
     }
 
     .tl {
       padding-bottom: 13px;
     }
 
-    .footer {
-      margin-top: 70px;
-    }
 
     .footer .rule {
       margin: 12px 0 8px;
@@ -1095,7 +1166,7 @@
     </div>
   </section>
 
-  <section class="tint sheet">
+  <section class="tint">
     <div class="eyebrow">Lo que hacemos distinto</div>
     <h2>Tres cosas que no hace ninguna aplicación municipal</h2>
     <p>
@@ -1189,7 +1260,7 @@
   </section>
 
 
-  <section class="sheet">
+  <section class="nb">
     <div class="eyebrow">Datos para el ayuntamiento</div>
     <h2>Por fin se puede contestar a «¿y cuánta gente fue?»</h2>
     <p>
@@ -1366,16 +1437,16 @@
 
       <figcaption>
         Las cifras son inventadas; la pantalla no. Cada categoría lleva en el panel el mismo color
-        que en la aplicación, así que la gráfica y el calendario que ve el vecino se leen igual. Y la
-        serie de doce meses es la que contesta a la pregunta que de verdad hace un concejal: si esto
-        crece.
+        que en la aplicación, así que la gráfica y el calendario que ve el vecino se leen igual.
       </figcaption>
     </figure>
+  </section>
 
+  <section class="cont">
     <div class="extras">
       <div class="extra">
         <h4>Evento a evento</h4>
-        <p>Una tabla con los interesados y las visitas de cada evento, de más a menos. Cuatrocientos miraron el concierto y once lo marcaron dice algo que ninguna de las dos cifras dice por separado.</p>
+        <p>Los interesados y las visitas de cada evento, de más a menos. Cuatrocientos miraron el concierto y once lo marcaron dice algo que ninguna de las dos cifras dice sola.</p>
       </div>
       <div class="extra">
         <h4>Para la memoria anual</h4>
@@ -1396,7 +1467,8 @@
     </div>
   </section>
 
-  <section class="tint sheet">
+  <div class="tail">
+  <section class="tint">
     <div class="eyebrow">Garantías</div>
     <h2>Protección de datos</h2>
 
@@ -1461,7 +1533,7 @@
     </div>
   </section>
 
-  <footer class="footer">
+    <footer class="footer">
     <div class="row">
       <div>
         <div class="mark">HoyQ</div>
@@ -1481,4 +1553,5 @@
       propuesta escrita tras la reunión. Desarrollado en Granada.
     </p>
   </footer>
+  </div>
 </div>
