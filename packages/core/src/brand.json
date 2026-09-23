@@ -2,7 +2,7 @@
   "name": "HoyQ",
   "slug": "hoyq",
   "scheme": "hoyq",
-  "androidPackage": "com.hoyq.app",
-  "iosBundleId": "com.hoyq.app",
+  "androidPackage": "com.boof.hoyq",
+  "iosBundleId": "com.boof.hoyq",
   "tagline": "¿Hoy qué hacemos?"
 }

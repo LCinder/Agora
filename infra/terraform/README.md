@@ -239,7 +239,7 @@ arriesgado que cambiar de tabla.
       puestas, el build del panel escribe `/.well-known/assetlinks.json` y
       `/.well-known/apple-app-site-association`; sin ellas no escribe nada y el enlace abre la web,
       que es el comportamiento correcto mientras no haya cuentas en las tiendas. Comprueba después
-      con `adb shell pm get-app-links com.hoyq.app` y con el validador de Apple que la verificación
+      con `adb shell pm get-app-links com.boof.hoyq` y con el validador de Apple que la verificación
       pasa: es silenciosa cuando falla.
 - [ ] **Dominio propio**, cuando haya nombre comercial (decisión pendiente nº 1). Hasta entonces la
       página pública de evento se comparte con una URL de CloudFront, que en un WhatsApp queda mal.
