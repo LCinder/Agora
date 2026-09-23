@@ -83,4 +83,6 @@ crash.log
 apps/web/public/.well-known/
 
 # Credencial del proyecto de Firebase. La escribe la CI desde un secreto.
-apps/mobile/google-services.json
+# Sin ruta: el fichero se descarga a donde sea y una credencial en un
+# repositorio publico no se arregla borrandola despues.
+google-services.json
