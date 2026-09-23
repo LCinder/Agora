@@ -20,7 +20,22 @@ import { defineConfig, devices } from '@playwright/test';
  * what an `expo export` produces and what the web build would serve, and building
  * it is also how a route that cannot be exported gets caught.
  */
+/** The demo build: no API, the seed bundled inside it. */
 const PORT = 8081;
+
+/**
+ * The same app built the way a pilot ships it, pointed at an API that is not
+ * there.
+ *
+ * A second export costs a couple of minutes in CI, and it buys the half of this
+ * app that had never been tested: every screen above was passing while the build
+ * that actually goes on a phone sat on its spinner for ever, because the demo
+ * build never makes a request and so never fails one (D-068).
+ *
+ * Which API it points at is the script's business, not this file's — see
+ * `scripts/serve-web-builds.mjs`.
+ */
+const API_PORT = 8082;
 
 export default defineConfig({
   testDir: './tests',
@@ -40,15 +55,23 @@ export default defineConfig({
     // would be tested in the language almost none of its users has (D-065).
     locale: 'es-ES',
   },
-  projects: [{ name: 'android-sized', use: {} }],
+  projects: [
+    { name: 'android-sized', testIgnore: /offline\.spec\.ts/, use: {} },
+    {
+      name: 'sin-conexión',
+      testMatch: /offline\.spec\.ts/,
+      use: { baseURL: `http://localhost:${API_PORT}` },
+    },
+  ],
+  // One entry, one script, because the two builds must not run at the same time:
+  // Metro caches `EXPO_PUBLIC_*` inlined into a module, so parallel exports that
+  // differ only by that variable contaminate each other. See the script (D-068).
   webServer: {
-    // Exported and served, not `expo start`: Metro's dev server and its web
-    // socket are not what a resident loads.
-    command: `npx expo export --platform web --output-dir .web-build && npx serve --no-clipboard --single --listen ${PORT} .web-build`,
+    command: 'node scripts/serve-web-builds.mjs',
     url: `http://localhost:${PORT}`,
     reuseExistingServer: process.env.CI === undefined,
-    // The export bundles 5.6MB of JavaScript from scratch, which is slower than
-    // any dev server and is the price of testing what actually ships.
-    timeout: 300_000,
+    // Two exports of 5.6MB each, both with the cache cleared. This is the slowest
+    // thing in the repository and it is the price of testing what ships.
+    timeout: 600_000,
   },
 });

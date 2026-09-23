@@ -59,8 +59,11 @@ import {
  */
 
 export interface AppState {
-  /** False until the stored preferences have been read. */
+  /** False until the app has finished its first load, whether or not it worked. */
   ready: boolean;
+  /** True when that first load could not reach the API. `retry` tries again. */
+  offline: boolean;
+  retry: () => void;
   municipalities: MunicipalitySummary[];
   municipality: Municipality | null;
   selectMunicipality: (municipalityId: string) => Promise<void>;
@@ -96,6 +99,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const scheme = useColorScheme();
 
   const [ready, setReady] = useState(false);
+  /**
+   * True when the first load could not reach the API.
+   *
+   * Kept apart from `ready`, because the two answer different questions: `ready`
+   * is "has the app finished trying", and this is "did it get anything". Before
+   * this existed they were the same flag, and a failed load left the app on its
+   * spinner for ever (D-068).
+   */
+  const [offline, setOffline] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [municipalities, setMunicipalities] = useState<MunicipalitySummary[]>([]);
   const [municipality, setMunicipality] = useState<Municipality | null>(null);
   const [interests, setInterests] = useState<string[]>([]);
@@ -107,13 +120,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     async function bootstrap() {
       const deviceLocale = resolveLocale(getLocales()[0]?.languageTag);
-      const all = await dataSource.listMunicipalities();
+
+      // Read from the phone first, and never inside the try below: these four
+      // cannot fail for a network reason, and a resident who has already chosen
+      // their town keeps their marks and their settings even when nothing loads.
       const storedId = await loadActiveMunicipality();
       const storedInterests = await loadInterests();
       const storedAppearance = await loadAppearance();
 
-      const stored = storedId === null ? null : all.find((entry) => entry.id === storedId);
-      const selected = stored ? await dataSource.getMunicipalityBySlug(stored.slug) : null;
+      let all: MunicipalitySummary[] = [];
+      let selected: Municipality | null = null;
+      let failed = false;
+
+      try {
+        all = await dataSource.listMunicipalities();
+
+        const stored = storedId === null ? null : all.find((entry) => entry.id === storedId);
+
+        selected = stored ? await dataSource.getMunicipalityBySlug(stored.slug) : null;
+      } catch {
+        // A street with one bar of signal, an API that is down, or a response
+        // this build is too old to read. Whichever it was, the resident gets a
+        // screen that says so and a button, not a spinner that never stops.
+        failed = true;
+      }
 
       if (!active) return;
 
@@ -121,11 +151,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setMunicipalities(all);
       setMunicipality(selected);
       setInterests(storedInterests);
+      setOffline(failed);
       if (isAppearance(storedAppearance)) setAppearanceState(storedAppearance);
+
+      // Always, and last. Whatever happened above, the app has finished trying
+      // and something has to be on screen.
       setReady(true);
 
       // After the screen is up, never before it: the calendar must not wait for
       // the network to paint. All three are no-ops in the demo build.
+      if (failed) return;
+
       if (selected !== null) void followMunicipality(selected.id);
       void syncInterests(storedInterests);
       void refreshPushToken();
@@ -136,6 +172,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
+  }, [attempt]);
+
+  /** What the button on the offline screen does. */
+  const retry = useCallback(() => {
+    setReady(false);
+    setOffline(false);
+    setAttempt((value) => value + 1);
   }, []);
 
   const selectMunicipality = useCallback(
@@ -258,6 +301,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AppState>(
     () => ({
       ready,
+      offline,
+      retry,
       municipalities,
       municipality,
       selectMunicipality,
@@ -291,6 +336,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       municipalities,
       municipality,
       ready,
+      offline,
+      retry,
       scheme,
       selectMunicipality,
       toggleActivityInterest,

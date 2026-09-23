@@ -109,15 +109,25 @@ export function useMunicipalityData(): MunicipalityData {
     setLoading(true);
 
     async function load(municipalityId: string) {
-      const fresh = await readAll(municipalityId);
+      try {
+        const fresh = await readAll(municipalityId);
 
-      if (!active) return;
+        if (!active) return;
 
-      setEvents(fresh.events);
-      setActivities(fresh.activities);
-      setCategories(fresh.categories);
-      setOrganizations(fresh.organizations);
-      setLoading(false);
+        setEvents(fresh.events);
+        setActivities(fresh.activities);
+        setCategories(fresh.categories);
+        setOrganizations(fresh.organizations);
+      } catch {
+        // Same reasoning as `refresh` above, and the same silence: what is on
+        // screen stays. The difference is that this is the first load, so what
+        // stays is an empty calendar — which the screen shows as empty rather
+        // than as a skeleton that never resolves (D-068).
+      } finally {
+        // In the `finally`, not after the awaits: a throw used to skip it, and a
+        // calendar stuck on its skeleton was the result.
+        if (active) setLoading(false);
+      }
     }
 
     void load(municipality.id);

@@ -50,7 +50,7 @@ function normalise(value: string): string {
 }
 
 export default function WelcomeScreen() {
-  const { ready, municipalities, selectMunicipality, t, theme } = useApp();
+  const { offline, ready, municipalities, retry, selectMunicipality, t, theme } = useApp();
   const router = useRouter();
 
   const [query, setQuery] = useState('');
@@ -198,24 +198,42 @@ export default function WelcomeScreen() {
           </Pressable>
         )}
         ListEmptyComponent={
-          <Card>
-            <Subtitle>{t('welcome.notAvailableTitle')}</Subtitle>
-            <Body tone="muted" style={{ marginTop: theme.spacing(2) }}>
-              {t('welcome.notAvailableBody')}
-            </Body>
-            {requested ? (
-              <Caption tone="primary" style={{ marginTop: theme.spacing(3) }}>
-                {t('welcome.notifyDone')}
-              </Caption>
-            ) : (
+          offline ? (
+            // Nothing loaded, and the reason is the network rather than the town
+            // not being on the platform. Saying "tu pueblo no está" when the
+            // truth is "no hay cobertura" is the kind of wrong that makes
+            // somebody delete the app (D-068).
+            <Card>
+              <Subtitle>{t('welcome.offlineTitle')}</Subtitle>
+              <Body tone="muted" style={{ marginTop: theme.spacing(2) }}>
+                {t('welcome.offlineBody')}
+              </Body>
               <Button
-                label={t('welcome.notifyMe')}
-                onPress={() => void requestMunicipality()}
-                variant="secondary"
+                label={t('common.retry')}
+                onPress={retry}
                 style={{ marginTop: theme.spacing(3) }}
               />
-            )}
-          </Card>
+            </Card>
+          ) : (
+            <Card>
+              <Subtitle>{t('welcome.notAvailableTitle')}</Subtitle>
+              <Body tone="muted" style={{ marginTop: theme.spacing(2) }}>
+                {t('welcome.notAvailableBody')}
+              </Body>
+              {requested ? (
+                <Caption tone="primary" style={{ marginTop: theme.spacing(3) }}>
+                  {t('welcome.notifyDone')}
+                </Caption>
+              ) : (
+                <Button
+                  label={t('welcome.notifyMe')}
+                  onPress={() => void requestMunicipality()}
+                  variant="secondary"
+                  style={{ marginTop: theme.spacing(3) }}
+                />
+              )}
+            </Card>
+          )
         }
       />
     </Screen>

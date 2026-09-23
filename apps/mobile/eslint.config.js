@@ -8,6 +8,6 @@ module.exports = defineConfig([
     // against; `test-results` is what Playwright leaves behind when one fails.
     // Both are generated, both are bundled library code, and linting either says
     // nothing about this repository.
-    ignores: ['dist/*', '.expo/*', '.web-build/*', 'test-results/*', 'playwright-report/*'],
+    ignores: ['dist/*', '.expo/*', '.web-build*/*', 'test-results/*', 'playwright-report/*'],
   },
 ]);

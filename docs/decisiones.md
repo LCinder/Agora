@@ -1514,3 +1514,33 @@ feria.
 fin en blanco se caía de «Hoy» la primera tarde y no volvía a verse. Ahora el final de un evento es
 el más tardío entre el suyo y el de su última actividad, así que una feria ocupa en el calendario los
 días que de verdad ocupa.
+
+---
+
+## D-068 — La app se quedaba cargando para siempre, y los tests no podían verlo
+
+**Fecha:** 2026-09-23 · **Estado:** aceptada
+
+El primer APK apuntado a la API de verdad (`5149f66`) se quedaba en «Cargando…» al abrirlo y no salía nunca. La causa, en una línea: **`bootstrap()` en `app-provider.tsx` no tenía `try`/`catch`.** El cliente HTTP sí tiene timeout y sí lanza un error limpio; lo que faltaba era alguien que lo cogiera. Cuando la primera llamada fallaba, la promesa se rechazaba, `setReady(true)` no llegaba a ejecutarse y la pantalla se quedaba con su spinner. Para siempre, no durante un rato.
+
+El mismo patrón estaba en un segundo sitio: `load()` en `use-municipality-data.ts`. Ahí el hermano de al lado, `refresh()`, sí capturaba —con un comentario explicando por qué— y la primera carga no. El calendario se quedaba en su esqueleto por el mismo motivo.
+
+**Ahora la regla es que la app siempre termina de intentarlo.** `setReady(true)` va después del `catch` y no dentro del camino feliz, y `setLoading(false)` va en un `finally`. Lo que se lee de la memoria del móvil —el municipio elegido, los eventos marcados, los ajustes— se lee **fuera** del `try`, porque no puede fallar por red y porque un vecino que ya eligió su pueblo no debe perder sus marcas porque hoy no haya cobertura.
+
+**Y dice qué ha pasado.** Antes, cuando no cargaba nada, el selector mostraba «tu municipio todavía no está en la aplicación» — que es mentira y de la clase que hace que alguien borre la app. Ahora hay un estado `offline` separado de `ready`, con su tarjeta y un botón de reintentar, porque las dos banderas contestan preguntas distintas: `ready` es «ha terminado de intentarlo» y `offline` es «ha conseguido algo».
+
+### Por qué nueve tests verdes no lo vieron
+
+Esta es la parte que importa más que el arreglo. La suite de la app existía y pasaba, y no podía detectarlo: **el build de demo lleva el calendario dentro y no hace ni una petición**, así que no puede fallar ninguna. La mitad del producto que va a un piloto no estaba probada.
+
+Ahora se compilan **dos exports**: el de demo y otro con `EXPO_PUBLIC_API_BASE_URL` apuntando a un puerto donde no hay nada. Tres tests sobre ese segundo, y los tres fallan si se quita el `catch`.
+
+Y dos cosas aprendidas peleándose con esto, las dos escritas en el código:
+
+**Metro inlina `EXPO_PUBLIC_*` al transformar y lo cachea.** Dos exports que solo se diferencian en esa variable son, para la caché, el mismo trabajo — así que el segundo reutiliza el valor inlinado del primero. Playwright arranca sus `webServer` en paralelo, con lo que era una moneda al aire: en una de las ejecuciones el build de demo salió con la URL de pruebas dentro y fallaron los tests de demo mientras pasaban los de red. Por eso los dos builds se hacen ahora **en serie, con `--clear`, desde un script**, y por eso el script borra los directorios antes: un directorio viejo sirve el bundle de ayer y la suite pasa contra código que nadie ha escrito hoy.
+
+**Y caí en la trampa que yo mismo había documentado.** El primer test afirmaba que no hubiera un «Cargando…» en pantalla — y eso también pasa con la página en blanco, que es exactamente lo que deja una promesa rechazada durante el arranque. El test pasaba con el fallo puesto. Ahora afirma en positivo que aparece algo con lo que el vecino puede hacer algo: el selector, o la tarjeta de sin conexión. El aviso estaba escrito en la cabecera de `app.spec.ts` desde el día que la escribí; escribirlo no basta.
+
+### Lo que sigue pendiente
+
+La app **no guarda el último calendario descargado**, así que sin red no hay nada que enseñar aunque la pantalla ya no se cuelgue. El documento de proyecto lo pide (sección 10, «Offline») y es lo siguiente que hay que hacer en la app: un vecino en una calle llena de gente durante una procesión es el caso para el que se diseñó esto.

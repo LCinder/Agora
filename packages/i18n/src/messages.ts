@@ -23,6 +23,8 @@ export interface Messages {
   'welcome.locationDenied': string;
   'welcome.locationUnavailable': string;
   'welcome.noResults': string;
+  'welcome.offlineTitle': string;
+  'welcome.offlineBody': string;
   'welcome.notAvailableTitle': string;
   'welcome.notAvailableBody': string;
   'welcome.notifyMe': string;
@@ -171,6 +173,9 @@ const es: Messages = {
   'welcome.locationDenied': 'Sin problema: busca tu municipio en la lista.',
   'welcome.locationUnavailable': 'No hemos podido saber dónde estás. Búscalo en la lista.',
   'welcome.noResults': 'No encontramos ese municipio',
+  'welcome.offlineTitle': 'No hemos podido conectar',
+  'welcome.offlineBody':
+    'Comprueba tu conexión y vuelve a intentarlo. Lo que tengas marcado sigue guardado en el móvil.',
   'welcome.notAvailableTitle': 'Todavía no está disponible',
   'welcome.notAvailableBody':
     'Tu ayuntamiento aún no tiene la app. Si nos lo dices, se lo haremos saber.',
@@ -331,6 +336,9 @@ const en: Messages = {
   'welcome.locationDenied': 'No problem: find your town in the list.',
   'welcome.locationUnavailable': 'We could not tell where you are. Find your town in the list.',
   'welcome.noResults': 'We could not find that town',
+  'welcome.offlineTitle': 'We could not connect',
+  'welcome.offlineBody':
+    'Check your connection and try again. Whatever you had marked is still saved on this phone.',
   'welcome.notAvailableTitle': 'Not available yet',
   'welcome.notAvailableBody':
     'Your town hall does not have the app yet. Tell us and we will let them know.',
