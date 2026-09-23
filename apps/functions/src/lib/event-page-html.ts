@@ -105,9 +105,8 @@ function programme(event: Event, activities: readonly Activity[], timeZone: stri
           const where = activityHasOwnLocation(activity, defaults)
             ? ` · ${escapeHtml(activity.location?.name ?? '')}`
             : '';
-          const cost = price.isFree || price.priceInfo === null
-            ? ''
-            : ` · ${escapeHtml(price.priceInfo)}`;
+          const cost =
+            price.isFree || price.priceInfo === null ? '' : ` · ${escapeHtml(price.priceInfo)}`;
 
           const time = formatTime(activity.startAt, context);
           const ends = activity.endAt === null ? '' : `–${formatTime(activity.endAt, context)}`;

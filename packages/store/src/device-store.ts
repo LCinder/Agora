@@ -115,11 +115,7 @@ export interface DeviceStore {
    * to twenty reminders. The two only meet again when the town hall sends a
    * notice, which reaches everybody with a stake in the event.
    */
-  markActivityInterest(
-    municipalityId: string,
-    eventId: string,
-    activityId: string,
-  ): Promise<void>;
+  markActivityInterest(municipalityId: string, eventId: string, activityId: string): Promise<void>;
   unmarkActivityInterest(
     municipalityId: string,
     eventId: string,

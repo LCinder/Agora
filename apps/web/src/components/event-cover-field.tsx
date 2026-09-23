@@ -124,12 +124,21 @@ export function EventCoverField({
 
       {/* The button above is the control. This is how it reaches the picker, and
           it is out of the tab order so that somebody using a screen reader does
-          not meet two controls that do one job (D-064). */}
+          not meet two controls that do one job (D-064).
+
+          `aria-hidden` finishes that thought. `sr-only` hides it from eyes but
+          leaves it in the accessibility tree, so a screen reader still found an
+          unlabelled file field — which is what the WCAG check was failing on.
+          Labelling it would have put back the second control this deliberately
+          removes, so the honest answer is that this input is plumbing and not a
+          control at all. It is safe: `tabIndex={-1}` means nothing focusable is
+          being hidden, which is the case aria-hidden must never cover. */}
       <input
         ref={input}
         type="file"
         accept={ACCEPT}
         name="cartel"
+        aria-hidden="true"
         tabIndex={-1}
         className="sr-only"
         onChange={(changeEvent) => {

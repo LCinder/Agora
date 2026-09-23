@@ -458,7 +458,8 @@ export function activityIndexAttributesFor(activity: {
 }): IndexAttributes {
   const attributes: IndexAttributes = {};
 
-  const parentVisible = activity.parentStatus === 'published' || activity.parentStatus === 'cancelled';
+  const parentVisible =
+    activity.parentStatus === 'published' || activity.parentStatus === 'cancelled';
   const visible = activity.status === 'published' || activity.status === 'cancelled';
 
   if (parentVisible && visible) {

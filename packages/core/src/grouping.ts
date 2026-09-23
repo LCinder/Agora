@@ -31,7 +31,10 @@ export interface GroupingContext {
 }
 
 /** Whether an event, programme included, overlaps a range. Both ends inclusive. */
-function overlaps(span: { startAt: Date; endAt: Date }, range: { start: Date; end: Date }): boolean {
+function overlaps(
+  span: { startAt: Date; endAt: Date },
+  range: { start: Date; end: Date },
+): boolean {
   return (
     span.startAt.getTime() <= range.end.getTime() && span.endAt.getTime() >= range.start.getTime()
   );

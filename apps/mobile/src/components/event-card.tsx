@@ -52,7 +52,10 @@ export function EventCard({
    * Tapping "Infantil" and getting a four-day feria back is confusing until the
    * card says "3 actividades de Infantil", which is the true and useful answer.
    */
-  matching?: { count: number; category: string };
+  // `| undefined` explícito: con `exactOptionalPropertyTypes`, «se puede omitir»
+  // y «se puede pasar undefined» son dos cosas distintas, y quien llama calcula
+  // el valor y pasa undefined cuando no hay nada que decir.
+  matching?: { count: number; category: string } | undefined;
   variant?: 'hero' | 'row';
 }) {
   const { locale, municipality, t, theme, isInterested } = useApp();

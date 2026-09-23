@@ -39,7 +39,11 @@ export const deviceClient: DeviceClient | null = usingRealBackend
   : null;
 
 /** The key of one remote mark, in the form the phone stores it. */
-function keyOf(mark: { municipalityId: string; eventId: string; activityId: string | null }): string {
+function keyOf(mark: {
+  municipalityId: string;
+  eventId: string;
+  activityId: string | null;
+}): string {
   return mark.activityId === null
     ? interestKey(mark.municipalityId, mark.eventId)
     : activityInterestKey(mark.municipalityId, mark.eventId, mark.activityId);

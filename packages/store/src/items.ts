@@ -211,10 +211,7 @@ export function eventWriteExpression(
 // together would mean a parameter that is meaningless half the time.
 // ---------------------------------------------------------------------------
 
-export function toActivityItem(
-  activity: Activity,
-  parentStatus: string,
-): Record<string, unknown> {
+export function toActivityItem(activity: Activity, parentStatus: string): Record<string, unknown> {
   const { pk, sk } = activityKey(activity.municipalityId, activity.eventId, activity.id);
 
   return {

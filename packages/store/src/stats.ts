@@ -241,7 +241,10 @@ export function createStatsStore(
       // may see are the ones already in `mine`, so belonging to one of them is
       // the whole check.
       const ownEvents = new Map(
-        mine.map((item) => [String(item['id']), { title: String(item['title']), categoryId: String(item['categoryId']) }]),
+        mine.map((item) => [
+          String(item['id']),
+          { title: String(item['title']), categoryId: String(item['categoryId']) },
+        ]),
       );
 
       const perActivity: {

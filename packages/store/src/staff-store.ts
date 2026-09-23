@@ -579,10 +579,7 @@ export function createStaffStore(
    * nothing here may reset. Creation goes through `createActivity`, which is the
    * only place allowed to make the row.
    */
-  async function writeActivity(
-    activity: Activity,
-    parentStatus: EventStatus,
-  ): Promise<Activity> {
+  async function writeActivity(activity: Activity, parentStatus: EventStatus): Promise<Activity> {
     await client.send(
       new UpdateCommand({
         TableName: tableName,
@@ -1152,10 +1149,7 @@ export function createStaffStore(
 
       return {
         kind: 'applied',
-        activity: await writeActivity(
-          { ...activity, ...patch, updatedAt: now },
-          event.status,
-        ),
+        activity: await writeActivity({ ...activity, ...patch, updatedAt: now }, event.status),
       };
     },
 

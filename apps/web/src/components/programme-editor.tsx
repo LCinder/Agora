@@ -149,9 +149,7 @@ function ActivityRow({ event, activity }: { event: Event; activity: Activity }) 
             {activity.endAt === null ? '' : `–${formatTime(activity.endAt, context)}`}
           </span>
           <div className="min-w-0">
-            <p
-              className={`font-medium ${activity.status === 'cancelled' ? 'line-through' : ''}`}
-            >
+            <p className={`font-medium ${activity.status === 'cancelled' ? 'line-through' : ''}`}>
               {activity.title}
             </p>
             {meta.length === 0 ? null : (

@@ -146,11 +146,7 @@ async function dispatch(event: ApiEvent, dependencies: DeviceApiDependencies): P
       if (eventId === null) return badRequest('Falta eventId.');
 
       await store.follow(municipalityId);
-      await store.markActivityInterest(
-        municipalityId,
-        eventId,
-        pathParameter(event, 'activityId'),
-      );
+      await store.markActivityInterest(municipalityId, eventId, pathParameter(event, 'activityId'));
 
       return noContent();
     }
