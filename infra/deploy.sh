@@ -92,6 +92,20 @@ output_of() {
   tf output -raw "$1" 2>/dev/null || true
 }
 
+# `terraform output` no lee nada sin un backend inicializado, y `.terraform/` es
+# un directorio local: existe en el portatil de quien ya aplico la
+# infraestructura y no existe en un runner de CI, que nace limpio cada vez. Sin
+# esto, `deploy.sh panel` y `deploy.sh seed` fallan en CI diciendo que no hay
+# salidas todavia, cuando las hay: lo que falta es con que leerlas.
+#
+# Es idempotente y no toca nada: `init` descarga proveedores y apunta al estado.
+ensure_initialised() {
+  [[ -d "$(environment_dir "${ENVIRONMENT}")/.terraform" ]] && return 0
+
+  step "Inicializando Terraform para leer las salidas de ${ENVIRONMENT}"
+  tf_init
+}
+
 # The profile and the region come from the environment's own tfvars, so there is
 # one place that names the account and it is the one Terraform already reads.
 read_tfvar_from() {
@@ -398,6 +412,7 @@ do_panel() {
   check_tfvars
   check_backend
   check_credentials
+  ensure_initialised
 
   local api bucket distribution pool client
   api="$(output_of api_endpoint)"
@@ -438,6 +453,7 @@ do_seed() {
   check_tfvars
   check_backend
   check_credentials
+  ensure_initialised
 
   local table
   table="$(output_of table_name)"
