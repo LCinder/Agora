@@ -205,18 +205,6 @@ export default function OrganizationsPage() {
                     {organization.contactEmail === null ? null : (
                       <p className="text-sm text-neutral-600">{organization.contactEmail}</p>
                     )}
-                    {/* The next step, on the row that needs it. Ticking "De
-                        confianza" on an association nobody can log into does
-                        nothing visible, and this is where that gets noticed. */}
-                    {organization.status === 'invited' ? (
-                      <p className="mt-1 text-sm text-amber-800 dark:text-amber-400">
-                        Nadie puede subir eventos por ella todavía.{' '}
-                        <Link href="/usuarios" className="font-semibold underline">
-                          Invita a su responsable
-                        </Link>
-                        .
-                      </p>
-                    ) : null}
                   </div>
 
                   <div className="flex flex-wrap items-center gap-4">
