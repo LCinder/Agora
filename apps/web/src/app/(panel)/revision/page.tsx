@@ -52,7 +52,7 @@ export default function ReviewPage() {
   const [reason, setReason] = useState('');
 
   if (loading || !municipality) {
-    return <p className="text-sm text-neutral-500">Cargando…</p>;
+    return <p className="text-sm text-neutral-600">Cargando…</p>;
   }
 
   // Reachable by typing the address, since a static site has no server to stop
@@ -214,7 +214,7 @@ export default function ReviewPage() {
                         </Link>
                         {organization ? `, de ${organization.name}` : ''}
                       </p>
-                      <p className="mt-1 text-xs text-neutral-500">
+                      <p className="mt-1 text-xs text-neutral-600">
                         {activity.pendingPatch === null
                           ? 'Actividad nueva, todavía no publicada.'
                           : 'Cambio sobre una actividad que los vecinos ya ven.'}
@@ -298,7 +298,7 @@ export default function ReviewPage() {
             </Card>
           ))}
         </div>
-        <p className="mt-3 text-xs text-neutral-500">
+        <p className="mt-3 text-xs text-neutral-600">
           {trusted.length} de {organizations.length} asociaciones publican sin revisión.
         </p>
       </section>

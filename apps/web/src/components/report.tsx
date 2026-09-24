@@ -96,7 +96,7 @@ export function Figure({ label, value, hint }: { label: string; value: string; h
     <div className="flex items-baseline justify-between gap-4 border-t border-black/10 py-2.5 first:border-t-0">
       <dt className="text-sm text-neutral-700">
         {label}
-        {hint === undefined ? null : <span className="block text-xs text-neutral-500">{hint}</span>}
+        {hint === undefined ? null : <span className="block text-xs text-neutral-600">{hint}</span>}
       </dt>
       <dd className="font-display text-xl font-semibold tabular-nums">{value}</dd>
     </div>

@@ -129,17 +129,17 @@ export function PanelNav() {
           <button
             type="button"
             onClick={resetToSeed}
-            className="ml-auto text-xs text-neutral-500 underline hover:text-neutral-800 dark:hover:text-neutral-200"
+            className="ml-auto text-xs text-neutral-600 underline hover:text-neutral-800 dark:hover:text-neutral-200"
           >
             Reiniciar demo
           </button>
         ) : (
           <div className="ml-auto flex items-center gap-3">
-            <span className="hidden text-xs text-neutral-500 sm:inline">{identity?.email}</span>
+            <span className="hidden text-xs text-neutral-600 sm:inline">{identity?.email}</span>
             <button
               type="button"
               onClick={leave}
-              className="text-xs text-neutral-500 underline hover:text-neutral-800 dark:hover:text-neutral-200"
+              className="text-xs text-neutral-600 underline hover:text-neutral-800 dark:hover:text-neutral-200"
             >
               Salir
             </button>

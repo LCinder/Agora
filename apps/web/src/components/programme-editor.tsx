@@ -60,7 +60,7 @@ export function ProgrammeEditor({ event }: { event: Event }) {
         <div className="mt-5 grid gap-6">
           {days.map((day) => (
             <section key={day.date.toISOString()}>
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-600">
                 {formatLongDate(day.date, context)}
               </h3>
               <div className="grid gap-2">
@@ -156,7 +156,7 @@ function ActivityRow({ event, activity }: { event: Event; activity: Activity }) 
               <p className="text-sm text-neutral-600 dark:text-neutral-400">{meta.join(' · ')}</p>
             )}
             {marks === null ? null : (
-              <p className="mt-1 text-xs text-neutral-500">
+              <p className="mt-1 text-xs text-neutral-600">
                 {marks} vecinos dicen que asistirán a esta actividad
               </p>
             )}

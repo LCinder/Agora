@@ -360,7 +360,7 @@ export function Field({
           {error}
         </span>
       ) : hint ? (
-        <span className="mt-1 block text-xs text-neutral-500 dark:text-neutral-400">{hint}</span>
+        <span className="mt-1 block text-xs text-neutral-600 dark:text-neutral-400">{hint}</span>
       ) : null}
     </label>
   );
@@ -383,7 +383,7 @@ const controlClass =
   // thing a screen reader announces and the thing the eye sees cannot drift
   // apart — there is no separate `isError` class to forget.
   'aria-invalid:border-red-600 aria-invalid:bg-red-50/50 ' +
-  'disabled:cursor-not-allowed disabled:bg-black/5 disabled:text-neutral-500 ' +
+  'disabled:cursor-not-allowed disabled:bg-black/5 disabled:text-neutral-600 ' +
   'dark:border-white/20 dark:bg-neutral-950';
 
 export function Input({
@@ -424,7 +424,7 @@ export function Checkbox({
       <span>
         {label}
         {hint === undefined ? null : (
-          <span className="block text-xs text-neutral-500 dark:text-neutral-400">{hint}</span>
+          <span className="block text-xs text-neutral-600 dark:text-neutral-400">{hint}</span>
         )}
       </span>
     </label>

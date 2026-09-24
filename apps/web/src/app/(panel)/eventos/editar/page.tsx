@@ -40,7 +40,7 @@ const NOTICE_TYPES: { value: EventNotice['type']; label: string }[] = [
  */
 export default function EditEventPage() {
   return (
-    <Suspense fallback={<p className="text-sm text-neutral-500">Cargando…</p>}>
+    <Suspense fallback={<p className="text-sm text-neutral-600">Cargando…</p>}>
       <EditEventView />
     </Suspense>
   );
@@ -76,7 +76,7 @@ function EditEventView() {
   const event = events.find((entry) => entry.id === id);
 
   if (loading || !municipality) {
-    return <p className="text-sm text-neutral-500">Cargando…</p>;
+    return <p className="text-sm text-neutral-600">Cargando…</p>;
   }
 
   if (!event) {
@@ -340,11 +340,11 @@ function NoticeComposer({
             municipal technician that their cancellation was pretend is worse
             than saying nothing. */}
         {demo ? (
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-neutral-600">
             En la demo el envío es simulado: no se manda ninguna notificación real.
           </p>
         ) : (
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-neutral-600">
             Sale en menos de un minuto, solo a quien ha dicho que asistirá a este evento.
           </p>
         )}

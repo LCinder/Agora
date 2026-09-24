@@ -234,7 +234,7 @@ export default function DataPage() {
   }, [byEvent, stats]);
 
   if (loading || !municipality) {
-    return <p className="text-sm text-neutral-500">Cargando…</p>;
+    return <p className="text-sm text-neutral-600">Cargando…</p>;
   }
 
   const totalInterest =
@@ -559,7 +559,7 @@ export default function DataPage() {
       )}
 
       <Rule className="mt-12" />
-      <p className="mt-4 max-w-[62ch] text-xs text-neutral-500">
+      <p className="mt-4 max-w-[62ch] text-xs text-neutral-600">
         {stats === null
           ? 'Datos de ejemplo para la demostración. En el producto real salen de los vecinos que pulsaron «Asistiré», de forma anónima: son una previsión y no un recuento en la puerta. Nunca se muestran segmentos con menos de cinco dispositivos.'
           : 'Las cifras salen de los vecinos que pulsaron «Asistiré», de forma anónima: son una previsión y no un recuento en la puerta. Nunca se muestran segmentos con menos de cinco dispositivos.'}
@@ -598,7 +598,7 @@ function Table({
               <td className="py-2 pr-4">
                 {row.name}
                 {row.event === undefined || row.event === '' ? null : (
-                  <span className="block text-xs text-neutral-500">Dentro de {row.event}</span>
+                  <span className="block text-xs text-neutral-600">Dentro de {row.event}</span>
                 )}
               </td>
               <td className="py-2 text-right tabular-nums">{row.asistentes}</td>

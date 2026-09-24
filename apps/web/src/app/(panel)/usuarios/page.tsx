@@ -61,7 +61,7 @@ export default function StaffPage() {
   }, [refresh]);
 
   if (loading || !municipality) {
-    return <p className="text-sm text-neutral-500">Cargando…</p>;
+    return <p className="text-sm text-neutral-600">Cargando…</p>;
   }
 
   if (role !== 'municipal_admin') {

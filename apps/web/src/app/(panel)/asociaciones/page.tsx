@@ -61,7 +61,7 @@ export default function OrganizationsPage() {
   const [error, setError] = useState<string | null>(null);
 
   if (loading || !municipality) {
-    return <p className="text-sm text-neutral-500">Cargando…</p>;
+    return <p className="text-sm text-neutral-600">Cargando…</p>;
   }
 
   if (role === 'org_editor') {
@@ -176,7 +176,7 @@ export default function OrganizationsPage() {
                       {waiting > 0 ? ` · ${waiting} esperando revisión` : ''}
                     </p>
                     {organization.contactEmail === null ? null : (
-                      <p className="text-sm text-neutral-500">{organization.contactEmail}</p>
+                      <p className="text-sm text-neutral-600">{organization.contactEmail}</p>
                     )}
                   </div>
 

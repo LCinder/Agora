@@ -61,7 +61,7 @@ export default function EventsPage() {
   }, [categoryId, events, organizationId, ownOnly, status]);
 
   if (loading || !municipality) {
-    return <p className="text-sm text-neutral-500">Cargando…</p>;
+    return <p className="text-sm text-neutral-600">Cargando…</p>;
   }
 
   const context = { now: new Date(), timeZone: municipality.timeZone, locale: 'es' as const };
@@ -127,7 +127,7 @@ export default function EventsPage() {
                     <p className="text-sm text-neutral-600 dark:text-neutral-400">
                       {formatWhen(event, context)} · {event.location.name}
                     </p>
-                    <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-neutral-500">
+                    <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-neutral-600">
                       {category === undefined ? null : (
                         <>
                           <CategoryChip name={category.name} colour={category.color} />
