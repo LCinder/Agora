@@ -144,7 +144,7 @@ export default async function PublicEventPage({ params }: PageProps) {
       <div className="mt-10 rounded-xl p-5 text-white" style={{ backgroundColor: brand }}>
         <p className="text-lg font-semibold">Toda la agenda de {municipality.name} en el móvil</p>
         <p className="mt-1 text-sm opacity-90">
-          Recibe un recordatorio de lo que te interesa y entérate si algo cambia de hora o se
+          Di «Asistiré» y te recordamos lo que vayas a ir a ver, y te avisamos si cambia de hora o se
           cancela.
         </p>
         <p className="mt-4 text-sm font-semibold underline">Descargar la app</p>

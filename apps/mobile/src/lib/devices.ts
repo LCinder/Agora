@@ -113,7 +113,7 @@ export async function pushActivityInterest(
  * Counts that this phone opened an event, at most once a day.
  *
  * What the town hall's "vistas" is made of, and the argument that comes right
- * after "Me interesa" in a meeting: a councillor can see that four hundred
+ * after "Asistiré" in a meeting: a councillor can see that four hundred
  * people looked at the concert and eleven marked it, which is a different and
  * more useful fact than either number alone.
  *
@@ -146,7 +146,7 @@ export async function recordView(municipalityId: string, eventId: string): Promi
 /**
  * Makes the API's list of marks match the phone's.
  *
- * Called once on launch. This is what turns "Me interesa" into a reminder: the
+ * Called once on launch. This is what turns "Asistiré" into a reminder: the
  * notification job reads the marks, so a mark that never reached the API is a
  * reminder that never arrives.
  */

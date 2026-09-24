@@ -20,7 +20,7 @@ const VERSION = 'v1';
 
 /**
  * Six months. Long, because expiry here protects nothing much and a resident
- * being silently logged out of their own "Me interesa" list is a real annoyance;
+ * being silently logged out of their own "Asistiré" list is a real annoyance;
  * short enough that a leaked token is not forever.
  */
 export const TOKEN_LIFETIME_SECONDS = 180 * 24 * 60 * 60;

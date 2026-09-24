@@ -137,7 +137,7 @@ test('marking an event puts it in Mis eventos, and it survives a reload', async 
   await chooseMunicipality(page);
 
   await page.getByRole('tab', { name: 'Mis eventos' }).click();
-  await expect(page.getByText('Todavía no te interesa ningún evento.')).toBeVisible();
+  await expect(page.getByText('Todavía no has dicho que vayas a ir a nada.')).toBeVisible();
 
   await page.getByRole('tab', { name: 'Agenda' }).click();
 
@@ -150,7 +150,7 @@ test('marking an event puts it in Mis eventos, and it survives a reload', async 
   expect(title).not.toBe('');
 
   await first.click();
-  await page.getByText('Me interesa', { exact: true }).click();
+  await page.getByText('Asistiré', { exact: true }).click();
 
   // The event detail is its own screen with no tab bar, so getting back is the
   // back gesture, which is what a resident does too.
@@ -158,7 +158,7 @@ test('marking an event puts it in Mis eventos, and it survives a reload', async 
   await page.getByRole('tab', { name: 'Mis eventos' }).click();
 
   await expect(page.getByText(title, { exact: false }).first()).toBeVisible();
-  await expect(page.getByText('Todavía no te interesa ningún evento.')).toHaveCount(0);
+  await expect(page.getByText('Todavía no has dicho que vayas a ir a nada.')).toHaveCount(0);
 
   // Kept on the phone, not in memory: a mark that does not survive closing the
   // app is a reminder that never arrives (D-029).

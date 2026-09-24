@@ -249,7 +249,7 @@ export function renderEventPage(input: EventPageInput): string {
       ${programme(event, activities, municipality.timeZone)}
       <div class="app">
         <p class="lead">Toda la agenda de ${escapeHtml(municipality.name)} en el móvil</p>
-        <p class="small">Recibe un recordatorio de lo que te interesa y entérate si algo cambia de hora o se cancela.</p>
+        <p class="small">Di «Asistiré» y te recordamos lo que vayas a ir a ver, y te avisamos si cambia de hora o se cancela.</p>
         <a href="${escapeHtml(`${BRAND.scheme}://event/${event.id}`)}">Abrir en ${escapeHtml(BRAND.name)}</a>
       </div>
       <footer>

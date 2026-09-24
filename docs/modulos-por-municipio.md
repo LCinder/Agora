@@ -25,7 +25,7 @@ En Fase 0 esa configuración es un `municipality.json` dentro de `content/munici
 | `calendar`           | Calendario, detalle de evento, compartir, página pública | 0                             | App + web · **siempre activo** |
 | `multi_municipality` | Selector, detección por ubicación, seguir varios pueblos | 0                             | App · **siempre activo**       |
 | `poster_import`      | Leer el cartel con IA y dibujarlo si no lo hay           | 0                             | Panel                          |
-| `interests`          | "Me interesa", recordatorios y avisos dirigidos          | 0 sim · 2 real                | App + panel                    |
+| `interests`          | "Asistiré", recordatorios y avisos dirigidos             | 0 sim · 2 real                | App + panel                    |
 | `associations`       | Calendario colaborativo y bandeja de revisión            | 0 sim · 2 real                | Panel + panel de asociación    |
 | `analytics`          | Panel de datos agregados y export CSV                    | 0 sim · 2 real                | Panel                          |
 | `live_tracking`      | Seguimiento en directo y modo voluntario                 | 0 sim · 2 real                | App + panel                    |

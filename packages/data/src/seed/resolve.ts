@@ -17,7 +17,7 @@ const SEED_TIMESTAMP = new Date('2026-09-01T09:00:00Z');
  * Plausible tallies for the demo, which has no residents to produce real ones.
  *
  * The demo build has no API and nobody has marked anything, so every event
- * would show nothing where the app shows "a N vecinos les interesa" — and a
+ * would show nothing where the app shows "asistirán N vecinos" — and a
  * calendar where no event has an audience is the opposite of what this screen
  * is for in a meeting. The numbers are derived from the event's own id, so they
  * are the same on every reload: statistics that move when a councillor

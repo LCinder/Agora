@@ -177,7 +177,7 @@ function EditEventView() {
  *
  * The count matters more than it looks: it is the first time a municipal
  * officer sees that an event has an audience, and it is the whole argument for
- * the "Me interesa" feature in a sales meeting.
+ * the "Asistiré" feature in a sales meeting.
  */
 /**
  * The one thing in this panel that reaches somebody who never asked for anything.
@@ -222,8 +222,8 @@ function FeaturedComposer({
       <h2 className="text-lg font-semibold">Destacar en todo el municipio</h2>
       <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
         {following === null
-          ? 'Llega a todos los vecinos con la aplicación, no solo a quien marcó este evento.'
-          : `Llega a los ${following} vecinos con la aplicación, no solo a quien marcó este evento.`}{' '}
+          ? 'Llega a todos los vecinos con la aplicación, no solo a quien ha dicho que asistirá.'
+          : `Llega a los ${following} vecinos con la aplicación, no solo a quien ha dicho que asistirá.`}{' '}
         Úsalo poco: un aviso que llega a todo el mundo lo silencia todo el mundo.
       </p>
 
@@ -294,7 +294,8 @@ function NoticeComposer({
     <Card>
       <h2 className="text-lg font-semibold">Enviar un aviso</h2>
       <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-        Llega solo a los {interested} vecinos que marcaron «Me interesa» en este evento.
+        Llega solo a los {interested} vecinos que han dicho que asistirán a este evento, o a alguna
+        de sus actividades.
       </p>
 
       <div className="mt-4 grid gap-4">
@@ -349,7 +350,7 @@ function NoticeComposer({
           </p>
         ) : (
           <p className="text-xs text-neutral-500">
-            Sale en menos de un minuto, solo a quien marcó «Me interesa» en este evento.
+            Sale en menos de un minuto, solo a quien ha dicho que asistirá a este evento.
           </p>
         )}
       </div>

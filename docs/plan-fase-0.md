@@ -39,7 +39,7 @@ Todo dato pertenece a un municipio desde la primera línea de código. Ver `modu
 | Mapas                            | MapLibre + teselas OpenStreetMap (móvil y web)                                   |
 | Ubicación                        | expo-location, uso puntual y opcional en el selector (ver D-008)                 |
 | Fechas                           | date-fns + date-fns-tz, todo en `Europe/Madrid`                                  |
-| Persistencia local               | AsyncStorage (municipios seguidos, "Me interesa")                                |
+| Persistencia local               | AsyncStorage (municipios seguidos, "Asistiré")                                   |
 | Calendario del móvil / compartir | expo-calendar + Share API nativa                                                 |
 | Panel web                        | Next.js + Tailwind; gráficas con Recharts                                        |
 | Lectura de carteles              | API de Claude (visión) con salida validada por Zod                               |
@@ -81,11 +81,11 @@ Destino de los enlaces compartidos por WhatsApp, con botón de descarga de la ap
 
 ### Pieza de mayor apalancamiento
 
-**8. App — "Me interesa" + "Mis eventos".**
+**8. App — "Asistiré" + "Mis eventos".**
 Persistido en el dispositivo, sin registro ni datos personales. "Mis eventos" agrupa por municipio cuando el vecino sigue más de uno.
 
 **9. Panel web — envío de aviso de evento (simulado).**
-Formulario de aviso (cambio de hora, cambio de lugar, cancelación) que muestra "se enviará a N interesados". Sin push real en Fase 0.
+Formulario de aviso (cambio de hora, cambio de lugar, cancelación) que muestra "se enviará a N vecinos". Sin push real en Fase 0.
 
 ### Lo que vende
 
@@ -96,7 +96,7 @@ Se arrastra la foto o el PDF de un cartel y la IA rellena título, fecha, hora, 
 Eventos de ejemplo en `pending_review`, aprobar y rechazar con motivo. Argumento comercial número uno: calendario completo sin carga de trabajo extra.
 
 **12. Panel web — panel de datos.**
-Interesados por evento, top de eventos, interés por categoría, dispositivos activos y evolución mensual, con datos de ejemplo. Export CSV. Solo datos agregados.
+Asistentes previstos por evento, top de eventos, asistencia prevista por categoría, dispositivos activos y evolución mensual, con datos de ejemplo. Export CSV. Solo datos agregados.
 
 ### Lo vistoso, al final
 
@@ -131,7 +131,7 @@ Logo y color de La Zubia aplicados desde su `municipality.json`, accesibilidad b
 | 5 | App — detalle de evento | Hecho |
 | 6 | Panel — alta y edición de evento | Hecho |
 | 7 | Web — página pública de evento | Hecho |
-| 8 | App — «Me interesa» y «Mis eventos» | Hecho |
+| 8 | App — «Asistiré» y «Mis eventos» | Hecho |
 | 9 | Panel — aviso de evento simulado | Hecho |
 | 10 | Panel — crear evento desde el cartel | Hecho |
 | 11 | Panel — bandeja de revisión | Hecho |

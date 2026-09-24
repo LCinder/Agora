@@ -59,9 +59,9 @@ export default function PrivacyPage() {
                 'Para enseñarte su agenda al abrir, y para que el ayuntamiento sepa cuántos vecinos usan la aplicación. Es una cuenta: cuántos, nunca quiénes.',
             },
             {
-              term: '«Me interesa»',
+              term: '«Asistiré»',
               description:
-                'Los eventos que marcas, y las actividades sueltas que marcas dentro de uno, para recordártelos y para avisarte si cambian de hora o se cancelan. El ayuntamiento ve cuántas personas marcaron cada evento y cada actividad, nunca la lista.',
+                'Los eventos a los que dices que vas a ir, y las actividades sueltas que marcas dentro de uno, para recordártelos y para avisarte si cambian de hora o se cancelan. El ayuntamiento ve cuántas personas dijeron que asistirían a cada evento y a cada actividad, nunca la lista. No se comprueba si al final fuiste: nadie cuenta en la puerta.',
             },
             {
               term: 'Testigo de notificaciones',
@@ -128,7 +128,7 @@ export default function PrivacyPage() {
         <Rows
           rows={[
             {
-              term: 'Tus eventos y actividades marcados',
+              term: 'Los eventos y actividades a los que vas a ir',
               description: 'Hasta que los desmarques o borres los datos desde Ajustes.',
             },
             {

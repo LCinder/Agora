@@ -1544,3 +1544,44 @@ Y dos cosas aprendidas peleándose con esto, las dos escritas en el código:
 ### Lo que sigue pendiente
 
 La app **no guarda el último calendario descargado**, así que sin red no hay nada que enseñar aunque la pantalla ya no se cuelgue. El documento de proyecto lo pide (sección 10, «Offline») y es lo siguiente que hay que hacer en la app: un vecino en una calle llena de gente durante una procesión es el caso para el que se diseñó esto.
+
+## D-074 — El botón dice «Asistiré», y eso obliga a decir la verdad en el panel
+
+**Fecha:** 2026-09-24 · **Estado:** aceptada
+
+El botón del vecino decía «Me interesa» y ahora dice **«Asistiré»**. Es más corto, es una acción y no
+un sentimiento, y es lo que de verdad quiere saber un ayuntamiento: no cuánta gente encuentra bonita
+la verbena, sino cuánta va a bajar a la plaza.
+
+**Lo que cuesta es que afirma más.** «Me interesa» no prometía nada; «Asistiré» se lee como una
+previsión de asistencia, y una previsión de asistencia se lee, a la tercera lectura, como un recuento
+de asistentes. Ese resbalón es el riesgo entero de este cambio: nadie cuenta en la puerta, el vecino
+no confirma después y la aplicación no comprueba si fue. Un número que se presente como algo que no
+es, en un documento con el nombre de un ayuntamiento en la cabecera, es un número que un concejal
+deja de creer la segunda vez — y con él deja de creer los demás.
+
+**Así que la palabra cambia y el producto se pone un límite por escrito.** El panel dice «asistencia
+prevista» y «asistentes previstos», nunca «asistentes» a secas; la tarjeta del resumen lleva debajo
+«Vecinos que dijeron "Asistiré"»; el pie de la página de Datos y **el pie del PDF** dicen que es una
+previsión y no un recuento en la puerta. Ese párrafo del PDF no es relleno legal: es lo que evita que
+el informe diga de más cuando lo lea alguien que no estuvo en la reunión. El guion de la demo trae la
+respuesta preparada para cuando lo pregunten, porque lo van a preguntar.
+
+**En futuro, a propósito.** «Asistirán 32 vecinos» y no «32 asistentes». La forma verbal hace el
+trabajo que en «Me interesa» hacía la vaguedad.
+
+**El suelo de cinco no se mueve.** Dos vecinos que dicen que van a la charla del martes en un pueblo
+de cuatro mil siguen siendo dos personas a las que alguien podría poner nombre, y el umbral de
+`MINIMUM_AUDIENCE` sigue tapando el número igual que antes (D-068). Si acaso importa más ahora: «a 2
+vecinos les interesa» era una opinión, «asistirán 2 vecinos» es un plan.
+
+**Las claves de la tabla no se tocan.** `interestCount`, `INT#`, `IAC#`, `entity: 'interest'`,
+`devicesInterestedIn` — todo eso se queda como está. Renombrar un atributo que ya está escrito en
+DynamoDB es una migración de datos, y el precio de tenerlo todo en su sitio es cero: ninguna de esas
+palabras la lee un vecino ni un concejal. La relación del dominio sigue siendo «este teléfono está
+apuntado a este evento»; lo que cambió es cómo se dice en pantalla. Lo que **sí** se renombró son las
+claves de i18n (`event.attending`, `programme.attending`…), porque esas nombran el texto, y una clave
+llamada `interested` que devuelve «Asistiré» es una trampa para el siguiente que pase.
+
+**El registro histórico se queda como estaba.** Las decisiones anteriores citan «Me interesa» porque
+es lo que decía el botón cuando se tomaron. Reescribirlas convertiría un registro en un folleto.

@@ -16,7 +16,7 @@ import { EVENT_STATUSES, type Event, type EventStatus } from './event';
  *
  * An activity is deliberately thinner than an event. It has no poster, no
  * organiser of its own and no live tracking: it happens inside something that
- * already has all three. What it does have is a time, and its own "Me interesa"
+ * already has all three. What it does have is a time, and its own "Asistiré"
  * — which is the point. A neighbour who wants to be reminded about the falcons
  * at six on Saturday should not have to be reminded about the whole feria, and a
  * town hall deciding next year's programme wants to know which of the twelve

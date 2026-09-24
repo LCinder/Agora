@@ -266,7 +266,7 @@ function Interest({
     <View
       style={[styles.row, { gap: 4 }]}
       accessible
-      accessibilityLabel={shown === null ? undefined : t('event.interestedCount', { count: shown })}
+      accessibilityLabel={shown === null ? undefined : t('event.attendingCount', { count: shown })}
     >
       <Ionicons name={saved ? 'heart' : 'heart-outline'} size={17} color={tint} />
       {shown === null ? null : (

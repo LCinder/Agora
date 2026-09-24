@@ -1,7 +1,7 @@
 /**
  * The annual report, as a PDF the town hall can file.
  *
- * This is the deliverable behind the whole "Me interesa" feature commercially: a
+ * This is the deliverable behind the whole "Asistiré" feature commercially: a
  * cultural officer has to write a memoria at the end of the year, and until now
  * they wrote it by hand from whatever they could remember. The product document
  * asks for CSV and PDF; the CSV is for a spreadsheet, and this is for pasting into
@@ -35,7 +35,7 @@ export interface ReportRow {
  * One line of a programme, for the report.
  *
  * It carries the event it belongs to because that is what makes it mean
- * anything on paper: "Taller de queso curado — 41 interesados" in a memoria
+ * anything on paper: "Taller de queso curado — 41 asistentes" in a memoria
  * anual belongs to no year until it says "dentro de la Feria medieval".
  */
 export interface ReportActivityRow {
@@ -152,7 +152,7 @@ export async function downloadReport(input: ReportInput): Promise<void> {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(20);
   doc.setTextColor(INK.text);
-  doc.text('Informe de interés', PAGE.margin, y);
+  doc.text('Informe de asistencia prevista', PAGE.margin, y);
 
   y += 8;
   doc.setFontSize(13);
@@ -217,7 +217,7 @@ export async function downloadReport(input: ReportInput): Promise<void> {
   y += 10;
 
   // --- events, most marked first -------------------------------------------
-  heading('Eventos con más interesados');
+  heading('Eventos con más asistentes previstos');
 
   const columns = { title: PAGE.margin, when: 106, category: 140, interested: right };
 
@@ -227,7 +227,7 @@ export async function downloadReport(input: ReportInput): Promise<void> {
   doc.text('EVENTO', columns.title, y);
   doc.text('FECHA', columns.when, y);
   doc.text('TIPO', columns.category, y);
-  doc.text('INTERESADOS', columns.interested, y, { align: 'right' });
+  doc.text('ASISTIRÁN', columns.interested, y, { align: 'right' });
   y += 2;
   doc.setDrawColor(INK.rule);
   doc.line(PAGE.margin, y, right, y);
@@ -268,7 +268,7 @@ export async function downloadReport(input: ReportInput): Promise<void> {
 
   if (programme.length > 0) {
     y += 6;
-    heading('Actividades con más interesados');
+    heading('Actividades con más asistentes previstos');
 
     for (const row of programme) {
       const lines = doc.splitTextToSize(row.title, columns.when - columns.title - 4) as string[];
@@ -300,7 +300,7 @@ export async function downloadReport(input: ReportInput): Promise<void> {
   // --- interest by kind of activity ----------------------------------------
   if (input.categories.length > 0) {
     y += 6;
-    heading('Interés por tipo de actividad');
+    heading('Asistencia prevista por tipo de actividad');
 
     for (const category of input.categories) {
       room(6);
@@ -316,7 +316,7 @@ export async function downloadReport(input: ReportInput): Promise<void> {
   // --- the shape of the year ------------------------------------------------
   if (input.monthly.length > 0) {
     y += 6;
-    heading('Marcas nuevas por mes');
+    heading('Asistencias nuevas por mes');
 
     const widest = Math.max(...input.monthly.map((month) => month.interested), 1);
     const barLeft = PAGE.margin + 46;
@@ -340,8 +340,31 @@ export async function downloadReport(input: ReportInput): Promise<void> {
     }
   }
 
+  /**
+   * What the numbers in this document are, said on the document.
+   *
+   * It matters more since the button says «Asistiré»: a figure headed
+   * "asistentes" on a sheet with a town hall's name on it reads as a count at
+   * the door, and it is not one. It is what neighbours said in advance, and
+   * nobody is counted on the way in. A report that overstates what it knows is a
+   * report a councillor stops trusting the second time.
+   */
+  y += 6;
+  room(14);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(INK.muted);
+  doc.text(
+    doc.splitTextToSize(
+      'Las cifras son la previsión de asistencia: los vecinos que pulsaron «Asistiré» en la aplicación, de forma anónima. No es un recuento en la puerta.',
+      right - PAGE.margin,
+    ) as string[],
+    PAGE.margin,
+    y,
+  );
+  y += 9;
+
   if (input.suppressed > 0) {
-    y += 6;
     room(12);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
@@ -357,5 +380,5 @@ export async function downloadReport(input: ReportInput): Promise<void> {
 
   footer();
 
-  doc.save(`informe-interes-${input.slug}-${input.generatedAt.getFullYear()}.pdf`);
+  doc.save(`informe-asistencia-${input.slug}-${input.generatedAt.getFullYear()}.pdf`);
 }

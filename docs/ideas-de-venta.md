@@ -18,7 +18,7 @@ quemada. Vende *que su programación llegue a sus vecinos* y *que puedan demostr
 ### 1.1 «La memoria anual la escribe el programa» — hecho
 
 Toda concejalía tiene que justificar el año. Hoy eso se hace a mano, contando carteles y
-recordando. El panel ya exporta un PDF con el periodo, los eventos, el interés por actividad y la
+recordando. El panel ya exporta un PDF con el periodo, los eventos, la asistencia prevista por actividad y la
 evolución por meses.
 
 Eso cambia de qué partida sale el dinero: deja de parecer informática y pasa a parecer **asistencia

@@ -116,7 +116,7 @@ pnpm --filter @agora/tools migrate-seed -- --table "$(terraform output -raw tabl
 ```
 
 Con `--dry-run` cuenta sin escribir, y con `--municipality <slug>` carga uno solo. Volver a
-ejecutarlo es seguro: es una actualización que **conserva los contadores de «Me interesa»**.
+ejecutarlo es seguro: es una actualización que **conserva los contadores de «Asistiré»**.
 
 Ojo con una cosa: los eventos de la semilla están anclados al día en que se ejecuta, porque la demo
 mantiene su calendario alrededor de hoy. Para un piloto de verdad, los eventos los mete el
@@ -202,7 +202,7 @@ arriesgado que cambiar de tabla.
 ## Qué falta
 
 - [x] **La API pública y la de dispositivos.** Hechas y probadas contra DynamoDB Local: calendario,
-      municipios, evento visible, alta de dispositivo con testigo firmado, «Me interesa» y el
+      municipios, evento visible, alta de dispositivo con testigo firmado, «Asistiré» y el
       autorizador. En `apps/functions/src/handlers/`.
 - [x] **El panel.** Hecho y probado contra DynamoDB Local: eventos, bandeja de revisión con cambios
       pendientes, avisos, asociaciones, altas de personal, estadísticas y auditoría (D-040).

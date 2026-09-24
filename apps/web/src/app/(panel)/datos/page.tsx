@@ -101,17 +101,17 @@ export default function DataPage() {
       // saying "nobody", which is not what null means (D-032).
       return stats.interests.topEvents
         .filter((entry) => entry.interested !== null)
-        .map((entry) => ({ name: shorten(entry.title), interesados: entry.interested ?? 0 }))
-        .sort((a, b) => b.interesados - a.interesados)
+        .map((entry) => ({ name: shorten(entry.title), asistentes: entry.interested ?? 0 }))
+        .sort((a, b) => b.asistentes - a.asistentes)
         .slice(0, 8);
     }
 
     return published
       .map((event) => ({
         name: shorten(event.title),
-        interesados: event.interestCount,
+        asistentes: event.interestCount,
       }))
-      .sort((a, b) => b.interesados - a.interesados)
+      .sort((a, b) => b.asistentes - a.asistentes)
       .slice(0, 8);
   }, [published, stats]);
 
@@ -136,9 +136,9 @@ export default function DataPage() {
           // The feria it belongs to, because "Taller" on its own belongs to no
           // year and this table ends up in a document.
           event: entry.eventTitle,
-          interesados: entry.interested ?? 0,
+          asistentes: entry.interested ?? 0,
         }))
-        .sort((a, b) => b.interesados - a.interesados)
+        .sort((a, b) => b.asistentes - a.asistentes)
         .slice(0, 8);
     }
 
@@ -149,9 +149,9 @@ export default function DataPage() {
       .map((activity) => ({
         name: shorten(activity.title),
         event: titles.get(activity.eventId) ?? '',
-        interesados: activity.interestCount,
+        asistentes: activity.interestCount,
       }))
-      .sort((a, b) => b.interesados - a.interesados)
+      .sort((a, b) => b.asistentes - a.asistentes)
       .slice(0, 8);
   }, [activities, events, stats]);
 
@@ -163,9 +163,9 @@ export default function DataPage() {
           name:
             categories.find((category) => category.id === entry.categoryId)?.name ??
             entry.categoryId,
-          interesados: entry.interested ?? 0,
+          asistentes: entry.interested ?? 0,
         }))
-        .sort((a, b) => b.interesados - a.interesados);
+        .sort((a, b) => b.asistentes - a.asistentes);
     }
 
     const totals = new Map<string, number>();
@@ -178,11 +178,11 @@ export default function DataPage() {
     // Labelled with the category's name, not its id: "semana-santa" is a
     // database key, and this chart ends up in a councillor's annual report.
     return [...totals.entries()]
-      .map(([categoryId, interesados]) => ({
+      .map(([categoryId, asistentes]) => ({
         name: categories.find((category) => category.id === categoryId)?.name ?? categoryId,
-        interesados,
+        asistentes,
       }))
-      .sort((a, b) => b.interesados - a.interesados);
+      .sort((a, b) => b.asistentes - a.asistentes);
   }, [categories, published, stats]);
 
   /**
@@ -196,14 +196,14 @@ export default function DataPage() {
     if (stats !== null) {
       return stats.interests.monthly.map((entry) => ({
         name: monthLabel(entry.month),
-        interesados: entry.interested,
+        asistentes: entry.interested,
       }));
     }
 
     return MONTHS.map((month, index) => ({
       name: month,
-      interesados: Math.round(
-        (byEvent.reduce((sum, entry) => sum + entry.interesados, 0) / MONTHS.length) *
+      asistentes: Math.round(
+        (byEvent.reduce((sum, entry) => sum + entry.asistentes, 0) / MONTHS.length) *
           (0.6 + index * 0.16),
       ),
     }));
@@ -214,7 +214,7 @@ export default function DataPage() {
   }
 
   const totalInterest =
-    stats?.interests.total ?? byEvent.reduce((sum, entry) => sum + entry.interesados, 0);
+    stats?.interests.total ?? byEvent.reduce((sum, entry) => sum + entry.asistentes, 0);
   const publishedCount = stats?.events.published ?? published.length;
   const averagePerEvent = publishedCount === 0 ? 0 : Math.round(totalInterest / publishedCount);
 
@@ -282,7 +282,7 @@ export default function DataPage() {
         figures: [
           { label: 'Eventos publicados', value: String(publishedCount) },
           { label: 'Visitas a los eventos', value: totalViews.toLocaleString('es-ES') },
-          { label: 'Marcas de «Me interesa»', value: totalInterest.toLocaleString('es-ES') },
+          { label: 'Asistencias previstas', value: totalInterest.toLocaleString('es-ES') },
           { label: 'Media por evento', value: String(averagePerEvent) },
           ...(municipal
             ? [
@@ -314,7 +314,7 @@ export default function DataPage() {
         ).sort((left, right) => (right.interested ?? -1) - (left.interested ?? -1)),
         categories: byCategory.map((entry) => ({
           name: entry.name,
-          interested: entry.interesados,
+          interested: entry.asistentes,
         })),
         // Only when it is real. The demo's line is invented from the seed, and a
         // made-up curve is the one thing a document with a town hall's name on it
@@ -339,13 +339,13 @@ export default function DataPage() {
     // somebody is going to pivot is more useful than two downloads they have to
     // join by hand. The activity's own event goes in a column of its own.
     const rows = [
-      ['tipo', 'nombre', 'dentro_de', 'interesados'],
-      ...byEvent.map((entry) => ['evento', entry.name, '', String(entry.interesados)]),
+      ['tipo', 'nombre', 'dentro_de', 'asistentes'],
+      ...byEvent.map((entry) => ['evento', entry.name, '', String(entry.asistentes)]),
       ...byActivity.map((entry) => [
         'actividad',
         entry.name,
         entry.event,
-        String(entry.interesados),
+        String(entry.asistentes),
       ]),
     ];
     const csv = rows.map((row) => row.map((cell) => `"${cell}"`).join(',')).join('\n');
@@ -353,7 +353,7 @@ export default function DataPage() {
 
     const link = document.createElement('a');
     link.href = url;
-    link.download = `interes-${municipality!.slug}.csv`;
+    link.download = `asistencia-${municipality!.slug}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -370,7 +370,7 @@ export default function DataPage() {
     >
       <PageHeader
         title="Datos"
-        description="Interés de los vecinos por evento y por tipo de actividad. Siempre agregado: nunca se identifica a nadie."
+        description="Cuántos vecinos dicen que van a ir, por evento y por tipo de actividad. Siempre agregado: nunca se identifica a nadie."
         action={
           <div className="flex gap-2">
             <Button variant="secondary" onClick={() => setAsTable(!asTable)}>
@@ -397,7 +397,11 @@ export default function DataPage() {
           value={totalViews.toLocaleString('es-ES')}
           hint="Una por vecino y día"
         />
-        <StatTile label="Marcas de «Me interesa»" value={totalInterest.toLocaleString('es-ES')} />
+        <StatTile
+          label="Asistencias previstas"
+          value={totalInterest.toLocaleString('es-ES')}
+          hint="Vecinos que dijeron «Asistiré»"
+        />
         <StatTile label="Media por evento" value={averagePerEvent} />
         {municipal ? (
           <StatTile
@@ -426,12 +430,12 @@ export default function DataPage() {
         <>
           <Table rows={byEvent} />
           {byActivity.length === 0 ? null : (
-            <Table caption="Actividades con más interesados" column="Actividad" rows={byActivity} />
+            <Table caption="Actividades con más asistentes" column="Actividad" rows={byActivity} />
           )}
         </>
       ) : (
         <>
-          <ChartCard title="Eventos con más interesados">
+          <ChartCard title="Eventos con más asistentes">
             <ResponsiveContainer width="100%" height={Math.max(240, byEvent.length * 38)}>
               <BarChart data={byEvent} layout="vertical" margin={{ left: 8, right: 24 }}>
                 <CartesianGrid horizontal={false} stroke="var(--viz-grid)" />
@@ -453,8 +457,8 @@ export default function DataPage() {
                   }}
                 />
                 <Bar
-                  dataKey="interesados"
-                  name="Interesados"
+                  dataKey="asistentes"
+                  name="Asistentes previstos"
                   fill="var(--viz-series-1)"
                   radius={[0, 4, 4, 0]}
                   barSize={14}
@@ -467,9 +471,9 @@ export default function DataPage() {
               headed "Actividades" over an empty chart would say the town hall
               is missing a feature rather than that they have not had a feria. */}
           <ChartCard
-            title="Actividades con más interesados"
+            title="Actividades con más asistentes"
             hidden={byActivity.length === 0}
-            note="Dentro de ferias, semanas culturales y romerías. Cada vecino marca la actividad que le interesa, no solo el evento entero."
+            note="Dentro de ferias, semanas culturales y romerías. Cada vecino dice a qué actividad va a ir, no solo al evento entero."
           >
             <ResponsiveContainer width="100%" height={Math.max(240, byActivity.length * 38)}>
               <BarChart data={byActivity} layout="vertical" margin={{ left: 8, right: 24 }}>
@@ -492,8 +496,8 @@ export default function DataPage() {
                   }}
                 />
                 <Bar
-                  dataKey="interesados"
-                  name="Interesados"
+                  dataKey="asistentes"
+                  name="Asistentes previstos"
                   fill="var(--viz-series-1)"
                   radius={[0, 4, 4, 0]}
                   barSize={14}
@@ -503,7 +507,7 @@ export default function DataPage() {
           </ChartCard>
 
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            <ChartCard title="Interés por tipo de actividad">
+            <ChartCard title="Asistencia prevista por tipo de actividad">
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={byCategory} margin={{ left: 0, right: 8 }}>
                   <CartesianGrid vertical={false} stroke="var(--viz-grid)" />
@@ -519,8 +523,8 @@ export default function DataPage() {
                     }}
                   />
                   <Bar
-                    dataKey="interesados"
-                    name="Interesados"
+                    dataKey="asistentes"
+                    name="Asistentes previstos"
                     fill="var(--viz-series-1)"
                     radius={[4, 4, 0, 0]}
                     barSize={28}
@@ -532,7 +536,7 @@ export default function DataPage() {
             {/* Real when there is an API behind it. In the demo it is invented from
                 the seed, and the caption underneath says so: a made-up line on a
                 councillor's report is the one thing this screen must never do. */}
-            <ChartCard title="Marcas nuevas por mes" hidden={monthly.length === 0}>
+            <ChartCard title="Asistencias nuevas por mes" hidden={monthly.length === 0}>
               <ResponsiveContainer width="100%" height={260}>
                 <LineChart data={monthly} margin={{ left: 0, right: 8 }}>
                   <CartesianGrid vertical={false} stroke="var(--viz-grid)" />
@@ -548,8 +552,8 @@ export default function DataPage() {
                   />
                   <Line
                     type="monotone"
-                    dataKey="interesados"
-                    name="Interesados"
+                    dataKey="asistentes"
+                    name="Asistentes previstos"
                     stroke="var(--viz-series-1)"
                     strokeWidth={2}
                     dot={{ r: 4 }}
@@ -564,8 +568,8 @@ export default function DataPage() {
 
       <p className="mt-6 text-xs text-neutral-500">
         {stats === null
-          ? 'Datos de ejemplo para la demostración. En el producto real proceden de las marcas anónimas de «Me interesa», y nunca se muestran segmentos con menos de cinco dispositivos.'
-          : 'Las cifras salen de las marcas anónimas de «Me interesa». Nunca se muestran segmentos con menos de cinco dispositivos.'}
+          ? 'Datos de ejemplo para la demostración. En el producto real salen de los vecinos que pulsaron «Asistiré», de forma anónima: son una previsión y no un recuento en la puerta. Nunca se muestran segmentos con menos de cinco dispositivos.'
+          : 'Las cifras salen de los vecinos que pulsaron «Asistiré», de forma anónima: son una previsión y no un recuento en la puerta. Nunca se muestran segmentos con menos de cinco dispositivos.'}
       </p>
     </div>
   );
@@ -600,11 +604,11 @@ function ChartCard({
 
 function Table({
   rows,
-  caption = 'Eventos con más interesados',
+  caption = 'Eventos con más asistentes',
   column = 'Evento',
 }: {
   /** `event` is set for a line of a programme, and names the feria it is in. */
-  rows: { name: string; interesados: number; event?: string }[];
+  rows: { name: string; asistentes: number; event?: string }[];
   caption?: string;
   column?: string;
 }) {
@@ -618,7 +622,7 @@ function Table({
               {column}
             </th>
             <th scope="col" className="py-2 text-right font-medium">
-              Interesados
+              Asistentes previstos
             </th>
           </tr>
         </thead>
@@ -631,7 +635,7 @@ function Table({
                   <span className="block text-xs text-neutral-500">Dentro de {row.event}</span>
                 )}
               </td>
-              <td className="py-2 text-right tabular-nums">{row.interesados}</td>
+              <td className="py-2 text-right tabular-nums">{row.asistentes}</td>
             </tr>
           ))}
         </tbody>

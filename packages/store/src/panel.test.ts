@@ -151,7 +151,7 @@ describe.skipIf(local === null)('the panel', () => {
   });
 
   // -------------------------------------------------------------------------
-  // Notices: the half of "Me interesa" the town hall gets something out of
+  // Notices: the half of "Asistiré" the town hall gets something out of
   // -------------------------------------------------------------------------
 
   describe('notices', () => {

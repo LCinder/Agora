@@ -15,7 +15,7 @@ import type { StaffActor } from './staff-store';
  * Notices attached to an event: the time moved, the street is closed, it rains
  * so it is off.
  *
- * This is the half of "Me interesa" that the town hall gets something out of. A
+ * This is the half of "Asistiré" that the town hall gets something out of. A
  * notice reaches only the devices that marked the event, which is what makes it
  * worth sending — a message that goes to everybody gets muted by everybody.
  *

@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 /**
  * Everything the app remembers about a resident lives on their device.
  *
- * There is no account, no email and no identifier sent anywhere. "Me interesa"
+ * There is no account, no email and no identifier sent anywhere. "Asistiré"
  * and the chosen municipality are the only things stored, and Settings can
  * wipe both. See the privacy requirements in CLAUDE.md, section 10.
  */

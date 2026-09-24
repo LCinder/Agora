@@ -33,7 +33,7 @@ export interface EventItem extends Record<string, unknown> {
   id: string;
   municipalityId: string;
   organizationId: string | null;
-  /** Count of residents who marked "Me interesa". The panel sees this and never the devices. */
+  /** Count of residents who marked "Asistiré". The panel sees this and never the devices. */
   interestCount: number;
   /** Openings of the detail screen, one per phone per day. Same rule: a number, never a list. */
   viewCount: number;

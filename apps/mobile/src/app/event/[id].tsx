@@ -38,7 +38,7 @@ import { useApp } from '../../providers/app-provider';
  * Event detail.
  *
  * The three actions at the bottom are the ones that matter commercially:
- * "Me interesa" feeds the reminders and the data panel, "Añadir a mi
+ * "Asistiré" feeds the reminders and the data panel, "Añadir a mi
  * calendario" makes the app useful even to someone who never opens it again,
  * and "Compartir" is how the app reaches neighbours who do not have it.
  */
@@ -57,7 +57,7 @@ export default function EventDetailScreen() {
    * This phone's own effect on the count, since the page loaded.
    *
    * The number came with the event and the mark is written in the background,
-   * so without this a neighbour taps "Me interesa", the heart fills and the
+   * so without this a neighbour taps "Asistiré", the heart fills and the
    * count next to it does not move — which reads as the tap not having worked.
    * Re-reading the event instead would be a round trip to say something the
    * phone already knows.
@@ -309,7 +309,7 @@ export default function EventDetailScreen() {
 
           <View style={{ gap: theme.spacing(2) }}>
             <Button
-              label={interested ? t('event.interestedDone') : t('event.interested')}
+              label={interested ? t('event.attendingDone') : t('event.attending')}
               variant={interested ? 'secondary' : 'primary'}
               onPress={() => {
                 setOwnDelta((current) => current + (interested ? -1 : 1));
@@ -356,7 +356,7 @@ function Audience({ interested, views }: { interested: number; views: number }) 
   if (marks === null && opens === null) return null;
 
   const parts = [
-    marks === null ? null : t('event.interestedCount', { count: marks }),
+    marks === null ? null : t('event.attendingCount', { count: marks }),
     opens === null ? null : t('event.viewsCount', { count: opens }),
   ].filter((part): part is string => part !== null);
 

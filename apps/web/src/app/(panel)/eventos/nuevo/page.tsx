@@ -19,8 +19,8 @@ export default function NewEventPage() {
         <h2 className="text-base font-semibold">¿Es una feria o una semana cultural?</h2>
         <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
           Guarda primero el evento. Al abrirlo para editarlo podrás añadirle las actividades que
-          tiene dentro, cada una con su hora, y los vecinos podrán marcar «Me interesa» en la que
-          les interese.
+          tiene dentro, cada una con su hora, y los vecinos podrán pulsar «Asistiré» en la que vayan
+          a ir.
         </p>
       </Card>
     </>

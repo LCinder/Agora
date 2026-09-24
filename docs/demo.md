@@ -27,9 +27,9 @@ es que en tres minutos entienda **qué problema suyo resuelve** y **qué se llev
    > «Esto es lo primero que ve un vecino al abrir la app. Sin registrarse, sin cuenta, sin nada.»
 
 3. Toca un evento. Mapa, quién organiza, botones.
-   > «Compartir, añadirlo a su calendario y "Me interesa".»
+   > «Compartir, añadirlo a su calendario y "Asistiré".»
 
-4. Pulsa **Me interesa** y ve a *Mis eventos*.
+4. Pulsa **Asistiré** y ve a *Mis eventos*.
    > «Con eso recibe un recordatorio la tarde antes, y un aviso si cambia la hora o llueve y se
    > cancela. No le pedimos ni nombre ni email: es el dispositivo, anónimo.»
 
@@ -37,8 +37,9 @@ es que en tres minutos entienda **qué problema suyo resuelve** y **qué se llev
    > «Un evento puede ser una cosa suelta, o puede ser una feria entera con su programa dentro.
    > Aquí está lo que hay cada día, a su hora.»
    Pulsa el corazón de **«Show de aves rapaces»** — solo el de esa línea.
-   > «Y el vecino no marca la feria: marca las aves rapaces. Le avisamos a las seis del sábado de lo
-   > que él ha elegido, no de cuatro días de feria. Eso es lo que hace que no silencie la app.»
+   > «Y el vecino no dice que va a la feria: dice que va a las aves rapaces. Le avisamos a las seis
+   > del sábado de lo que él ha elegido, no de cuatro días de feria. Eso es lo que hace que no
+   > silencie la app.»
 
 **Si hay poco tiempo, salta al minuto 3.**
 
@@ -75,15 +76,18 @@ es que en tres minutos entienda **qué problema suyo resuelve** y **qué se llev
 ## Minuto 3 — Lo que se lleva él
 
 1. Panel → **Datos**.
-   > «Cuánta gente marcó cada evento, qué tipo de actividad funciona, cómo evoluciona el mes.
+   > «Cuánta gente dice que va a cada evento, qué tipo de actividad funciona, cómo evoluciona el mes.
    > Todo agregado: nunca sabemos quién es nadie.»
    > «Esto es lo que le falta para la memoria anual y para defender la partida.»
-   Enséñale la gráfica de **actividades con más interesados**.
+   Si pregunta si son asistentes reales, dilo claro: **no lo son**.
+   > «Es lo que los vecinos han dicho de antemano. Nadie cuenta en la puerta, y el informe lo pone
+   > por escrito. Es una previsión, y una previsión que hasta ahora no tenían.»
+   Enséñale la gráfica de **actividades con más asistentes**.
    > «Y dentro de la feria, cuál de las doce cosas que pagaron llenó la plaza. "La feria funcionó" ya
    > lo sabían; esto dice qué volver a contratar y qué no.»
 
 2. Abre un evento y **manda un aviso**.
-   > «Cambio de hora o cancelación por lluvia: le llega solo a quien había marcado ese evento.
+   > «Cambio de hora o cancelación por lluvia: le llega solo a quien había dicho que iba a ir.
    > No es un bando a todo el pueblo.»
 
 3. Vuelve al móvil y abre **la cabalgata → Ver en directo**.

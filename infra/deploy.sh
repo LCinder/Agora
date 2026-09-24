@@ -463,7 +463,7 @@ do_seed() {
 
   step "Cargando municipios en ${table}"
 
-  # Safe to repeat: it is an update that keeps the "Me interesa" counters (D-038).
+  # Safe to repeat: it is an update that keeps the "Asistiré" counters (D-038).
   local arguments=(--table "${table}")
   [[ -n "${MUNICIPALITY}" ]] && arguments+=(--municipality "${MUNICIPALITY}")
 

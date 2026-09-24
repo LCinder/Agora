@@ -65,7 +65,7 @@ pnpm --filter @agora/web dev
 
 Un evento puede ser una cosa suelta o llevar dentro un **programa de actividades** — es lo que
 distingue un taller de cerámica de una feria medieval. El programa se edita al abrir el evento, y
-cada actividad tiene su hora y su propio «Me interesa» en la app (D-073).
+cada actividad tiene su hora y su propio «Asistiré» en la app (D-073).
 
 Para que funcionen los carteles, copia `apps/web/.env.example` a `apps/web/.env.local` y pon tus
 claves: `GEMINI_API_KEY` para leer el cartel y escribir la instrucción del dibujo, y

@@ -83,7 +83,7 @@ export function MarkedActivity({ activity, event }: { activity: Activity; event:
         onPress={() => void toggleActivityInterest(event.id, activity.id)}
         accessibilityRole="button"
         accessibilityState={{ selected: true }}
-        accessibilityLabel={t('programme.interestedDone')}
+        accessibilityLabel={t('programme.attendingDone')}
         hitSlop={10}
         style={({ pressed }) => [
           styles.heart,

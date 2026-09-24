@@ -121,7 +121,7 @@ export default function PanelHome() {
             {municipal ? 'Próximos eventos' : 'Mis próximos eventos'}
           </h2>
           <p className="text-sm text-neutral-600 dark:text-neutral-400">
-            {totalInterest.toLocaleString('es-ES')} marcas de «Me interesa» en total
+            {totalInterest.toLocaleString('es-ES')} asistencias previstas en total
           </p>
         </div>
 

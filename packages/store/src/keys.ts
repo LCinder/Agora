@@ -184,10 +184,10 @@ export function liveCodeKey(code: string): { pk: string; sk: string } {
  * is keyed `MONTH#` rather than `STAT#` so it does not share a prefix with the
  * device counter next to it.
  *
- * It counts **additions**, never subtractions. A neighbour who unmarks an event
- * three months later cannot un-happen the interest they showed in June, and
- * deciding which month to take it off is a question with no good answer — so the
- * series says "Asistentes por mes", which is what it is.
+ * It counts **additions**, never subtractions. A neighbour who changes their mind
+ * three months later cannot un-happen the fact that in June they said they were
+ * going, and deciding which month to take it off is a question with no good
+ * answer — so the series says "Asistencias nuevas por mes", which is what it is.
  */
 export function monthlyStatsKey(municipalityId: string, month: string): { pk: string; sk: string } {
   return { pk: municipalityPk(municipalityId), sk: `MONTH#${month}` };

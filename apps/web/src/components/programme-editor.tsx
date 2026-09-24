@@ -52,7 +52,7 @@ export function ProgrammeEditor({ event }: { event: Event }) {
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
           {lines.length === 0
             ? 'Para una feria, una semana cultural o una romería: las actividades que hay dentro.'
-            : `${lines.length} actividades. Los vecinos pueden marcar «Me interesa» en cada una.`}
+            : `${lines.length} actividades. Los vecinos pueden decir «Asistiré» en cada una.`}
         </p>
       </div>
 
@@ -157,7 +157,7 @@ function ActivityRow({ event, activity }: { event: Event; activity: Activity }) 
             )}
             {marks === null ? null : (
               <p className="mt-1 text-xs text-neutral-500">
-                A {marks} vecinos les interesa esta actividad
+                {marks} vecinos dicen que asistirán a esta actividad
               </p>
             )}
             {activity.rejectionReason === null ? null : (

@@ -30,7 +30,7 @@ import { FONTS } from '../theme/theme';
  * years.
  *
  * Each line can be marked on its own. That is the whole reason activities are
- * their own thing rather than a paragraph of the description: "Me interesa" on
+ * their own thing rather than a paragraph of the description: "Asistiré" on
  * the falconry show gets you a reminder about the falconry show, at six on the
  * Saturday, and not about four days of feria.
  *
@@ -218,7 +218,7 @@ function ActivityRow({
           disabled={cancelled}
           accessibilityRole="button"
           accessibilityState={{ selected: marked }}
-          accessibilityLabel={marked ? t('programme.interestedDone') : t('programme.interested')}
+          accessibilityLabel={marked ? t('programme.attendingDone') : t('programme.attending')}
           hitSlop={10}
           style={({ pressed }) => [
             styles.heart,

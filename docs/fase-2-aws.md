@@ -47,7 +47,7 @@ los datos de la cuenta).
 ### Los vecinos casi no se autentican
 
 Todo lo que hace un vecino es leer datos públicos, y eso no necesita identidad ninguna: sale de la
-caché de CloudFront sin tocar una Lambda. Solo «Me interesa» necesita saber qué dispositivo es, y
+caché de CloudFront sin tocar una Lambda. Solo «Asistiré» necesita saber qué dispositivo es, y
 para eso basta un testigo firmado que emitimos nosotros.
 
 Cognito queda para el personal municipal y las asociaciones, que es donde encaja: el `sub` de
@@ -114,8 +114,8 @@ Una sola tabla, `agora-<entorno>`, con clave de partición `pk` y de ordenación
 | Cambio pendiente | `EVT#<eventId>` | `CHG#<changeId>` |
 | Marcas nuevas de un mes | `MUN#<id>` | `MONTH#<aaaa-mm>` |
 | Dispositivo | `DEV#<deviceId>` | `META` |
-| Interés de un vecino | `DEV#<deviceId>` | `INT#<municipalityId>#<eventId>` |
-| Interés en una actividad | `DEV#<deviceId>` | `IAC#<municipalityId>#<eventId>#<activityId>` |
+| Asistencia de un vecino | `DEV#<deviceId>` | `INT#<municipalityId>#<eventId>` |
+| Asistencia a una actividad | `DEV#<deviceId>` | `IAC#<municipalityId>#<eventId>#<activityId>` |
 | Municipio que sigue un vecino | `DEV#<deviceId>` | `FOL#<municipalityId>` |
 | Tope de avisos del día | `DEV#<deviceId>` | `NOTIF#<municipio>#<fecha>` |
 | Vecinos que siguen un municipio | `MUN#<id>` | `STAT#DEVICES` |
@@ -160,7 +160,7 @@ daba `events_public_read` en Postgres, conseguido de otra manera.
 Cada índice se pasa a cada módulo por su nombre, no dentro de una lista llamada «los públicos»
 (D-032). El reparto es este, y las denegaciones son explícitas además de no estar concedidas:
 
-| Función | `gsi1` calendario | `gsi2` revisión | `gsi3` interesados |
+| Función | `gsi1` calendario | `gsi2` revisión | `gsi3` asistentes |
 | --- | --- | --- | --- |
 | pública | sí | denegado | denegado |
 | dispositivos | no | denegado | denegado |
@@ -177,7 +177,7 @@ las filas de otro pueblo lo rechaza AWS, no el código. Lo que no cuelga del mun
 
 ### El índice que el panel no puede leer
 
-`gsi3` permite ir de un evento a los dispositivos interesados. Lo necesita la tarea de
+`gsi3` permite ir de un evento a los dispositivos que dijeron que asistirán. Lo necesita la tarea de
 notificaciones, y **no puede leerlo nadie más**: el rol de IAM de la Lambda del panel no tiene
 permiso sobre ese índice. Por eso el panel no envía el aviso él mismo: escribe la orden en el buzón
 de salida (`pk = OUTBOX`) y la tarea, que se ejecuta cada minuto, la reparte (D-046).
@@ -255,7 +255,7 @@ esperar a que caduque ningún JWT.
 ```
 Primera apertura → POST /devices → Lambda crea DEV#<id> y devuelve un testigo firmado
 Lecturas públicas → sin testigo, directas contra CloudFront
-«Me interesa»     → con el testigo, autorizador Lambda propio
+«Asistiré»        → con el testigo, autorizador Lambda propio
 ```
 
 Sin Cognito, sin cuenta, sin correo. El testigo se firma con una clave guardada en Parameter Store.

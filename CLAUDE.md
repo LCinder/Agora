@@ -29,12 +29,12 @@ Reglas de trabajo:
 
 Aplicación móvil para vender a **ayuntamientos de Andalucía**. Al abrirla, el vecino ve un **calendario con todos los eventos, fiestas e información del municipio**. El personal del ayuntamiento introduce la información de forma muy sencilla y los vecinos pueden reaccionar a los eventos.
 
-Un evento puede ser **una cosa suelta** («Taller de cerámica») o **contener actividades** («Feria medieval», con su show de aves rapaces, su taller de queso curado y su tómbola dentro). El calendario enseña eventos; las actividades son el programa que hay dentro de uno, cada una con su hora y su propio «Me interesa». Ver 7.1b y D-073.
+Un evento puede ser **una cosa suelta** («Taller de cerámica») o **contener actividades** («Feria medieval», con su show de aves rapaces, su taller de queso curado y su tómbola dentro). El calendario enseña eventos; las actividades son el programa que hay dentro de uno, cada una con su hora y su propio «Asistiré». Ver 7.1b y D-073.
 
 El producto se diferencia de la competencia existente con tres funcionalidades clave, además del calendario:
 
 1. **Calendario colaborativo con asociaciones**: hermandades, peñas, clubes y AMPAs suben sus eventos y el ayuntamiento solo los aprueba.
-2. **"Me interesa" con panel de datos**: el vecino recibe recordatorios y avisos; el ayuntamiento ve qué eventos funcionan.
+2. **"Asistiré" con panel de datos**: el vecino recibe recordatorios y avisos; el ayuntamiento ve qué eventos funcionan.
 3. **Seguimiento en directo** de procesiones, cabalgatas y romerías en un mapa.
 
 Modelo de negocio: **suscripción anual** pagada por el ayuntamiento. Descarga gratuita para vecinos.
@@ -70,7 +70,7 @@ Modelo de negocio: **suscripción anual** pagada por el ayuntamiento. Descarga g
 
 - La información de eventos de un municipio está dispersa: web municipal, Facebook del ayuntamiento, carteles, grupos de WhatsApp, redes de cada hermandad o peña.
 - El personal del ayuntamiento no tiene tiempo de introducir y mantener todos los eventos.
-- Las concejalías (cultura, festejos, turismo, juventud, deportes) no tienen datos de qué eventos interesan ni a cuánta gente llegan, así que les cuesta justificar el gasto y la programación.
+- Las concejalías (cultura, festejos, turismo, juventud, deportes) no tienen datos de a qué eventos va la gente ni a cuánta gente llegan, así que les cuesta justificar el gasto y la programación.
 - Los vecinos se enteran tarde de cambios de hora, cortes de calle o cancelaciones.
 
 ### La propuesta de valor
@@ -78,13 +78,13 @@ Modelo de negocio: **suscripción anual** pagada por el ayuntamiento. Descarga g
 **Para el ayuntamiento**
 
 - Un calendario del municipio siempre completo sin carga de trabajo extra, porque las asociaciones aportan sus propios eventos.
-- Datos de interés por evento y por tipo de actividad, útiles para la memoria anual y para decidir la programación.
+- Datos de asistencia prevista por evento y por tipo de actividad, útiles para la memoria anual y para decidir la programación.
 - Una función vistosa (seguimiento en directo) que los vecinos usan en masa en Semana Santa, feria o romería.
 
 **Para el vecino**
 
 - Todo lo que pasa en su pueblo en un sitio.
-- Recordatorios de lo que le interesa y avisos si algo cambia.
+- Recordatorios de aquello a lo que ha dicho que va a ir, y avisos si algo cambia.
 - Saber por dónde va la procesión o la cabalgata en tiempo real.
 
 ---
@@ -204,7 +204,7 @@ Una feria, una semana cultural o una romería no son una cosa a una hora: son un
 
 - Como personal municipal, quiero añadir actividades a un evento, cada una con su hora, sin repetir el lugar ni el precio cuando son los mismos que los del evento.
 - Como vecino, quiero ver el programa de una feria por días, como en el cartel.
-- Como vecino, quiero marcar «Me interesa» en una actividad concreta y que me recuerden **esa**, no los cuatro días enteros.
+- Como vecino, quiero decir «Asistiré» en una actividad concreta y que me recuerden **esa**, no los cuatro días enteros.
 - Como vecino, quiero añadir una actividad suelta al calendario de mi móvil.
 - Como concejal, quiero saber qué actividades de la feria funcionaron, no solo si la feria funcionó.
 - Como responsable de una asociación, quiero añadir líneas al programa de mi evento con las mismas reglas de revisión que el evento.
@@ -241,25 +241,26 @@ Las asociaciones del municipio suben sus propios eventos; el ayuntamiento los re
 - Si una asociación edita un evento ya publicado (sin confianza), el cambio vuelve a revisión pero la versión publicada sigue visible.
 - El panel para asociaciones funciona bien en móvil (web responsive; no requiere instalar nada).
 
-### 7.3 Diferenciadora 2: "Me interesa" + panel de datos
+### 7.3 Diferenciadora 2: "Asistiré" + panel de datos
 
 **Historias de usuario (vecino)**
 
-- Como vecino, quiero marcar "Me interesa" en un evento con un solo toque, sin registrarme.
-- Como vecino, quiero recibir un recordatorio antes de los eventos que me interesan.
-- Como vecino, quiero recibir un aviso si un evento que me interesa cambia de hora, de lugar o se cancela.
-- Como vecino, quiero ver la lista de eventos que me interesan.
+- Como vecino, quiero decir «Asistiré» en un evento con un solo toque, sin registrarme.
+- Como vecino, quiero recibir un recordatorio antes de los eventos a los que voy a ir.
+- Como vecino, quiero recibir un aviso si un evento al que voy a ir cambia de hora, de lugar o se cancela.
+- Como vecino, quiero ver la lista de eventos a los que voy a ir.
 
 **Historias de usuario (ayuntamiento)**
 
-- Como personal municipal, quiero enviar un aviso asociado a un evento (cambio de hora, corte de calle, cancelación por lluvia) que llegue solo a quien marcó "Me interesa".
-- Como concejal o técnico, quiero ver un panel con: interesados por evento, eventos más populares, interés por categoría, dispositivos activos en el municipio y evolución mensual.
+- Como personal municipal, quiero enviar un aviso asociado a un evento (cambio de hora, corte de calle, cancelación por lluvia) que llegue solo a quien marcó "Asistiré".
+- Como concejal o técnico, quiero ver un panel con: asistentes previstos por evento, eventos más populares, asistencia prevista por categoría, dispositivos activos en el municipio y evolución mensual.
 - Como técnico, quiero exportar un informe (CSV y PDF) para la memoria anual.
-- Como responsable de una asociación, quiero ver cuántos interesados tienen mis eventos.
+- Como responsable de una asociación, quiero ver cuánta gente dice que va a ir a mis eventos.
 
 **Criterios de aceptación**
 
-- "Me interesa" funciona con identificación anónima del dispositivo; no se pide nombre, email ni teléfono.
+- "Asistiré" funciona con identificación anónima del dispositivo; no se pide nombre, email ni teléfono.
+- **Es una declaración de intención, no una asistencia comprobada**, y en ningún sitio se presenta como otra cosa. Nadie cuenta en la puerta: el vecino no confirma después y la app no comprueba si fue. Por eso el panel y el informe dicen «asistencia prevista» y «asistentes previstos», y el PDF lo deja escrito en el pie. Un número que se lea como un recuento real es un número que un concejal deja de creer la segunda vez. Ver D-074.
 - Recordatorio por defecto: la tarde anterior al evento. `[DECISIÓN PENDIENTE: hora exacta y si se añade un segundo recordatorio 1 hora antes]`
 - Los avisos de cambios se envían en menos de 1 minuto desde que se publican.
 - El panel solo muestra **datos agregados**; nunca identifica a vecinos concretos.
@@ -275,7 +276,7 @@ Para procesiones, cabalgatas, romerías, desfiles y carreras populares.
 - Como personal municipal, quiero generar un código o QR para que un voluntario (por ejemplo, alguien de la hermandad) comparta la ubicación desde su móvil.
 - Como voluntario, quiero iniciar, pausar y terminar la emisión de ubicación con un botón grande.
 - Como vecino, quiero ver en un mapa por dónde va el paso o la cabalgata, el recorrido previsto y cuándo se actualizó la posición por última vez.
-- Como vecino, quiero recibir un aviso cuando empieza el directo de un evento que me interesa.
+- Como vecino, quiero recibir un aviso cuando empieza el directo de un evento al que voy a ir.
 
 **Criterios de aceptación**
 
@@ -310,7 +311,7 @@ Para procesiones, cabalgatas, romerías, desfiles y carreras populares.
 
 | Rol                        | Quién                           | Puede                                                                                                                               |
 | -------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `visitor` / vecino anónimo | Cualquier usuario de la app     | Ver eventos, filtrar, "Me interesa", recibir avisos, ver directos                                                                   |
+| `visitor` / vecino anónimo | Cualquier usuario de la app     | Ver eventos, filtrar, "Asistiré", recibir avisos, ver directos                                                                   |
 | `org_editor`               | Responsable de una asociación   | Crear y editar eventos de su asociación (con o sin revisión), ver sus métricas                                                      |
 | `volunteer`                | Voluntario con código de sesión | Emitir ubicación en una sesión de directo concreta                                                                                  |
 | `municipal_editor`         | Técnico municipal               | Crear, editar y cancelar cualquier evento del municipio; aprobar o rechazar; enviar avisos de evento; gestionar directos; ver panel |
@@ -440,8 +441,8 @@ audit_log
 
 1. **Bienvenida:** elegir municipio (o entrar directamente por enlace o QR), idioma y permiso de notificaciones explicado con claridad.
 2. **Inicio (calendario):** bloque "Hoy" y "Este finde", eventos destacados, lista de próximos, cambio a vista de mes, filtros.
-3. **Detalle de evento:** información, mapa, organizador, botones "Me interesa", "Añadir a mi calendario" y "Compartir", avisos del evento y botón "Ver en directo" cuando esté activo. Cuando el evento tiene programa, las actividades por días, cada una con su "Me interesa".
-4. **Mis eventos:** eventos marcados con "Me interesa", y las actividades sueltas marcadas sin su evento.
+3. **Detalle de evento:** información, mapa, organizador, botones "Asistiré", "Añadir a mi calendario" y "Compartir", avisos del evento y botón "Ver en directo" cuando esté activo. Cuando el evento tiene programa, las actividades por días, cada una con su "Asistiré".
+4. **Mis eventos:** eventos marcados con "Asistiré", y las actividades sueltas marcadas sin su evento.
 5. **Directo:** mapa con posición actual, recorrido previsto y hora de última actualización.
 6. **Ajustes:** municipio, idioma, notificaciones, política de privacidad.
 7. **Modo voluntario:** entrada con código, botón grande de iniciar, pausar y terminar, indicador de que se está emitiendo.
@@ -466,10 +467,10 @@ audit_log
 
 | Tipo                          | Destinatarios                                             | Momento                         |
 | ----------------------------- | --------------------------------------------------------- | ------------------------------- |
-| Recordatorio de evento        | Dispositivos con "Me interesa" en el evento               | Tarde anterior (hora pendiente) |
-| Recordatorio de actividad     | Dispositivos con "Me interesa" en esa actividad           | Tarde anterior, con su hora     |
-| Aviso de cambio o cancelación | Dispositivos con "Me interesa" en el evento **o en una de sus actividades**, una sola vez | Inmediato |
-| Inicio de directo             | Dispositivos con "Me interesa"                            | Al iniciar la sesión            |
+| Recordatorio de evento        | Dispositivos con "Asistiré" en el evento               | Tarde anterior (hora pendiente) |
+| Recordatorio de actividad     | Dispositivos con "Asistiré" en esa actividad           | Tarde anterior, con su hora     |
+| Aviso de cambio o cancelación | Dispositivos con "Asistiré" en el evento **o en una de sus actividades**, una sola vez | Inmediato |
+| Inicio de directo             | Dispositivos con "Asistiré"                            | Al iniciar la sesión            |
 | Evento destacado              | Todos los dispositivos del municipio                      | Manual, con límite diario       |
 
 Las notificaciones de recordatorio se envían desde una tarea programada. Todas respetan la zona horaria `Europe/Madrid` y el límite anti-spam.
@@ -504,7 +505,7 @@ Las notificaciones de recordatorio se envían desde una tarea programada. Todas 
 ### Offline
 
 - Último calendario descargado disponible sin conexión.
-- "Me interesa" marcado sin conexión se sincroniza al recuperarla.
+- Un «Asistiré» pulsado sin conexión se sincroniza al recuperarla.
 
 ### Idiomas
 
@@ -552,7 +553,7 @@ Incluye:
 - App móvil (Expo) con **un municipio de demo** cargado con eventos reales de su programación pública (datos en un fichero de semilla fácil de cambiar por otro municipio).
 - Calendario con "Hoy", "Este finde", lista y vista de mes, filtros por categoría.
 - Detalle de evento con mapa, compartir y "Añadir a mi calendario".
-- "Me interesa" guardado en el dispositivo y pantalla "Mis eventos".
+- "Asistiré" guardado en el dispositivo y pantalla "Mis eventos".
 - **Directo simulado**: reproduce un recorrido grabado en el mapa como si fuera en tiempo real.
 - Panel web mínimo: crear y editar eventos, bandeja de revisión con eventos de ejemplo de asociaciones y un panel de estadísticas con datos de ejemplo.
 - Aspecto visual cuidado y con el logo y color del municipio de demo.
@@ -568,7 +569,7 @@ Reuniones, ajustes de la demo según el feedback y, si hay éxito, acuerdo de pi
 - Backend real, multi-municipio con aislamiento en base de datos.
 - Autenticación del personal municipal y de asociaciones; dispositivos anónimos para vecinos.
 - Asociaciones con flujo completo de revisión.
-- "Me interesa", recordatorios y avisos con notificaciones push reales.
+- "Asistiré", recordatorios y avisos con notificaciones push reales.
 - Panel de datos con exportación.
 - Directo real con modo voluntario.
 - Página web pública de evento.
@@ -606,7 +607,7 @@ Funcionalidades del backlog (sección 7.6) según lo que pidan los pilotos, app 
 3. Crear el monorepo con app Expo, panel web y paquete compartido de tipos, con lint, formateo, comprobación de tipos y CI básico.
 4. Definir los tipos y el esquema de datos de la sección 9.5 (versión simplificada para la demo) y un fichero de semilla del municipio de demo.
 5. Implementar la pantalla de inicio del calendario y el detalle de evento.
-6. Implementar "Me interesa" local y "Mis eventos".
+6. Implementar "Asistiré" local y "Mis eventos".
 7. Implementar el directo simulado sobre MapLibre.
 8. Implementar el panel web mínimo (eventos, bandeja de revisión, estadísticas de ejemplo).
 9. Pulir diseño y preparar un guion de demo de 3 minutos en `docs/demo.md`.

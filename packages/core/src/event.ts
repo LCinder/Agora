@@ -53,7 +53,7 @@ export const eventSchema = z
     liveTrackingEnabled: z.boolean().default(false),
 
     /**
-     * How many neighbours marked "Me interesa", and how many opened it.
+     * How many neighbours marked "Asistiré", and how many opened it.
      *
      * Two tallies and never a list. Nothing in this product can go from either
      * number back to a device, let alone to a person: the index that would
@@ -94,10 +94,9 @@ export type Event = z.infer<typeof eventSchema>;
  *
  * The project document sets it for the town hall's panel (section 10) and it
  * holds everywhere a count is shown, to residents included. Two neighbours
- * interested in a talk in a village of four thousand are not an anonymous
- * number: they are two people somebody could name, and printing "a 2 vecinos
- * les interesa" on the event itself says more about them than the town hall is
- * ever shown.
+ * going to a talk in a village of four thousand are not an anonymous number:
+ * they are two people somebody could name, and printing "asistirán 2 vecinos"
+ * on the event itself says more about them than the town hall is ever shown.
  *
  * So a tally appears from five upwards and is left out below it — not shown as
  * zero, and not rounded. Nobody loses anything by it: what an event with three

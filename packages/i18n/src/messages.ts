@@ -57,8 +57,8 @@ export interface Messages {
   'event.openMap': string;
   'event.organisedBy': string;
   'event.byTownHall': string;
-  'event.interested': string;
-  'event.interestedDone': string;
+  'event.attending': string;
+  'event.attendingDone': string;
   'event.addToCalendar': string;
   'event.share': string;
   'event.watchLive': string;
@@ -66,7 +66,7 @@ export interface Messages {
   'event.notFound': string;
   'event.posterOf': string;
   'event.seePoster': string;
-  'event.interestedCount': string;
+  'event.attendingCount': string;
   'event.viewsCount': string;
 
   'programme.title': string;
@@ -74,8 +74,8 @@ export interface Messages {
   'programme.todayCount': string;
   'programme.matchingCount': string;
   'programme.partOf': string;
-  'programme.interested': string;
-  'programme.interestedDone': string;
+  'programme.attending': string;
+  'programme.attendingDone': string;
   'programme.addToCalendar': string;
   'programme.cancelled': string;
   'programme.free': string;
@@ -210,8 +210,8 @@ const es: Messages = {
   'event.openMap': 'Ver {place} en el mapa',
   'event.organisedBy': 'Organiza {name}',
   'event.byTownHall': 'Organiza el Ayuntamiento',
-  'event.interested': 'Me interesa',
-  'event.interestedDone': 'Te interesa',
+  'event.attending': 'Asistiré',
+  'event.attendingDone': 'Asistirás',
   'event.addToCalendar': 'Añadir a mi calendario',
   'event.share': 'Compartir',
   'event.watchLive': 'Ver en directo',
@@ -219,7 +219,10 @@ const es: Messages = {
   'event.notFound': 'No encontramos este evento.',
   'event.posterOf': 'Cartel de {title}',
   'event.seePoster': 'Ver el cartel completo',
-  'event.interestedCount': 'A {count} vecinos les interesa',
+  // Future tense, and deliberately. Nobody is counted at the door: this is the
+  // number of neighbours who said they were going, which is a different fact
+  // and the only one the product can honestly report.
+  'event.attendingCount': 'Asistirán {count} vecinos',
   // A visit is one opening of the event by one phone on one day, which is
   // what the number actually counts. «Visitas» says that; «personas» would not.
   'event.viewsCount': '{count} visitas',
@@ -232,17 +235,17 @@ const es: Messages = {
   'programme.todayCount': 'Hoy, {count} actividades',
   'programme.matchingCount': '{count} actividades de {category}',
   'programme.partOf': 'Dentro de {event}',
-  'programme.interested': 'Me interesa esta actividad',
-  'programme.interestedDone': 'Te interesa esta actividad',
+  'programme.attending': 'Asistiré a esta actividad',
+  'programme.attendingDone': 'Asistirás a esta actividad',
   'programme.addToCalendar': 'Añadir esta actividad a mi calendario',
   'programme.cancelled': 'Cancelada',
   'programme.free': 'Gratis',
 
   'myEvents.title': 'Mis eventos',
-  'myEvents.empty': 'Todavía no te interesa ningún evento.',
-  'myEvents.emptyHint': 'Marca «Me interesa» en un evento y aparecerá aquí.',
+  'myEvents.empty': 'Todavía no has dicho que vayas a ir a nada.',
+  'myEvents.emptyHint': 'Pulsa «Asistiré» en un evento y aparecerá aquí.',
   'myEvents.past': 'Ya pasaron',
-  'myEvents.activities': 'Actividades sueltas que te interesan',
+  'myEvents.activities': 'Actividades sueltas a las que vas a ir',
 
   'live.title': 'En directo',
   'live.lastUpdate': 'Actualizado hace {minutes} min',
@@ -299,7 +302,7 @@ const es: Messages = {
   'settings.appearanceBody': 'El claro se lee mejor a pleno sol.',
   'settings.notifications': 'Avisos',
   'settings.notificationsBody':
-    'Te recordamos por la tarde los eventos que te interesan y te avisamos si cambia la hora, el lugar o se cancelan.',
+    'Te recordamos por la tarde aquello a lo que has dicho que vas a ir y te avisamos si cambia la hora, el lugar o se cancela.',
   'settings.notificationsOn': 'Activados',
   'settings.notificationsOff': 'Desactivados',
   'settings.notificationsEnable': 'Activar avisos',
@@ -315,7 +318,7 @@ const es: Messages = {
   'shared.unknownMunicipality': 'Ese municipio todavía no está en la aplicación',
   'shared.openInBrowser': 'Abre el enlace en el navegador para ver el evento.',
   'settings.deleteDataBody':
-    'Se borrarán los eventos y actividades que te interesan y el municipio elegido. No guardamos nada más.',
+    'Se borrarán los eventos y actividades a los que has dicho que vas a ir, y el municipio elegido. No guardamos nada más.',
   'settings.demoNotice': 'Versión de demostración con datos de ejemplo.',
 };
 
@@ -372,8 +375,8 @@ const en: Messages = {
   'event.openMap': 'See {place} on the map',
   'event.organisedBy': 'Organised by {name}',
   'event.byTownHall': 'Organised by the town hall',
-  'event.interested': 'I am interested',
-  'event.interestedDone': 'Interested',
+  'event.attending': 'I am going',
+  'event.attendingDone': 'You are going',
   'event.addToCalendar': 'Add to my calendar',
   'event.share': 'Share',
   'event.watchLive': 'Watch live',
@@ -381,7 +384,7 @@ const en: Messages = {
   'event.notFound': 'We could not find this event.',
   'event.posterOf': 'Poster for {title}',
   'event.seePoster': 'See the whole poster',
-  'event.interestedCount': '{count} neighbours are interested',
+  'event.attendingCount': '{count} neighbours are going',
   'event.viewsCount': '{count} visits',
 
   'programme.title': 'Programme',
@@ -389,17 +392,17 @@ const en: Messages = {
   'programme.todayCount': 'Today, {count} activities',
   'programme.matchingCount': '{count} {category} activities',
   'programme.partOf': 'Part of {event}',
-  'programme.interested': 'I am interested in this',
-  'programme.interestedDone': 'Interested in this',
+  'programme.attending': 'I am going to this',
+  'programme.attendingDone': 'You are going to this',
   'programme.addToCalendar': 'Add this activity to my calendar',
   'programme.cancelled': 'Cancelled',
   'programme.free': 'Free',
 
   'myEvents.title': 'My events',
-  'myEvents.empty': 'You are not interested in any event yet.',
-  'myEvents.emptyHint': 'Mark an event as interesting and it will show up here.',
+  'myEvents.empty': 'You have not said you are going to anything yet.',
+  'myEvents.emptyHint': 'Tap «I am going» on an event and it will show up here.',
   'myEvents.past': 'Already happened',
-  'myEvents.activities': 'Single activities you are interested in',
+  'myEvents.activities': 'Single activities you are going to',
 
   'live.title': 'Live',
   'live.lastUpdate': 'Updated {minutes} min ago',
@@ -456,7 +459,7 @@ const en: Messages = {
   'settings.appearanceBody': 'Light reads better in bright sunshine.',
   'settings.notifications': 'Notifications',
   'settings.notificationsBody':
-    'We remind you in the evening about the events you marked, and tell you if the time or the place changes, or they are called off.',
+    'We remind you in the evening about whatever you said you were going to, and tell you if the time or the place changes, or it is called off.',
   'settings.notificationsOn': 'On',
   'settings.notificationsOff': 'Off',
   'settings.notificationsEnable': 'Turn notifications on',
@@ -466,7 +469,7 @@ const en: Messages = {
   'settings.privacy': 'Privacy',
   'settings.deleteData': 'Delete my data',
   'settings.deleteDataBody':
-    'This removes the events and activities you marked and the town you chose. We store nothing else.',
+    'This removes the events and activities you said you were going to, and the town you chose. We store nothing else.',
   'settings.privacyPolicy': 'Privacy policy',
   'settings.legalNotice': 'Legal notice',
   'settings.accessibility': 'Accessibility',
