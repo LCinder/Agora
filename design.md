@@ -68,6 +68,21 @@ Una acción **destructiva o que decide algo** conserva su palabra. Aprobar y
 rechazar se parecen demasiado como dibujos, y «Quitar acceso» no tiene paso de
 confirmación: un icono suelto ahí es un error a un clic de distancia.
 
+**Los ocho estados.** Todo componente interactivo los trae: por defecto,
+encima, foco, pulsado, deshabilitado, **ocupado**, **error** y hecho. Lo que
+hacía que el panel pareciera un dibujo de un panel no era falta de adorno, era
+que un control se pintaba igual pasaras por encima, lo tuvieras pulsado,
+estuviera esperando o acabaras de escribir algo inválido.
+
+- **Pulsado:** un píxel hacia abajo y nada más. Una escala o un rebote en un
+  formulario municipal parece un juguete.
+- **Ocupado:** la etiqueta no cambia y el botón no encoge — cambiar «Guardar»
+  por «Guardando…» mueve la maquetación bajo un dedo que sigue encima. El
+  girador ocupa el sitio del icono y `aria-busy` lo dice en voz alta.
+- **Error:** se dibuja desde `aria-invalid`, que pone `Field`, para que lo que
+  anuncia un lector de pantalla y lo que ve el ojo no puedan separarse. El
+  mensaje **sustituye** a la ayuda, no se apila debajo.
+
 **Color.** Un solo acento: el color del municipio, levantado a contraste con
 `readableOn` contra el fondo sobre el que se pinte. Los seis colores de
 categoría son **dato**, no adorno: se usan cuando el color dice de qué

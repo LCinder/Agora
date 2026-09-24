@@ -139,19 +139,17 @@ function EditEventView() {
             />
           </div>
         ) : (
-          <Card className="h-fit">
-            <h2 className="font-display text-lg font-semibold">Avisos</h2>
-            <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+          <Card className="h-fit" title="Avisos">
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">
               Los avisos a los vecinos los envía el ayuntamiento. Si cambia la hora o el lugar,
               edítalo aquí y ellos lo avisarán.
             </p>
           </Card>
         )}
 
-        <Card className="h-fit">
-          <h2 className="font-display text-lg font-semibold">Avisos enviados</h2>
+        <Card className="h-fit" title="Avisos enviados">
           {eventNotices.length === 0 ? (
-            <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">
               Todavía no se ha enviado ninguno.
             </p>
           ) : (
@@ -208,9 +206,8 @@ function FeaturedComposer({
 
   if (!published) {
     return (
-      <Card className="h-fit">
-        <h2 className="font-display text-lg font-semibold">Destacar en todo el municipio</h2>
-        <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+      <Card className="h-fit" title="Destacar en todo el municipio">
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">
           Solo se puede destacar un evento publicado. Publícalo arriba y vuelve aquí.
         </p>
       </Card>
@@ -218,9 +215,8 @@ function FeaturedComposer({
   }
 
   return (
-    <Card>
-      <h2 className="font-display text-lg font-semibold">Destacar en todo el municipio</h2>
-      <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+    <Card title="Destacar en todo el municipio">
+      <p className="text-sm text-neutral-600 dark:text-neutral-400">
         {following === null
           ? 'Llega a todos los vecinos con la aplicación, no solo a quien ha dicho que asistirá.'
           : `Llega a los ${following} vecinos con la aplicación, no solo a quien ha dicho que asistirá.`}{' '}
@@ -291,9 +287,8 @@ function NoticeComposer({
   const [sent, setSent] = useState(false);
 
   return (
-    <Card>
-      <h2 className="font-display text-lg font-semibold">Enviar un aviso</h2>
-      <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+    <Card title="Enviar un aviso">
+      <p className="text-sm text-neutral-600 dark:text-neutral-400">
         Llega solo a los {interested} vecinos que han dicho que asistirán a este evento, o a alguna
         de sus actividades.
       </p>

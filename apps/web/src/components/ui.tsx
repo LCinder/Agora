@@ -1,6 +1,6 @@
 'use client';
 
-import type { LucideIcon } from 'lucide-react';
+import { CircleAlert, Loader2, type LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import type {
   InputHTMLAttributes,
@@ -10,6 +10,10 @@ import type {
   TextareaHTMLAttributes,
 } from 'react';
 
+/* Hallmark · component: panel primitives · genre: editorial · theme: design.md
+ * states: default · hover · focus · active · disabled · loading · error · success
+ */
+
 /**
  * Panel primitives.
  *
@@ -17,6 +21,12 @@ import type {
  * shapes are ordinary: labelled fields, visible focus rings, buttons that say
  * what they do. Nothing here relies on colour alone to carry meaning, which
  * RD 1112/2018 requires of anything sold to a public administration.
+ *
+ * What made these look unfinished was not missing ornament, it was missing
+ * states. A control that draws the same whether you are hovering it, holding
+ * it down, waiting on it or have just typed something invalid into it reads as
+ * a picture of a control. Every interactive primitive here now answers all
+ * eight: default, hover, focus, active, disabled, loading, error, success.
  */
 
 export function PageHeader({
@@ -41,11 +51,47 @@ export function PageHeader({
   );
 }
 
-export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
+/**
+ * The surface a thing you act on sits on.
+ *
+ * `title` exists because half the panel was writing an `h2` as the first child
+ * and then a gap, which is a header drawn by hand and drawn slightly
+ * differently each time. Given to the card, it comes with the hairline under
+ * it and a slot on the right for the action that belongs to that block.
+ *
+ * `tone` is the one piece of colour a card carries, and only when the row's
+ * state is the point: something waiting on the reader, or something that went
+ * wrong. Never for decoration — see design.md.
+ */
+export function Card({
+  children,
+  title,
+  action,
+  tone = 'plain',
+  className = '',
+}: {
+  children: ReactNode;
+  title?: string;
+  /** Sits opposite the title, for the action that belongs to this block. */
+  action?: ReactNode;
+  tone?: 'plain' | 'waiting' | 'danger';
+  className?: string;
+}) {
+  const edge =
+    tone === 'waiting'
+      ? 'border-amber-300/70 bg-amber-50/40'
+      : tone === 'danger'
+        ? 'border-red-300/70 bg-red-50/40'
+        : 'border-black/10 bg-white dark:border-white/10 dark:bg-neutral-900';
+
   return (
-    <div
-      className={`rounded-xl border border-black/10 bg-white p-5 dark:border-white/10 dark:bg-neutral-900 ${className}`}
-    >
+    <div className={`rounded-xl border p-5 ${edge} ${className}`}>
+      {title === undefined ? null : (
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3 border-b border-black/10 pb-3">
+          <h2 className="font-display text-lg font-semibold">{title}</h2>
+          {action}
+        </div>
+      )}
       {children}
     </div>
   );
@@ -71,7 +117,13 @@ const iconBase =
 
 const controlBase =
   'inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-sm font-semibold ' +
-  'transition focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50';
+  // `active:translate-y-px` and nothing more: a control that gives way a single
+  // pixel under the finger feels answered. A scale or a bounce on a municipal
+  // form feels like a toy — see design.md, and the skill's own ban on
+  // universal hover:scale.
+  'transition-[background-color,border-color,color,translate] duration-150 active:translate-y-px ' +
+  'focus-visible:outline-2 focus-visible:outline-offset-2 ' +
+  'disabled:pointer-events-none disabled:opacity-50';
 
 export function Button({
   children,
@@ -80,11 +132,21 @@ export function Button({
   type = 'button',
   variant = 'primary',
   disabled = false,
+  busy = false,
   brand,
 }: {
   children: ReactNode;
   /** Beside the label, never instead of it: this is a named action. */
   icon?: LucideIcon;
+  /**
+   * Waiting on something.
+   *
+   * The label does not change and the button does not shrink: a control that
+   * swaps its words for "Guardando…" moves the layout under a finger that is
+   * still on it. The spinner takes the icon's place and `aria-busy` says the
+   * same thing out loud.
+   */
+  busy?: boolean;
   onClick?: () => void;
   type?: 'button' | 'submit';
   variant?: 'primary' | 'secondary' | 'danger';
@@ -98,11 +160,12 @@ export function Button({
       <button
         type={type}
         onClick={onClick}
-        disabled={disabled}
+        disabled={disabled || busy}
+        aria-busy={busy || undefined}
         className={`${base} gap-2 text-white`}
         style={{ backgroundColor: brand ?? '#4F46E5' }}
       >
-        {Icon === undefined ? null : <Icon size={16} strokeWidth={2} aria-hidden />}
+        <Ornament icon={Icon} busy={busy} />
         {children}
       </button>
     );
@@ -114,8 +177,14 @@ export function Button({
       : 'border border-black/15 hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10';
 
   return (
-    <button type={type} onClick={onClick} disabled={disabled} className={`${base} gap-2 ${styles}`}>
-      {Icon === undefined ? null : <Icon size={16} strokeWidth={2} aria-hidden />}
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled || busy}
+      aria-busy={busy || undefined}
+      className={`${base} gap-2 ${styles}`}
+    >
+      <Ornament icon={Icon} busy={busy} />
       {children}
     </button>
   );
@@ -224,15 +293,40 @@ export function IconLink({
   );
 }
 
+/** The icon slot of a button: the icon, or the spinner that replaces it. */
+function Ornament({ icon: Icon, busy }: { icon?: LucideIcon | undefined; busy: boolean }) {
+  if (busy) {
+    return (
+      <Loader2
+        size={16}
+        strokeWidth={2}
+        aria-hidden
+        className="motion-safe:animate-spin motion-reduce:opacity-60"
+      />
+    );
+  }
+
+  return Icon === undefined ? null : <Icon size={16} strokeWidth={2} aria-hidden />;
+}
+
 export function Field({
   label,
   hint,
+  error,
   required = false,
   hidden = false,
   children,
 }: {
   label: string;
   hint?: string;
+  /**
+   * What is wrong with what was typed.
+   *
+   * It replaces the hint rather than stacking under it: two lines of small grey
+   * text with one of them red is how a form ends up telling somebody two things
+   * at once and neither of them clearly.
+   */
+  error?: string | null;
   required?: boolean;
   /** For a field that does not apply to whoever is looking at the form. */
   hidden?: boolean;
@@ -240,14 +334,25 @@ export function Field({
 }) {
   if (hidden) return null;
 
+  const wrong = error !== undefined && error !== null && error !== '';
+
   return (
     <label className="block">
       <span className="mb-1 block text-sm font-medium">
         {label}
-        {required ? <span className="ml-1 text-red-600">*</span> : null}
+        {required ? (
+          <span className="ml-1 text-red-600" title="Obligatorio">
+            *
+          </span>
+        ) : null}
       </span>
       {children}
-      {hint ? (
+      {wrong ? (
+        <span className="mt-1 flex items-start gap-1.5 text-xs font-medium text-red-700">
+          <CircleAlert size={14} strokeWidth={2} aria-hidden className="mt-px shrink-0" />
+          {error}
+        </span>
+      ) : hint ? (
         <span className="mt-1 block text-xs text-neutral-500 dark:text-neutral-400">{hint}</span>
       ) : null}
     </label>
@@ -265,7 +370,13 @@ export function Field({
  */
 const controlClass =
   'w-full min-h-11 rounded-lg border border-black/15 bg-white px-3 text-sm ' +
+  'transition-[border-color,background-color] duration-150 hover:border-black/30 ' +
   'focus-visible:outline-2 focus-visible:outline-offset-2 ' +
+  // The invalid state is drawn from `aria-invalid`, which `Field` sets, so the
+  // thing a screen reader announces and the thing the eye sees cannot drift
+  // apart — there is no separate `isError` class to forget.
+  'aria-invalid:border-red-600 aria-invalid:bg-red-50/50 ' +
+  'disabled:cursor-not-allowed disabled:bg-black/5 disabled:text-neutral-500 ' +
   'dark:border-white/20 dark:bg-neutral-950';
 
 export function Input({
