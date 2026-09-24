@@ -1,5 +1,6 @@
 'use client';
 
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { byStartDate, countByEvent, formatWhen, type Event, type EventStatus } from '@agora/core';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
@@ -10,6 +11,8 @@ import {
   Card,
   Empty,
   Field,
+  IconButton,
+  IconLink,
   PageHeader,
   Select,
   StatusBadge,
@@ -72,7 +75,7 @@ export default function EventsPage() {
             : 'Todo lo que hay en la agenda, en cualquier estado.'
         }
         action={
-          <ButtonLink href="/eventos/nuevo" brand={municipality.branding.primaryColor}>
+          <ButtonLink href="/eventos/nuevo" icon={Plus} brand={municipality.branding.primaryColor}>
             Nuevo evento
           </ButtonLink>
         }
@@ -136,12 +139,11 @@ export default function EventsPage() {
                       </span>
                     ) : null}
                     <StatusBadge status={event.status} />
-                    <Link
+                    <IconLink
+                      icon={Pencil}
+                      label="Editar este evento"
                       href={`/eventos/editar?id=${event.id}`}
-                      className="text-sm font-semibold underline"
-                    >
-                      Editar
-                    </Link>
+                    />
                     <DeleteEvent event={event} />
                   </div>
                 </div>
@@ -262,16 +264,15 @@ function DeleteEvent({ event }: { event: Event }) {
     return (
       <span className="inline-flex items-center gap-2">
         {failed === null ? null : <span className="text-xs text-red-700">{failed}</span>}
-        <button
-          type="button"
+        <IconButton
+          icon={Trash2}
+          label="Borrar este evento"
+          tone="danger"
           onClick={() => {
             setFailed(null);
             setAsking(true);
           }}
-          className="text-sm font-semibold text-red-700 underline"
-        >
-          Borrar
-        </button>
+        />
       </span>
     );
   }

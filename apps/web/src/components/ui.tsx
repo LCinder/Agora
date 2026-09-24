@@ -1,5 +1,6 @@
 'use client';
 
+import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import type {
   InputHTMLAttributes,
@@ -57,12 +58,24 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
  * ring, which is what had already happened twice: the primary button was
  * copied by hand into two pages and the `focus-visible` did not come with it.
  */
+/*
+ * The hit target of an icon action.
+ *
+ * 44 px square even though the icon is 18, because a finger is not a cursor and
+ * this panel is used on a tablet in a meeting as often as on a laptop. The
+ * focus ring comes from here, like everywhere else.
+ */
+const iconBase =
+  'inline-flex size-11 shrink-0 items-center justify-center rounded-lg transition ' +
+  'focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-40';
+
 const controlBase =
   'inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-sm font-semibold ' +
   'transition focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50';
 
 export function Button({
   children,
+  icon: Icon,
   onClick,
   type = 'button',
   variant = 'primary',
@@ -70,6 +83,8 @@ export function Button({
   brand,
 }: {
   children: ReactNode;
+  /** Beside the label, never instead of it: this is a named action. */
+  icon?: LucideIcon;
   onClick?: () => void;
   type?: 'button' | 'submit';
   variant?: 'primary' | 'secondary' | 'danger';
@@ -84,9 +99,10 @@ export function Button({
         type={type}
         onClick={onClick}
         disabled={disabled}
-        className={`${base} text-white`}
+        className={`${base} gap-2 text-white`}
         style={{ backgroundColor: brand ?? '#4F46E5' }}
       >
+        {Icon === undefined ? null : <Icon size={16} strokeWidth={2} aria-hidden />}
         {children}
       </button>
     );
@@ -98,7 +114,8 @@ export function Button({
       : 'border border-black/15 hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10';
 
   return (
-    <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${styles}`}>
+    <button type={type} onClick={onClick} disabled={disabled} className={`${base} gap-2 ${styles}`}>
+      {Icon === undefined ? null : <Icon size={16} strokeWidth={2} aria-hidden />}
       {children}
     </button>
   );
@@ -116,20 +133,93 @@ export function Button({
 export function ButtonLink({
   href,
   children,
+  icon: Icon,
   brand,
 }: {
   href: string;
   children: ReactNode;
+  icon?: LucideIcon;
   /** The municipality's own colour, when the page knows it. */
   brand?: string | undefined;
 }) {
   return (
     <Link
       href={href}
-      className={`${controlBase} text-white`}
+      className={`${controlBase} gap-2 text-white`}
       style={{ backgroundColor: brand ?? '#4F46E5' }}
     >
+      {Icon === undefined ? null : <Icon size={16} strokeWidth={2} aria-hidden />}
       {children}
+    </Link>
+  );
+}
+
+/**
+ * An action drawn as an icon, with its name carried where it counts.
+ *
+ * A row that repeats the word "Editar" eleven times spends eleven times the
+ * width on a word the reader already knows, and the eye has to read it to find
+ * the target. The icon is the target; the name is still there for anybody who
+ * needs it — `aria-label` for a screen reader, `title` for the pointer.
+ *
+ * `label` is required and not optional on purpose. An icon-only control without
+ * an accessible name is a button that announces itself as "button", and RD
+ * 1112/2018 is the floor this product is sold on. There is no way to build one
+ * of these wrong.
+ *
+ * One icon set across the whole panel — lucide — because two sets is the
+ * tell that gives away a stitched-together interface.
+ */
+export function IconButton({
+  icon: Icon,
+  label,
+  onClick,
+  tone = 'plain',
+  disabled = false,
+}: {
+  icon: LucideIcon;
+  /** What it does, in words. Never optional. */
+  label: string;
+  onClick?: () => void;
+  tone?: 'plain' | 'danger';
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      className={`${iconBase} ${
+        tone === 'danger'
+          ? 'text-red-700 hover:bg-red-50 hover:text-red-800'
+          : 'text-neutral-600 hover:bg-black/5 hover:text-neutral-900'
+      }`}
+    >
+      <Icon size={18} strokeWidth={1.75} aria-hidden />
+    </button>
+  );
+}
+
+/** The same, for an action that is really a destination. */
+export function IconLink({
+  icon: Icon,
+  label,
+  href,
+}: {
+  icon: LucideIcon;
+  label: string;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-label={label}
+      title={label}
+      className={`${iconBase} text-neutral-600 hover:bg-black/5 hover:text-neutral-900`}
+    >
+      <Icon size={18} strokeWidth={1.75} aria-hidden />
     </Link>
   );
 }

@@ -1,10 +1,10 @@
 'use client';
 
+import { ListChecks, Pencil, Plus } from 'lucide-react';
 import { formatWhen, groupEvents, isAwaitingReview, residentVisibleEvents } from '@agora/core';
-import Link from 'next/link';
 
 import { Figure, Rule } from '../../components/report';
-import { ButtonLink, Card, Empty, PageHeader, StatusBadge } from '../../components/ui';
+import { ButtonLink, Card, Empty, IconLink, PageHeader, StatusBadge } from '../../components/ui';
 import { DEMO_ACTIVE_DEVICES } from '../../lib/demo';
 import { usePanel } from '../../lib/panel-store';
 
@@ -49,7 +49,7 @@ export default function PanelHome() {
         title={municipality.name}
         description="Resumen de la agenda del municipio."
         action={
-          <ButtonLink href="/eventos/nuevo" brand={municipality.branding.primaryColor}>
+          <ButtonLink href="/eventos/nuevo" icon={Plus} brand={municipality.branding.primaryColor}>
             Nuevo evento
           </ButtonLink>
         }
@@ -106,9 +106,7 @@ export default function PanelHome() {
                     </p>
                   </div>
                   {municipal ? (
-                    <Link href="/revision" className="text-sm font-semibold underline">
-                      Revisar
-                    </Link>
+                    <IconLink icon={ListChecks} label="Revisar este evento" href="/revision" />
                   ) : (
                     <StatusBadge status={event.status} />
                   )}
@@ -147,12 +145,11 @@ export default function PanelHome() {
                     </div>
                     <div className="flex items-center gap-3">
                       <StatusBadge status={event.status} />
-                      <Link
+                      <IconLink
+                        icon={Pencil}
+                        label="Editar este evento"
                         href={`/eventos/editar?id=${event.id}`}
-                        className="text-sm font-semibold underline"
-                      >
-                        Editar
-                      </Link>
+                      />
                     </div>
                   </div>
                 </Card>

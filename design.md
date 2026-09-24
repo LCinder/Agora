@@ -53,6 +53,21 @@ cuesta comparar.
 La regla separa sin encajonar, así que vale en las dos clases de pantalla — es
 el único recurso del informe que se usa en todas.
 
+**Iconos.** Un solo juego, **lucide**, y ninguno más: dos juegos es el detalle
+que delata una interfaz cosida a trozos. A 18 px y trazo 1,75 en las acciones de
+fila, a 16 px y trazo 2 junto a la etiqueta de un botón.
+
+Una acción repetida en cada fila —editar, borrar, revisar— va **solo con icono**,
+porque repetir la palabra once veces gasta anchura en algo que el lector ya sabe
+y obliga al ojo a leer para encontrar el objetivo. Va con `IconButton` o
+`IconLink`, que exigen `label`: de ahí salen el `aria-label` y el `title`, y no
+hay forma de construir uno sin nombre. El área de pulsación es de 44 px aunque
+el icono mida 18, porque esto se usa en tableta tanto como en portátil.
+
+Una acción **destructiva o que decide algo** conserva su palabra. Aprobar y
+rechazar se parecen demasiado como dibujos, y «Quitar acceso» no tiene paso de
+confirmación: un icono suelto ahí es un error a un clic de distancia.
+
 **Color.** Un solo acento: el color del municipio, levantado a contraste con
 `readableOn` contra el fondo sobre el que se pinte. Los seis colores de
 categoría son **dato**, no adorno: se usan cuando el color dice de qué

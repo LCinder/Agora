@@ -7,6 +7,7 @@ import {
   reportableCount,
   residentVisibleEvents,
 } from '@agora/core';
+import { BarChart3, Download, FileText, Table2 } from 'lucide-react';
 import { useMemo, useState, type CSSProperties } from 'react';
 import {
   Bar,
@@ -396,14 +397,19 @@ export default function DataPage() {
         description="Cuántos vecinos dicen que van a ir, por evento y por tipo de actividad. Siempre agregado: nunca se identifica a nadie."
         action={
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setAsTable(!asTable)}>
+            <Button
+              variant="secondary"
+              icon={asTable ? BarChart3 : Table2}
+              onClick={() => setAsTable(!asTable)}
+            >
               {asTable ? 'Ver gráficas' : 'Ver como tabla'}
             </Button>
-            <Button variant="secondary" onClick={exportCsv}>
+            <Button variant="secondary" icon={Download} onClick={exportCsv}>
               Exportar CSV
             </Button>
             <Button
               brand={municipality.branding.primaryColor}
+              icon={FileText}
               disabled={writing}
               onClick={() => void exportPdf()}
             >
