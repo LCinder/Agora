@@ -54,7 +54,10 @@ export function PanelNav() {
   const brand = municipality?.branding.primaryColor ?? '#4F46E5';
 
   return (
-    <header className="border-b border-black/10 bg-white dark:border-white/10 dark:bg-neutral-900">
+    /* Pegada arriba y traslúcida: en una lista larga de eventos, el
+       municipio y el contador de pendientes no deberían perderse al bajar.
+       Es CSS, no comportamiento. */
+    <header className="sticky top-0 z-10 border-b border-black/[0.07] bg-surface/85 backdrop-blur-sm dark:border-white/10 dark:bg-neutral-900/85">
       <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
           <span

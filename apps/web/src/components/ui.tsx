@@ -82,10 +82,17 @@ export function Card({
       ? 'border-amber-300/70 bg-amber-50/40'
       : tone === 'danger'
         ? 'border-red-300/70 bg-red-50/40'
-        : 'border-black/10 bg-white dark:border-white/10 dark:bg-neutral-900';
+        : 'border-black/[0.07] bg-surface dark:border-white/10 dark:bg-neutral-900';
 
   return (
-    <div className={`rounded-xl border p-5 ${edge} ${className}`}>
+    /*
+     * La sombra es de un píxel y casi negra al 4 %: no es un efecto, es lo que
+     * hace que el borde se lea como un canto y no como una raya dibujada. Una
+     * sombra difusa y de color sería un adorno, y este panel se imprime.
+     */
+    <div
+      className={`rounded-xl border p-5 shadow-[0_1px_2px_rgba(16,16,26,0.04)] ${edge} ${className}`}
+    >
       {title === undefined ? null : (
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3 border-b border-black/10 pb-3">
           <h2 className="font-display text-lg font-semibold">{title}</h2>
@@ -458,26 +465,56 @@ const STATUS_LABELS = {
   cancelled: 'Cancelado',
 } as const;
 
+/*
+ * Fondo muy claro, anillo del mismo tono y un punto a plena intensidad.
+ *
+ * El relleno pastel de antes competía con el texto de la fila por la misma
+ * atención: media docena de bloques de color saturado en una lista y el ojo no
+ * sabe dónde mirar. Así el estado se distingue igual de lejos, pesa mucho menos
+ * de cerca, y el punto da un segundo indicio además del color — que sigue sin
+ * ser nunca el único, porque la palabra está escrita al lado.
+ */
 const STATUS_CLASSES = {
-  draft: 'bg-neutral-200 text-neutral-800',
-  pending_review: 'bg-amber-200 text-amber-900',
-  published: 'bg-emerald-200 text-emerald-900',
-  rejected: 'bg-neutral-300 text-neutral-800',
-  cancelled: 'bg-red-200 text-red-900',
+  draft: 'bg-neutral-50 text-neutral-700 ring-neutral-300',
+  pending_review: 'bg-amber-50 text-amber-800 ring-amber-300',
+  published: 'bg-emerald-50 text-emerald-800 ring-emerald-300',
+  rejected: 'bg-neutral-50 text-neutral-700 ring-neutral-300',
+  cancelled: 'bg-red-50 text-red-800 ring-red-300',
+} as const;
+
+const STATUS_DOTS = {
+  draft: 'bg-neutral-400',
+  pending_review: 'bg-amber-500',
+  published: 'bg-emerald-600',
+  rejected: 'bg-neutral-500',
+  cancelled: 'bg-red-600',
 } as const;
 
 export function StatusBadge({ status }: { status: keyof typeof STATUS_LABELS }) {
   return (
-    <span className={`rounded px-2 py-0.5 text-xs font-semibold ${STATUS_CLASSES[status]}`}>
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${STATUS_CLASSES[status]}`}
+    >
+      <span aria-hidden className={`size-1.5 rounded-full ${STATUS_DOTS[status]}`} />
       {STATUS_LABELS[status]}
     </span>
   );
 }
 
+/*
+ * Lo primero que ve un ayuntamiento el primer día.
+ *
+ * Era una frase gris dentro de una caja, y es la primera impresión del producto
+ * para quien acaba de entrar y todavía no tiene nada. El filete discontinuo dice
+ * «aquí va a haber algo» en vez de «aquí no hay nada», que es la diferencia
+ * entre un hueco y una avería.
+ */
 export function Empty({ children }: { children: ReactNode }) {
   return (
-    <Card>
-      <p className="text-sm text-neutral-600 dark:text-neutral-400">{children}</p>
-    </Card>
+    <div className="rounded-xl border border-dashed border-black/15 bg-surface/60 px-6 py-10 text-center">
+      <p className="mx-auto max-w-[46ch] text-sm text-neutral-600 dark:text-neutral-400">
+        {children}
+      </p>
+    </div>
   );
 }

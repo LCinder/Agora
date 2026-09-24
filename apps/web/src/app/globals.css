@@ -19,12 +19,23 @@
   /* Form controls, scrollbars and the rest of what the browser paints. */
   color-scheme: light;
 
-  --background: #ffffff;
-  --foreground: #171717;
+  /*
+   * El fondo no es blanco puro, y esa es la diferencia entre «tarjeta» y
+   * «recuadro dibujado sobre la nada». Con la página en blanco puro, una
+   * tarjeta blanca con un filete gris no es un objeto: es una línea. Un punto
+   * de gris frío por debajo y las tarjetas se levantan solas, sin sombras.
+   *
+   * Blanco puro sobre blanco puro es además uno de los delatores que recoge
+   * design.md.
+   */
+  --background: #f7f7f9;
+  --surface: #ffffff;
+  --foreground: #16161a;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
   --color-foreground: var(--foreground);
 
   /*

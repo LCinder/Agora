@@ -68,7 +68,7 @@ export function PanelGate({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
       <PanelNav />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">{children}</main>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-6">{children}</main>
 
       {/* The same three pages the app links to. A service sold to a public
           administration has to carry them where they can be found. */}

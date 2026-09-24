@@ -1,6 +1,6 @@
 'use client';
 
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Star, Trash2 } from 'lucide-react';
 import { byStartDate, countByEvent, formatWhen, type Event, type EventStatus } from '@agora/core';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
@@ -144,7 +144,11 @@ export default function EventsPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     {event.isFeatured ? (
-                      <span className="rounded bg-neutral-900 px-2 py-0.5 text-xs font-semibold text-white">
+                      /* Misma forma que la etiqueta de estado de al lado, con
+                         la estrella como segundo indicio. Un tocho negro junto a
+                         una pastilla con anillo era de dos interfaces distintas. */
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-900 px-2.5 py-1 text-xs font-semibold text-white">
+                        <Star size={11} strokeWidth={2.5} aria-hidden className="fill-current" />
                         En portada
                       </span>
                     ) : null}
