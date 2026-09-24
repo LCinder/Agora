@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 
 import {
   Button,
+  ButtonLink,
   Card,
   Empty,
   Field,
@@ -71,13 +72,9 @@ export default function EventsPage() {
             : 'Todo lo que hay en la agenda, en cualquier estado.'
         }
         action={
-          <Link
-            href="/eventos/nuevo"
-            className="inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-semibold text-white"
-            style={{ backgroundColor: municipality.branding.primaryColor }}
-          >
+          <ButtonLink href="/eventos/nuevo" brand={municipality.branding.primaryColor}>
             Nuevo evento
-          </Link>
+          </ButtonLink>
         }
       />
 

@@ -96,3 +96,9 @@ google-services.json
 # tragaria tambien un fichero de codigo llamado, por ejemplo, firebase-push.ts,
 # y un fuente ignorado en silencio es un fallo que cuesta horas encontrar.
 *firebase-adminsdk*.json
+
+# Skills instaladas con `npx skills add`: contenido de terceros que se vuelve a
+# descargar, no codigo del proyecto. `skills-lock.json` si se versiona, que es
+# lo que fija que todos usemos la misma.
+.agents/
+.claude/skills/

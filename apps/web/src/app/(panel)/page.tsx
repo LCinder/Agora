@@ -3,7 +3,7 @@
 import { formatWhen, groupEvents, isAwaitingReview, residentVisibleEvents } from '@agora/core';
 import Link from 'next/link';
 
-import { Card, Empty, PageHeader, StatTile, StatusBadge } from '../../components/ui';
+import { ButtonLink, Card, Empty, PageHeader, StatTile, StatusBadge } from '../../components/ui';
 import { DEMO_ACTIVE_DEVICES } from '../../lib/demo';
 import { usePanel } from '../../lib/panel-store';
 
@@ -48,13 +48,9 @@ export default function PanelHome() {
         title={municipality.name}
         description="Resumen de la agenda del municipio."
         action={
-          <Link
-            href="/eventos/nuevo"
-            className="inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-semibold text-white"
-            style={{ backgroundColor: municipality.branding.primaryColor }}
-          >
+          <ButtonLink href="/eventos/nuevo" brand={municipality.branding.primaryColor}>
             Nuevo evento
-          </Link>
+          </ButtonLink>
         }
       />
 

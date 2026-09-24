@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import type {
   InputHTMLAttributes,
   ReactNode,
@@ -29,7 +30,7 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="font-display text-2xl font-semibold tracking-tight">{title}</h1>
         {description ? (
           <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">{description}</p>
         ) : null}
@@ -49,6 +50,17 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
   );
 }
 
+/**
+ * Everything a control looks like before it is told what kind it is.
+ *
+ * Shared so that a `Link` styled as a button cannot quietly lose the focus
+ * ring, which is what had already happened twice: the primary button was
+ * copied by hand into two pages and the `focus-visible` did not come with it.
+ */
+const controlBase =
+  'inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-sm font-semibold ' +
+  'transition focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50';
+
 export function Button({
   children,
   onClick,
@@ -64,8 +76,7 @@ export function Button({
   disabled?: boolean;
   brand?: string | undefined;
 }) {
-  const base =
-    'inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50';
+  const base = controlBase;
 
   if (variant === 'primary') {
     return (
@@ -90,6 +101,36 @@ export function Button({
     <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${styles}`}>
       {children}
     </button>
+  );
+}
+
+/**
+ * A link that looks like the primary button, because it goes somewhere.
+ *
+ * "Nuevo evento" navigates; it does not act. A `<button>` that routes is a lie
+ * to a screen reader and takes the middle-click and the open-in-new-tab away
+ * from everybody else. So it stays an anchor and borrows the button's clothes
+ * — including the focus ring, which is the part that kept getting lost when
+ * this was copied by hand.
+ */
+export function ButtonLink({
+  href,
+  children,
+  brand,
+}: {
+  href: string;
+  children: ReactNode;
+  /** The municipality's own colour, when the page knows it. */
+  brand?: string | undefined;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`${controlBase} text-white`}
+      style={{ backgroundColor: brand ?? '#4F46E5' }}
+    >
+      {children}
+    </Link>
   );
 }
 
@@ -123,8 +164,19 @@ export function Field({
   );
 }
 
+/*
+ * The focus ring is not decoration here.
+ *
+ * The button has had one since the first day and the fields never did, so
+ * somebody moving through the form with the keyboard got whatever the browser
+ * draws by default — which over a `black/15` border is sometimes barely there.
+ * RD 1112/2018 is what this panel is sold on, and an automated check does not
+ * catch it: axe verifies that contrast exists, not that focus is visible.
+ */
 const controlClass =
-  'w-full min-h-11 rounded-lg border border-black/15 bg-white px-3 text-sm dark:border-white/20 dark:bg-neutral-950';
+  'w-full min-h-11 rounded-lg border border-black/15 bg-white px-3 text-sm ' +
+  'focus-visible:outline-2 focus-visible:outline-offset-2 ' +
+  'dark:border-white/20 dark:bg-neutral-950';
 
 export function Input({
   ref,
@@ -207,7 +259,7 @@ export function StatTile({
   return (
     <Card>
       <p className="text-sm text-neutral-600 dark:text-neutral-400">{label}</p>
-      <p className="mt-1 text-3xl font-semibold tabular-nums">{value}</p>
+      <p className="mt-1 font-display text-3xl font-semibold tabular-nums">{value}</p>
       {hint ? <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{hint}</p> : null}
     </Card>
   );

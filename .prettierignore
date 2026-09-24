@@ -20,3 +20,9 @@ apps/mobile/expo-env.d.ts
 # Lienzo de diseño: el formato de Design Components lo lee su ensamblador, y
 # reflowarlo con Prettier lo rompe. Ver .design/README.md.
 .design/
+
+# Skills instaladas con `npx skills add`. Son 900 KB de markdown de terceros
+# que Prettier reformatearia entero, y el formato no es nuestro: la proxima
+# actualizacion de la skill lo deshace.
+.agents/
+.claude/

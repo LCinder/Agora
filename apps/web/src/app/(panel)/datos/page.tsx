@@ -591,7 +591,13 @@ function ChartCard({
 
   return (
     <Card className="mt-6">
-      <h2 className={note === undefined ? 'mb-4 text-lg font-semibold' : 'text-lg font-semibold'}>
+      <h2
+        className={
+          note === undefined
+            ? 'mb-4 font-display text-lg font-semibold'
+            : 'font-display text-lg font-semibold'
+        }
+      >
         {title}
       </h2>
       {note === undefined ? null : (
