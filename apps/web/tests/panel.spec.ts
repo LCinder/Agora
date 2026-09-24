@@ -114,7 +114,7 @@ test('the report downloads as a PDF', async ({ page }) => {
 
   const file = await download;
 
-  expect(file.suggestedFilename()).toMatch(/^informe-interes-la-zubia-\d{4}\.pdf$/);
+  expect(file.suggestedFilename()).toMatch(/^informe-asistencia-la-zubia-\d{4}\.pdf$/);
 });
 
 test('an association can be created and trusted', async ({ page }) => {
