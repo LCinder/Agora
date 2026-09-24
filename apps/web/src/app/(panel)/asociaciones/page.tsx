@@ -116,7 +116,7 @@ export default function OrganizationsPage() {
       />
 
       <Card className="mb-6">
-<h2 className="font-display text-lg font-semibold">Dar de alta una asociación</h2>
+        <h2 className="font-display text-lg font-semibold">Dar de alta una asociación</h2>
         {/* The two steps, said out loud. Creating the association writes it into
             this list and sends nothing to anybody; what gives its responsable a
             way in is an invitation, which lives on Usuarios because that is where

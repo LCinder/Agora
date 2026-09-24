@@ -89,3 +89,39 @@ export function messageFor(failure: PosterFailure, what: string): string {
       return `No hemos podido ${what}.`;
   }
 }
+
+/**
+ * What the provider actually said, in the log, whenever a call fails.
+ *
+ * This exists because of a bug report nobody could answer: the panel said "el
+ * servicio de inteligencia artificial está saturado" and CloudWatch held nothing
+ * but START and END. The sentence named a cause — an overloaded provider — that
+ * the logs could neither confirm nor deny, so the only way to find out which of
+ * the two providers had failed, and with what, was to call both of them by hand
+ * and hope the fault repeated. One line per failure turns that afternoon into
+ * ten seconds; it found the next one immediately.
+ *
+ * What goes in it: the provider, the model, the failure we settled on, the
+ * status, and the beginning of the body, which for an error is the provider's
+ * own explanation. What never goes in it: the key, which travels in a header and
+ * is in none of those, and the request, which for a poster read is somebody's
+ * photograph.
+ */
+export function logPosterFailure(where: {
+  provider: 'gemini' | 'cloudflare';
+  model: string;
+  failure: PosterFailure;
+  /** Absent when the request never got an answer at all. */
+  status?: number;
+  detail?: string;
+}): void {
+  console.error(
+    JSON.stringify({
+      message: 'poster call failed',
+      ...where,
+      // Enough to carry a provider's error message, short enough that a burst
+      // of failures does not become the log bill.
+      ...(where.detail === undefined ? {} : { detail: where.detail.slice(0, 300) }),
+    }),
+  );
+}

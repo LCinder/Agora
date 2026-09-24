@@ -1,7 +1,14 @@
 import { z } from 'zod';
 
-import type { PosterResult } from './failure';
-import { IMAGE_TIMEOUT_MS, failureForStatus, geminiJson, wasAborted } from './gemini';
+import { logPosterFailure, type PosterFailure, type PosterResult } from './failure';
+import {
+  IMAGE_RESERVE_MS,
+  failureForStatus,
+  geminiJson,
+  posterDeadline,
+  remainingFor,
+  wasAborted,
+} from './gemini';
 
 /**
  * Draws an event poster from a one-line description.
@@ -92,6 +99,53 @@ const BACKGROUND_RULE = `El cartel NO debe contener ningún texto, ni letras, ni
 
 const COMPLETE_RULE = `El cartel SÍ lleva el texto dentro de la imagen. Indica al modelo el texto exacto que debe escribir, entrecomillado y sin cambiar ni una tilde, y pídele tipografía grande, legible y bien contrastada, con el título como elemento dominante.`;
 
+/**
+ * Failures worth drawing anyway.
+ *
+ * Gemini on the free tier answers the same request in five seconds, then in
+ * sixteen, then in twenty-four — measured on one afternoon, from the Lambda, not
+ * from a laptop behind a proxy. When it overruns there is nothing wrong with the
+ * request, the keys or the drawing model; there is nothing wrong at all except
+ * that a queue was long. Refusing to draw in that case throws away a working
+ * Cloudflare call to punish a slow Google one.
+ *
+ * A key that is missing or wrong is not on this list on purpose: that is a
+ * configuration fault, and quietly drawing around it would hide the day somebody
+ * pastes the wrong key.
+ */
+const WORTH_DRAWING_ANYWAY: readonly PosterFailure[] = [
+  'timed_out',
+  'busy',
+  'rate_limited',
+  'unreachable',
+];
+
+/**
+ * A brief written here, for when the model that writes them does not arrive.
+ *
+ * It is plainly worse than what Gemini writes — it knows the title, the place
+ * and nothing about what the event feels like — and it is much better than an
+ * error, which is the only other thing on offer once the clock has run. The
+ * alt text says the picture is illustrative, because it is: nobody has read the
+ * event, so promising more would be a caption that lies.
+ */
+function briefWithoutAModel(input: DrawPosterInput): PosterBrief {
+  const subject = input.event.title ?? input.description;
+  const place = input.event.locationName ?? input.event.municipalityName;
+
+  return {
+    imagePrompt:
+      `Ilustración de cartel para "${subject}"` +
+      (place === undefined ? '' : `, en ${place}`) +
+      ', ambiente de fiesta popular española, luz cálida de tarde, colores vivos, ' +
+      'composición limpia con espacio libre en el centro' +
+      // The same rule the model is given, because the panel lays the event
+      // details over a background and text drawn into it would collide.
+      (input.mode === 'background' ? ', sin ningún texto ni letras en la imagen' : ''),
+    altText: `Imagen ilustrativa para ${subject}`,
+  };
+}
+
 export interface DrawPosterInput {
   geminiKey: string | undefined;
   cloudflare: { accountId: string | undefined; apiToken: string | undefined };
@@ -117,7 +171,14 @@ export async function drawPoster(input: DrawPosterInput): Promise<PosterResult<P
     .filter((line) => line !== null)
     .join('\n');
 
+  // One clock for both calls, and a floor under the second one. The drawing
+  // gets whatever the brief did not spend, but the brief may never spend so much
+  // that the drawing has nothing left: that is how a twenty-four second brief
+  // used to kill a two second drawing.
+  const deadline = posterDeadline();
+
   const brief = await geminiJson({
+    deadline: deadline - IMAGE_RESERVE_MS,
     apiKey: input.geminiKey,
     system: SYSTEM_PROMPT,
     schema: BRIEF_SCHEMA as unknown as Record<string, unknown>,
@@ -138,7 +199,10 @@ ${details === '' ? 'Todavía no hay datos del evento.' : `Datos del evento:\n${d
     },
   });
 
-  if (!brief.ok) return brief;
+  if (!brief.ok && !WORTH_DRAWING_ANYWAY.includes(brief.failure)) return brief;
+
+  // Either what Gemini wrote, or ours because it did not arrive in time.
+  const wording = brief.ok ? brief.value : briefWithoutAModel(input);
 
   let drawn: Response;
 
@@ -148,23 +212,54 @@ ${details === '' ? 'Todavía no hay datos del evento.' : `Datos del evento:\n${d
       {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${apiToken}` },
-        body: JSON.stringify({ prompt: brief.value.imagePrompt, steps: IMAGE_STEPS }),
-        signal: AbortSignal.timeout(IMAGE_TIMEOUT_MS),
+        body: JSON.stringify({ prompt: wording.imagePrompt, steps: IMAGE_STEPS }),
+        signal: AbortSignal.timeout(remainingFor(deadline)),
       },
     );
   } catch (error) {
-    return { ok: false, failure: wasAborted(error) ? 'timed_out' : 'unreachable' };
+    const failure: PosterFailure = wasAborted(error) ? 'timed_out' : 'unreachable';
+
+    logPosterFailure({
+      provider: 'cloudflare',
+      model: IMAGE_MODEL,
+      failure,
+      detail: String(error),
+    });
+
+    return { ok: false, failure };
   }
 
   const failure = failureForStatus(drawn.status);
 
-  if (failure !== null) return { ok: false, failure };
+  if (failure !== null) {
+    logPosterFailure({
+      provider: 'cloudflare',
+      model: IMAGE_MODEL,
+      failure,
+      status: drawn.status,
+      detail: await drawn.text().catch(() => ''),
+    });
+
+    return { ok: false, failure };
+  }
 
   const image = extractImage(await drawn.json().catch(() => null));
 
-  return image === null
-    ? { ok: false, failure: 'no_image' }
-    : { ok: true, value: { ...brief.value, image } };
+  if (image === null) {
+    // A 200 with no image in it. Workers AI puts the reason in the envelope it
+    // answered with, and without this line the panel says nothing was drawn and
+    // the reason is gone.
+    logPosterFailure({
+      provider: 'cloudflare',
+      model: IMAGE_MODEL,
+      failure: 'no_image',
+      status: drawn.status,
+    });
+
+    return { ok: false, failure: 'no_image' };
+  }
+
+  return { ok: true, value: { ...wording, image } };
 }
 
 /**

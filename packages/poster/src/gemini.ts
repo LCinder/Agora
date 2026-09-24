@@ -1,4 +1,4 @@
-import type { PosterFailure, PosterResult } from './failure';
+import { logPosterFailure, type PosterFailure, type PosterResult } from './failure';
 
 /**
  * The one place this project talks to Gemini.
@@ -52,6 +52,13 @@ export interface GeminiRequest<T> {
   /** Gemini's own response-schema dialect, not a converted Zod schema. */
   schema: Record<string, unknown>;
   parse: (value: unknown) => T | null;
+  /**
+   * When to stop waiting, as `Date.now()` would give it.
+   *
+   * A deadline rather than a duration because drawing a poster spends two
+   * provider calls out of one budget. See `posterDeadline`.
+   */
+  deadline?: number;
 }
 
 /**
@@ -67,6 +74,7 @@ export async function geminiJson<T>({
   parts,
   schema,
   parse,
+  deadline,
 }: GeminiRequest<T>): Promise<PosterResult<T>> {
   if (apiKey === undefined || apiKey === '') return { ok: false, failure: 'missing_key' };
 
@@ -81,15 +89,31 @@ export async function geminiJson<T>({
         contents: [{ role: 'user', parts }],
         generationConfig: { responseMimeType: 'application/json', responseSchema: schema },
       }),
-      signal: AbortSignal.timeout(BRIEF_TIMEOUT_MS),
+      signal: AbortSignal.timeout(remainingFor(deadline)),
     });
   } catch (error) {
-    return { ok: false, failure: wasAborted(error) ? 'timed_out' : 'unreachable' };
+    const failure: PosterFailure = wasAborted(error) ? 'timed_out' : 'unreachable';
+
+    logPosterFailure({ provider: 'gemini', model: GEMINI_MODEL, failure, detail: String(error) });
+
+    return { ok: false, failure };
   }
 
   const failure = failureForStatus(response.status);
 
-  if (failure !== null) return { ok: false, failure };
+  if (failure !== null) {
+    // The body of an error is the provider's own sentence about it, and reading
+    // it costs nothing here: this branch returns without touching the body again.
+    logPosterFailure({
+      provider: 'gemini',
+      model: GEMINI_MODEL,
+      failure,
+      status: response.status,
+      detail: await response.text().catch(() => ''),
+    });
+
+    return { ok: false, failure };
+  }
 
   let payload: unknown;
 
@@ -141,8 +165,49 @@ export function failureForStatus(status: number): PosterFailure | null {
  * few seconds of a Flash model and has been seen at fourteen, drawing with FLUX
  * schnell at four steps is two or three. Both leave room inside the 29.
  */
-export const BRIEF_TIMEOUT_MS = 18_000;
-export const IMAGE_TIMEOUT_MS = 20_000;
+export const PROVIDER_BUDGET_MS = 26_000;
+
+/**
+ * Time held back for the drawing, however long the brief takes.
+ *
+ * Measured: FLUX schnell answers in about two seconds. Eight is that with room
+ * to be having a bad day, and it is the difference between a poster and an
+ * error — see `drawPoster`, where a brief that overran used to eat the whole
+ * budget and leave the drawing nothing, so the step that produces the actual
+ * image died for want of the two seconds it needed.
+ */
+export const IMAGE_RESERVE_MS = 8_000;
+
+/**
+ * When to stop waiting, for a whole poster operation.
+ *
+ * Call it once, at the top of the operation, and hand the same number to every
+ * provider call it makes. That is the point: drawing a poster is a Gemini call
+ * and then a Cloudflare one, and the two used to carry 18 and 20 seconds of
+ * their own — 38 seconds of budget inside a function that dies at 29 and behind
+ * a gateway that cuts at 30. That sum could never be spent, so the ceiling was
+ * never the one written down.
+ *
+ * With one deadline, each step gets what is actually left, and the only limit is
+ * the real one.
+ */
+export function posterDeadline(): number {
+  return Date.now() + PROVIDER_BUDGET_MS;
+}
+
+/**
+ * Milliseconds left, never zero or negative.
+ *
+ * `AbortSignal.timeout(0)` aborts on the next tick, which reads as the timeout
+ * of a request that never left. A floor of one second means a call already out
+ * of budget still fails as a timeout, which it is, rather than as something
+ * stranger.
+ */
+export function remainingFor(deadline: number | undefined): number {
+  if (deadline === undefined) return PROVIDER_BUDGET_MS;
+
+  return Math.max(1_000, deadline - Date.now());
+}
 
 /**
  * True when a fetch rejected because we stopped waiting, rather than because the

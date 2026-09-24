@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { codeFor, messageFor, statusFor } from './failure';
 import { drawPoster } from './draw-poster';
+import { IMAGE_RESERVE_MS, PROVIDER_BUDGET_MS, posterDeadline, remainingFor } from './gemini';
 import { isAcceptedImageType, readPoster } from './read-poster';
 
 /**
@@ -282,5 +283,94 @@ describe('what the officer is told', () => {
     expect(statusFor('missing_key')).toBe(503);
     expect(statusFor('refused')).toBe(422);
     expect(codeFor('missing_key')).toBe('missing_api_key');
+  });
+});
+
+describe('the budget the two providers share', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('gives the drawing whatever the brief did not spend', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-24T16:00:00Z'));
+
+    const deadline = posterDeadline();
+
+    expect(remainingFor(deadline)).toBe(PROVIDER_BUDGET_MS);
+
+    // The brief took nineteen seconds. Under the old fixed split it had
+    // eighteen and failed here, with the drawing's twenty seconds sitting
+    // unused next to it.
+    vi.advanceTimersByTime(19_000);
+
+    expect(remainingFor(deadline)).toBe(PROVIDER_BUDGET_MS - 19_000);
+  });
+
+  it('never hands out a budget that aborts before the request leaves', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-24T16:00:00Z'));
+
+    const deadline = posterDeadline();
+
+    vi.advanceTimersByTime(PROVIDER_BUDGET_MS + 5_000);
+
+    expect(remainingFor(deadline)).toBe(1_000);
+  });
+
+  it('fits inside the 29 seconds the function is given', () => {
+    // The ceiling is not ours: API Gateway cuts the integration off at 30 and
+    // the Lambda is set to 29 (infra/terraform/modules/api). A budget above that
+    // is a number that can never be spent, which is the bug this replaced.
+    expect(PROVIDER_BUDGET_MS).toBeLessThan(29_000);
+    expect(IMAGE_RESERVE_MS).toBeLessThan(PROVIDER_BUDGET_MS);
+  });
+});
+
+describe('when the brief does not arrive in time', () => {
+  it('draws anyway, with a brief written here', async () => {
+    const fetcher = stubFetch(
+      // Gemini gives up; Cloudflare is fine, as it was every time this happened.
+      new Response('', { status: 503 }),
+      new Response(JSON.stringify({ result: { image: 'Zm90bw==' } }), { status: 200 }),
+    );
+
+    const result = await drawPoster({
+      ...KEYS,
+      description: 'concurso de tortillas en la plaza',
+      mode: 'background',
+      event: { title: 'Concurso de tortillas', locationName: 'Plaza de la Iglesia' },
+    });
+
+    // A poster, not an error. That is the whole point.
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.value.image).toEqual({ mimeType: 'image/jpeg', data: 'Zm90bw==' });
+
+    // Drawn from what we know, and saying so rather than claiming to describe
+    // an event nobody read.
+    expect(result.ok && result.value.altText).toBe('Imagen ilustrativa para Concurso de tortillas');
+
+    const drawn = String(fetcher.mock.calls[1]?.[1]?.body);
+
+    expect(drawn).toContain('Concurso de tortillas');
+    expect(drawn).toContain('Plaza de la Iglesia');
+    // Background mode still forbids text in the image.
+    expect(drawn).toContain('sin ningún texto');
+  });
+
+  it('still refuses when the key is the problem', async () => {
+    const fetcher = stubFetch(new Response('', { status: 401 }));
+
+    const result = await drawPoster({
+      ...KEYS,
+      description: 'concurso de tortillas',
+      mode: 'background',
+      event: { title: 'Concurso de tortillas' },
+    });
+
+    // Drawing around a bad key would hide the day somebody pastes the wrong one.
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.failure).toBe('bad_key');
+    expect(fetcher).toHaveBeenCalledTimes(1);
   });
 });

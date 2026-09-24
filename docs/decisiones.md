@@ -1647,3 +1647,47 @@ que es donde la asociación va a corregirlo.
    asociación que corrige un evento rechazado lo deja rechazado: fuera de los dos índices, invisible
    para todos, para siempre. El aviso del panel no promete un reenvío por eso. Hay que decidir si
    editar un rechazado lo devuelve a `pending_review`.
+
+## D-076 — Un presupuesto de 38 segundos dentro de una función que muere a los 29
+
+Un cartel devolvía «El servicio de inteligencia artificial está saturado ahora mismo». Esa frase
+nombra una causa —un proveedor sobrecargado— y no había forma de comprobarla: CloudWatch solo tenía
+START y END. Para descartar a los dos proveedores hubo que llamarlos a mano.
+
+**Lo primero es el registro que faltaba.** `logPosterFailure` escribe una línea por fallo con
+proveedor, modelo, fallo, estado y el principio del cuerpo, que en un error es la explicación del
+propio proveedor. Nunca la clave, que viaja en una cabecera, ni la petición, que en una lectura de
+cartel es la fotografía de alguien. Encontró el fallo siguiente de inmediato: `cloudflare`,
+`timed_out`, a los 26,9 segundos.
+
+**Lo segundo es el presupuesto, que estaba mal repartido y además no cabía.** Dibujar un cartel son
+dos llamadas: Gemini escribe el encargo visual y Cloudflare lo dibuja. Cada una llevaba su propio
+timeout, 18 y 20 segundos, dentro de una Lambda que muere a los 29 y detrás de una API Gateway que
+corta a los 30. Esos 38 segundos no se podían gastar nunca, así que el techo real no era el escrito.
+
+Ahora hay un solo plazo, `posterDeadline()`, de 26 segundos, y un test comprueba que cabe en los 29
+para que nadie lo suba sin enterarse del techo.
+
+**Pero un plazo compartido sin suelo tiene su propio defecto, y se vio en producción.** El encargo
+tardó 24 segundos y dejó a Cloudflare sin nada, cuando Cloudflare necesitaba dos. El paso que produce
+la imagen murió por falta de los dos segundos que le hacían falta. De ahí `IMAGE_RESERVE_MS`: el
+encargo nunca puede gastar tanto que el dibujo se quede sin margen.
+
+**Y cuando el encargo no llega a tiempo, se dibuja igual.** `briefWithoutAModel` compone el encargo
+aquí, con el título y el lugar. Es peor que lo que escribe Gemini —no sabe a qué suena el evento— y
+es mucho mejor que un error, que es lo único que había en la otra mano. El texto alternativo dice
+«imagen ilustrativa» porque lo es: nadie ha leído el evento, y prometer más sería un pie de foto que
+miente. Una clave ausente o equivocada **no** entra en ese respaldo: eso es un fallo de configuración
+y dibujar por encima escondería el día que alguien pega la clave que no es.
+
+**Lo que se midió, para que no se repita la conjetura.** La lentitud no es el «pensamiento» del
+modelo: apagarlo no acelera nada —`thinkingLevel` en `low` dio 46 s y en `minimal` 53,7 s, frente a
+31-35 s por defecto— y `off` no existe. Es que `gemini-3.5-flash-lite` en plan gratuito responde de
+forma muy irregular. Desde la propia Lambda, la misma petición tardó 5, 16 y 24 segundos en tres
+intentos del mismo cuarto de hora.
+
+**Lo que esto no arregla.** Los 30 segundos de la pasarela siguen ahí. Para que una generación tarde
+lo que haga falta sin devolver un error habría que dejar de hacerla síncrona: la Lambda aceptaría el
+trabajo, devolvería un identificador y el panel preguntaría por él. Es bastante más obra y no se ha
+hecho. Tampoco se ha activado facturación en el proyecto de Google, que es la otra hipótesis para la
+cola, y sigue pendiente de probar.
