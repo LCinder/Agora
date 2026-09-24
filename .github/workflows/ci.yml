@@ -12,6 +12,17 @@ concurrency:
 jobs:
   check:
     name: Format, lint, typecheck and test
+    # Un push no ejecuta nada salvo que el mensaje del commit lleve [BUILD].
+    #
+    # No se puede condicionar el disparador `on:` al texto de un commit, asi
+    # que la puerta va en cada trabajo: el workflow arranca, mira el mensaje y
+    # termina en segundos sin gastar un runner.
+    #
+    # Los pull requests NO pasan por la puerta: `github.event.head_commit` no
+    # existe en ese evento, y una rama que se fusiona sin que nadie la haya
+    # comprobado es exactamente como `main` se puso en rojo dos veces esta
+    # semana.
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[BUILD]')
     runs-on: ubuntu-latest
 
     # The tenant isolation tests run against a real DynamoDB, because half of
@@ -68,6 +79,7 @@ jobs:
 
   panel:
     name: The panel in a browser
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[BUILD]')
     runs-on: ubuntu-latest
 
     # Its own job because it needs a browser, and because a suite that takes a
@@ -105,6 +117,7 @@ jobs:
 
   app:
     name: The resident's app in a browser
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[BUILD]')
     runs-on: ubuntu-latest
 
     # Separate from the panel's job because it builds the app for web first, which
@@ -141,6 +154,7 @@ jobs:
 
   infra:
     name: Terraform format and validate
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[BUILD]')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -13,7 +13,16 @@ import {
 import Link from 'next/link';
 import { useState } from 'react';
 
-import { Button, Card, Empty, Field, PageHeader, TextArea } from '../../../components/ui';
+import { Rule } from '../../../components/report';
+import {
+  Button,
+  Card,
+  CategoryChip,
+  Empty,
+  Field,
+  PageHeader,
+  TextArea,
+} from '../../../components/ui';
 import { usePanel } from '../../../lib/panel-store';
 
 /**
@@ -25,6 +34,7 @@ import { usePanel } from '../../../lib/panel-store';
  */
 export default function ReviewPage() {
   const {
+    categories,
     activities,
     approveActivity,
     approveEvent,
@@ -36,11 +46,13 @@ export default function ReviewPage() {
     rejectEvent,
     role,
   } = usePanel();
+
+  const categoryOf = (id: string) => categories.find((each) => each.id === id);
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [reason, setReason] = useState('');
 
   if (loading || !municipality) {
-    return <p className="text-sm text-neutral-500">Cargando…</p>;
+    return <p className="text-sm text-neutral-600">Cargando…</p>;
   }
 
   // Reachable by typing the address, since a static site has no server to stop
@@ -90,15 +102,21 @@ export default function ReviewPage() {
         <div className="grid gap-3">
           {pending.map((event) => {
             const organization = organizations.find((entry) => entry.id === event.organizationId);
+            const category = categoryOf(event.categoryId);
 
             return (
-              <Card key={event.id}>
+              <Card key={event.id} tone="waiting">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0">
                     <p className="font-medium">{event.title}</p>
                     <p className="text-sm text-neutral-600 dark:text-neutral-400">
                       {formatWhen(event, context)} · {event.location.name}
                     </p>
+                    {category === undefined ? null : (
+                      <p className="mt-1">
+                        <CategoryChip name={category.name} colour={category.color} />
+                      </p>
+                    )}
                     <p className="mt-1 text-sm">
                       Enviado por{' '}
                       <span className="font-medium">{organization?.name ?? 'una asociación'}</span>
@@ -164,7 +182,9 @@ export default function ReviewPage() {
 
       {pendingActivities.length === 0 ? null : (
         <section className="mt-8">
-          <h2 className="mb-1 text-lg font-semibold">Actividades dentro de un evento</h2>
+          <h2 className="font-display mb-1 text-lg font-semibold">
+            Actividades dentro de un evento
+          </h2>
           <p className="mb-3 text-sm text-neutral-600 dark:text-neutral-400">
             Líneas del programa de un evento ya publicado. Hasta que las apruebes, los vecinos ven
             el programa como estaba.
@@ -176,7 +196,7 @@ export default function ReviewPage() {
               const key = `activity-${activity.id}`;
 
               return (
-                <Card key={activity.id}>
+                <Card key={activity.id} tone="waiting">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="min-w-0">
                       <p className="font-medium">{activity.title}</p>
@@ -194,7 +214,7 @@ export default function ReviewPage() {
                         </Link>
                         {organization ? `, de ${organization.name}` : ''}
                       </p>
-                      <p className="mt-1 text-xs text-neutral-500">
+                      <p className="mt-1 text-xs text-neutral-600">
                         {activity.pendingPatch === null
                           ? 'Actividad nueva, todavía no publicada.'
                           : 'Cambio sobre una actividad que los vecinos ya ven.'}
@@ -261,8 +281,9 @@ export default function ReviewPage() {
         </section>
       )}
 
-      <section className="mt-8">
-        <h2 className="mb-3 text-lg font-semibold">Asociaciones de confianza</h2>
+      <section className="mt-10">
+        <Rule className="mb-5" />
+        <h2 className="font-display mb-3 text-lg font-semibold">Asociaciones de confianza</h2>
         <p className="mb-3 text-sm text-neutral-600 dark:text-neutral-400">
           Sus eventos se publican sin pasar por esta bandeja. Es la forma de que la cola no crezca.
         </p>
@@ -277,7 +298,7 @@ export default function ReviewPage() {
             </Card>
           ))}
         </div>
-        <p className="mt-3 text-xs text-neutral-500">
+        <p className="mt-3 text-xs text-neutral-600">
           {trusted.length} de {organizations.length} asociaciones publican sin revisión.
         </p>
       </section>

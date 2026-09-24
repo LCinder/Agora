@@ -1,14 +1,19 @@
 'use client';
 
+import { Pencil, Plus, Star, Trash2 } from 'lucide-react';
 import { byStartDate, countByEvent, formatWhen, type Event, type EventStatus } from '@agora/core';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
 import {
   Button,
+  ButtonLink,
   Card,
+  CategoryChip,
   Empty,
   Field,
+  IconButton,
+  IconLink,
   PageHeader,
   Select,
   StatusBadge,
@@ -56,7 +61,7 @@ export default function EventsPage() {
   }, [categoryId, events, organizationId, ownOnly, status]);
 
   if (loading || !municipality) {
-    return <p className="text-sm text-neutral-500">Cargando…</p>;
+    return <p className="text-sm text-neutral-600">Cargando…</p>;
   }
 
   const context = { now: new Date(), timeZone: municipality.timeZone, locale: 'es' as const };
@@ -71,13 +76,9 @@ export default function EventsPage() {
             : 'Todo lo que hay en la agenda, en cualquier estado.'
         }
         action={
-          <Link
-            href="/eventos/nuevo"
-            className="inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-semibold text-white"
-            style={{ backgroundColor: municipality.branding.primaryColor }}
-          >
+          <ButtonLink href="/eventos/nuevo" icon={Plus} brand={municipality.branding.primaryColor}>
             Nuevo evento
-          </Link>
+          </ButtonLink>
         }
       />
 
@@ -116,6 +117,7 @@ export default function EventsPage() {
         <div className="grid gap-3">
           {filtered.map((event) => {
             const organization = organizations.find((entry) => entry.id === event.organizationId);
+            const category = categories.find((entry) => entry.id === event.categoryId);
 
             return (
               <Card key={event.id}>
@@ -125,26 +127,37 @@ export default function EventsPage() {
                     <p className="text-sm text-neutral-600 dark:text-neutral-400">
                       {formatWhen(event, context)} · {event.location.name}
                     </p>
-                    <p className="mt-1 text-xs text-neutral-500">
-                      {organization ? organization.name : 'Ayuntamiento'}
-                      {programmeSizes.has(event.id)
-                        ? ` · ${String(programmeSizes.get(event.id))} actividades`
-                        : ''}
+                    <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-neutral-600">
+                      {category === undefined ? null : (
+                        <>
+                          <CategoryChip name={category.name} colour={category.color} />
+                          <span aria-hidden>·</span>
+                        </>
+                      )}
+                      <span>
+                        {organization ? organization.name : 'Ayuntamiento'}
+                        {programmeSizes.has(event.id)
+                          ? ` · ${String(programmeSizes.get(event.id))} actividades`
+                          : ''}
+                      </span>
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
                     {event.isFeatured ? (
-                      <span className="rounded bg-neutral-900 px-2 py-0.5 text-xs font-semibold text-white">
+                      /* Misma forma que la etiqueta de estado de al lado, con
+                         la estrella como segundo indicio. Un tocho negro junto a
+                         una pastilla con anillo era de dos interfaces distintas. */
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-900 px-2.5 py-1 text-xs font-semibold text-white">
+                        <Star size={11} strokeWidth={2.5} aria-hidden className="fill-current" />
                         En portada
                       </span>
                     ) : null}
                     <StatusBadge status={event.status} />
-                    <Link
+                    <IconLink
+                      icon={Pencil}
+                      label="Editar este evento"
                       href={`/eventos/editar?id=${event.id}`}
-                      className="text-sm font-semibold underline"
-                    >
-                      Editar
-                    </Link>
+                    />
                     <DeleteEvent event={event} />
                   </div>
                 </div>
@@ -265,16 +278,15 @@ function DeleteEvent({ event }: { event: Event }) {
     return (
       <span className="inline-flex items-center gap-2">
         {failed === null ? null : <span className="text-xs text-red-700">{failed}</span>}
-        <button
-          type="button"
+        <IconButton
+          icon={Trash2}
+          label="Borrar este evento"
+          tone="danger"
           onClick={() => {
             setFailed(null);
             setAsking(true);
           }}
-          className="text-sm font-semibold text-red-700 underline"
-        >
-          Borrar
-        </button>
+        />
       </span>
     );
   }

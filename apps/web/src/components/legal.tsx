@@ -17,7 +17,7 @@ import type { ReactNode } from 'react';
 export function LegalPage({ title, children }: { title: string; children: ReactNode }) {
   return (
     <main className="mx-auto w-full max-w-2xl px-5 py-12 sm:px-6">
-      <p className="text-sm text-neutral-500">{BRAND.name}</p>
+      <p className="text-sm text-neutral-600">{BRAND.name}</p>
       <h1 className="mt-1 text-3xl font-semibold tracking-tight">{title}</h1>
       <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
         Última actualización: {COMPANY.updatedAt}
@@ -48,7 +48,7 @@ export function LegalPage({ title, children }: { title: string; children: ReactN
             Accesibilidad
           </Link>
         </nav>
-        <p className="mt-3 text-neutral-500">
+        <p className="mt-3 text-neutral-600">
           {COMPANY.legalName} · NIF {COMPANY.taxId} · {COMPANY.address} · {COMPANY.email}
         </p>
       </footer>

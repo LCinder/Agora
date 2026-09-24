@@ -61,7 +61,7 @@ export default function StaffPage() {
   }, [refresh]);
 
   if (loading || !municipality) {
-    return <p className="text-sm text-neutral-500">Cargando…</p>;
+    return <p className="text-sm text-neutral-600">Cargando…</p>;
   }
 
   if (role !== 'municipal_admin') {
@@ -117,7 +117,7 @@ export default function StaffPage() {
       />
 
       <Card className="mb-6">
-        <h2 className="text-lg font-semibold">Invitar a alguien</h2>
+        <h2 className="font-display text-lg font-semibold">Invitar a alguien</h2>
         <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
           {demo
             ? 'En esta demostración no se envía ningún correo: la invitación se queda en esta pantalla.'

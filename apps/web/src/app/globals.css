@@ -19,14 +19,43 @@
   /* Form controls, scrollbars and the rest of what the browser paints. */
   color-scheme: light;
 
-  --background: #ffffff;
-  --foreground: #171717;
+  /*
+   * El fondo no es blanco puro, y esa es la diferencia entre «tarjeta» y
+   * «recuadro dibujado sobre la nada». Con la página en blanco puro, una
+   * tarjeta blanca con un filete gris no es un objeto: es una línea. Un punto
+   * de gris frío por debajo y las tarjetas se levantan solas, sin sombras.
+   *
+   * Blanco puro sobre blanco puro es además uno de los delatores que recoge
+   * design.md.
+   */
+  --background: #f7f7f9;
+  --surface: #ffffff;
+  --foreground: #16161a;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
   --color-foreground: var(--foreground);
+
+  /*
+   * Two faces, and the split is by job and not by taste.
+   *
+   * Body copy stays on the system stack: it is what a municipal officer reads
+   * for an hour, it costs nothing to load, and it is already the font their
+   * operating system renders best.
+   *
+   * Archivo carries what is looked at rather than read — page titles, section
+   * headings and the figures. It is the app's own face and the dossier's, so
+   * the three pieces of HoyQ finally say the same thing. Loaded in layout.tsx,
+   * with a fallback that makes its absence invisible.
+   */
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  /* next/font declara --font-archivo en el <html>; el segundo valor es por si
+     el build se hiciera sin esa variable, para que nada quede sin fuente. */
+  --font-display:
+    var(--font-archivo), system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
 }
 
 body {
@@ -46,6 +75,21 @@ body {
  * sits on. The literals below are the fallback for anything that draws a
  * chart before a municipality is known.
  */
+/*
+ * Digits line up inside the charts too, not only in the table.
+ *
+ * The table already had `tabular-nums`; the axes and the tooltip did not, so a
+ * figure that changes when a filter is applied shifts sideways next to one that
+ * does not. Recharts draws its ticks as SVG text, which is why this is a CSS
+ * rule on the container rather than a class on a component. Harmless on the
+ * axes that carry month names: there is nothing to align there.
+ */
+.viz-root .recharts-cartesian-axis-tick-value,
+.viz-root .recharts-tooltip-item-value,
+.viz-root .recharts-tooltip-label {
+  font-variant-numeric: tabular-nums;
+}
+
 .viz-root {
   --viz-surface: #ffffff;
   --viz-grid: #e5e5e1;

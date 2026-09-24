@@ -54,7 +54,10 @@ export function PanelNav() {
   const brand = municipality?.branding.primaryColor ?? '#4F46E5';
 
   return (
-    <header className="border-b border-black/10 bg-white dark:border-white/10 dark:bg-neutral-900">
+    /* Pegada arriba y traslúcida: en una lista larga de eventos, el
+       municipio y el contador de pendientes no deberían perderse al bajar.
+       Es CSS, no comportamiento. */
+    <header className="sticky top-0 z-10 border-b border-black/[0.07] bg-surface/85 backdrop-blur-sm dark:border-white/10 dark:bg-neutral-900/85">
       <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
           <span
@@ -93,11 +96,15 @@ export function PanelNav() {
                 key={link.href}
                 href={link.href}
                 aria-current={active ? 'page' : undefined}
-                className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+                className={`rounded-md px-3 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 ${
                   active
-                    ? 'bg-black/5 text-black dark:bg-white/10 dark:text-white'
+                    ? 'text-black dark:text-white'
                     : 'text-neutral-600 hover:bg-black/5 dark:text-neutral-300 dark:hover:bg-white/10'
                 }`}
+                /* El municipio se reconoce en su propio panel. Un 12 % de su
+                   color es fondo suficiente para marcar dónde estás sin pelearse
+                   con el contador de pendientes, que va a color pleno. */
+                style={active ? { backgroundColor: `${brand}1F` } : undefined}
               >
                 {link.label}
                 {link.href === '/revision' && pending > 0 ? (
@@ -122,17 +129,17 @@ export function PanelNav() {
           <button
             type="button"
             onClick={resetToSeed}
-            className="ml-auto text-xs text-neutral-500 underline hover:text-neutral-800 dark:hover:text-neutral-200"
+            className="ml-auto text-xs text-neutral-600 underline hover:text-neutral-800 dark:hover:text-neutral-200"
           >
             Reiniciar demo
           </button>
         ) : (
           <div className="ml-auto flex items-center gap-3">
-            <span className="hidden text-xs text-neutral-500 sm:inline">{identity?.email}</span>
+            <span className="hidden text-xs text-neutral-600 sm:inline">{identity?.email}</span>
             <button
               type="button"
               onClick={leave}
-              className="text-xs text-neutral-500 underline hover:text-neutral-800 dark:hover:text-neutral-200"
+              className="text-xs text-neutral-600 underline hover:text-neutral-800 dark:hover:text-neutral-200"
             >
               Salir
             </button>

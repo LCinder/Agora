@@ -127,7 +127,7 @@ export function SignIn() {
         </form>
       </Card>
 
-      <p className="mt-4 text-xs text-neutral-500 dark:text-neutral-400">
+      <p className="mt-4 text-xs text-neutral-600 dark:text-neutral-400">
         ¿Sin acceso? Te invita el ayuntamiento desde su propio panel.
       </p>
     </main>

@@ -46,7 +46,7 @@ export function PanelGate({ children }: { children: ReactNode }) {
   }
 
   if (!demo && loading) {
-    return <p className="p-8 text-sm text-neutral-500">Cargando…</p>;
+    return <p className="p-8 text-sm text-neutral-600">Cargando…</p>;
   }
 
   if (!demo && identity === null) {
@@ -68,11 +68,11 @@ export function PanelGate({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
       <PanelNav />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">{children}</main>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-6">{children}</main>
 
       {/* The same three pages the app links to. A service sold to a public
           administration has to carry them where they can be found. */}
-      <footer className="mx-auto w-full max-w-5xl px-4 pb-8 text-sm text-neutral-500 sm:px-6">
+      <footer className="mx-auto w-full max-w-5xl px-4 pb-8 text-sm text-neutral-600 sm:px-6">
         <nav className="flex flex-wrap gap-4 border-t border-black/10 pt-4 dark:border-white/10">
           <Link href="/legal/privacidad" className="underline">
             Privacidad
