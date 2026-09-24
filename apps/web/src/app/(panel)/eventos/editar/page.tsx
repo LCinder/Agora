@@ -118,6 +118,22 @@ function EditEventView() {
         }
       />
 
+      {/* Above the form, because this is the screen somebody opens to fix what
+          the town hall turned down, and the reason is the instruction. */}
+      {event.status === 'rejected' && event.rejectionReason !== null ? (
+        <div
+          role="status"
+          className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200"
+        >
+          <p className="font-semibold">El ayuntamiento ha rechazado este evento</p>
+          <p className="mt-1">{event.rejectionReason}</p>
+          {/* Deliberately no «corrígelo y se reenvía»: hoy no se reenvía. Un
+              evento rechazado que la asociación edita sigue rechazado — no vuelve
+              a la bandeja de revisión — y prometerlo aquí sería la misma clase de
+              mentira que este cambio viene a quitar. Pendiente de decidir. */}
+        </div>
+      ) : null}
+
       <EventForm event={event} />
 
       {/* Under the event's own fields, because that is the order the work

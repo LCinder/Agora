@@ -1585,3 +1585,65 @@ llamada `interested` que devuelve «Asistiré» es una trampa para el siguiente 
 
 **El registro histórico se queda como estaba.** Las decisiones anteriores citan «Me interesa» porque
 es lo que decía el botón cuando se tomaron. Reescribirlas convertiría un registro en un folleto.
+
+## D-075 — El panel prometía tres correos que no existen, y la palanca de confianza no hacía nada
+
+**Fecha:** 2026-09-24 · **Estado:** aceptada
+
+Vino de un informe de una línea: «doy de alta una asociación desde el panel y no llega ningún
+correo». No llegaba porque **no hay nada que lo envíe**. `organizations.create` escribe una fila y
+devuelve. En todo el producto existe un solo correo, el que Cognito manda al crear una cuenta
+(`AdminCreateUserCommand` con `DesiredDeliveryMediums: ['EMAIL']`), y se llega desde **Usuarios**, no
+desde Asociaciones. No hay infraestructura de correo propia: cero SES en `infra/`, y Cognito va con
+`email_sending_account = "COGNITO_DEFAULT"`, o sea remitente de `amazonaws.com` y tope de 50 correos
+al día.
+
+**Lo que estaba mal no era la falta de correo, era que el panel decía que lo había.** Tres sitios:
+
+- el estado pasaba a «Invitada» al dar de alta, cuando no se había invitado a nadie;
+- el campo del correo de contacto decía «A quien se le avisa cuando apruebas o rechazas uno de sus
+  eventos»;
+- el motivo del rechazo, en Revisión y dos veces, decía «Se lo enviamos a la asociación por email».
+
+Un técnico municipal que lee eso da de alta la peña, espera el correo y llama. Eso es peor que no
+tener la función: la función que falta se puede vender como próxima, y la que miente se descubre
+delante de un concejal.
+
+**Así que el panel dice lo que hay.** «Pendiente de invitar» en vez de «Invitada»; el alta explica
+que son dos pasos y enlaza a Usuarios, que es el paso que sí envía correo; cada fila sin responsable
+lo dice en su sitio; y el motivo del rechazo dice que la asociación lo ve en su panel. El criterio de
+aceptación del documento de producto (7.2) queda marcado como pendiente en vez de como hecho.
+
+**Y al tirar del hilo apareció lo que de verdad costaba dinero.** `publishesWithoutReview` exigía
+`status === 'active' && isTrusted`. Una asociación creada desde el panel nace `invited`, nada la
+movía a `active` por su cuenta, y el único camino era pulsar «Dar de baja» y luego «Reactivar». O
+sea: el ayuntamiento marcaba «De confianza», la casilla se quedaba marcada, y los eventos de esa
+asociación seguían cayendo en la bandeja de revisión. **La palanca que el guion de demo vende como
+argumento número uno no hacía nada**, y no se veía porque los ficheros de `content/` escriben
+`active` a mano.
+
+Ahora es `status !== 'disabled' && isTrusted`. Exigir `active` no compraba nada: una asociación
+`invited` no tiene cuenta asociada, así que nadie puede publicar por ella diga lo que diga esta
+función. Lo que el ayuntamiento necesita es poder parar a una que se porta mal, y eso es `disabled`.
+Tiene test propio, incluido el caso que estaba roto.
+
+**El estado pasa a `active` al invitar a su responsable**, que es el momento en que deja de ser verdad
+que no se ha invitado a nadie. Se hace en la ruta de la API y no en el almacén de pertenencias, para
+no acoplar dos almacenes por una etiqueta, y se traga el error: la cuenta ya existe y la pertenencia
+ya está concedida cuando esto corre, así que fallar la petición entera por una etiqueta es el peor de
+los dos resultados.
+
+**Y el motivo del rechazo ya se lee.** Se guardaba —el almacén incluso *exige* que se escriba— y no se
+mostraba en ninguna pantalla. Ahora sale en la lista de eventos y arriba del formulario al editarlo,
+que es donde la asociación va a corregirlo.
+
+**Lo que queda pendiente y no he tocado, porque son decisiones y no descuidos:**
+
+1. **Correo de verdad** (alta, aprobación, rechazo). Necesita SES, un dominio verificado, salir del
+   sandbox —dentro del sandbox solo se puede enviar a direcciones verificadas— y decidir si el
+   remitente es nuestro o del ayuntamiento, que no es indiferente para el contrato de encargo del
+   tratamiento.
+2. **Un evento rechazado no vuelve a la bandeja.** `needsReview` solo mira los publicados, así que una
+   asociación que corrige un evento rechazado lo deja rechazado: fuera de los dos índices, invisible
+   para todos, para siempre. El aviso del panel no promete un reenvío por eso. Hay que decidir si
+   editar un rechazado lo devuelve a `pending_review`.

@@ -194,6 +194,71 @@ describe.skipIf(local === null)('the panel API', () => {
       expect(statusOf(theirs)).toBe(200);
     });
 
+    /**
+     * The association stops being «Pendiente de invitar» when somebody can speak
+     * for it.
+     *
+     * Creating one writes `invited` and nothing moved it on, so the panel said
+     * «Invitada» for ever about an association nobody had been invited to — and
+     * the technician went looking for an email that was never sent (D-075).
+     */
+    it('takes the association out of "invited" when its responsable is invited', async () => {
+      const created = await call('POST', `municipalities/${ZUBIA}/organizations`, {
+        subject: ADMIN,
+        body: { name: 'Coral nueva', type: 'cultural', contactEmail: 'coral@lazubia.es' },
+      });
+
+      const organization = bodyOf(created) as { id: string; status: string };
+
+      expect(organization.status).toBe('invited');
+
+      const invited = await call('POST', `municipalities/${ZUBIA}/invitations`, {
+        subject: ADMIN,
+        body: {
+          email: 'coral@lazubia.es',
+          role: 'org_editor',
+          organizationId: organization.id,
+        },
+      });
+
+      expect(statusOf(invited)).toBe(200);
+
+      const after = bodyOf(
+        await call('GET', `municipalities/${ZUBIA}/organizations`, { subject: ADMIN }),
+      ) as { id: string; status: string }[];
+
+      expect(after.find((entry) => entry.id === organization.id)?.status).toBe('active');
+    });
+
+    it('leaves a suspended association suspended, because reactivating one is a decision', async () => {
+      const created = await call('POST', `municipalities/${ZUBIA}/organizations`, {
+        subject: ADMIN,
+        body: { name: 'Peña de baja', type: 'pena', contactEmail: null },
+      });
+
+      const organization = bodyOf(created) as { id: string };
+
+      await call('PATCH', `municipalities/${ZUBIA}/organizations/${organization.id}`, {
+        subject: ADMIN,
+        body: { status: 'disabled' },
+      });
+
+      await call('POST', `municipalities/${ZUBIA}/invitations`, {
+        subject: ADMIN,
+        body: {
+          email: 'debaja@lazubia.es',
+          role: 'org_editor',
+          organizationId: organization.id,
+        },
+      });
+
+      const after = bodyOf(
+        await call('GET', `municipalities/${ZUBIA}/organizations`, { subject: ADMIN }),
+      ) as { id: string; status: string }[];
+
+      expect(after.find((entry) => entry.id === organization.id)?.status).toBe('disabled');
+    });
+
     it('refuses an editor, before any account is created', async () => {
       const before = invitations.length;
 

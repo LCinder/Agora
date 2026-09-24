@@ -133,7 +133,7 @@ export default function ReviewPage() {
                   <div className="mt-4 border-t border-black/10 pt-4 dark:border-white/10">
                     <Field
                       label="Motivo del rechazo"
-                      hint="Se lo enviamos a la asociación por email para que pueda corregirlo."
+                      hint="La asociación lo ve en su panel, junto al evento rechazado. Todavía no se le avisa por correo."
                     >
                       <TextArea
                         value={reason}
@@ -231,7 +231,7 @@ export default function ReviewPage() {
                     <div className="mt-4 border-t border-black/10 pt-4 dark:border-white/10">
                       <Field
                         label="Motivo del rechazo"
-                        hint="Se lo enviamos a la asociación por email para que pueda corregirlo."
+                        hint="La asociación lo ve en su panel, junto al evento rechazado. Todavía no se le avisa por correo."
                       >
                         <TextArea
                           value={reason}

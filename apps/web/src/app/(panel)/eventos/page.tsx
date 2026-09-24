@@ -131,6 +131,16 @@ export default function EventsPage() {
                         ? ` · ${String(programmeSizes.get(event.id))} actividades`
                         : ''}
                     </p>
+                    {/* Why it was turned down, where the association will look.
+                        The store refuses a rejection without a reason, so one was
+                        always typed — and until now it was stored and shown to
+                        nobody, which made the review queue a door that closes
+                        without saying why (D-075). */}
+                    {event.status === 'rejected' && event.rejectionReason !== null ? (
+                      <p className="mt-2 text-sm text-red-700 dark:text-red-400">
+                        Rechazado: {event.rejectionReason}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex items-center gap-3">
                     {event.isFeatured ? (

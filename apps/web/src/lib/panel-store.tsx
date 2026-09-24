@@ -1238,6 +1238,9 @@ export function PanelProvider({ children }: { children: ReactNode }) {
     }) => {
       if (client !== null) {
         await client.invite(input);
+        // The API also moves the association out of «Pendiente de invitar», so
+        // the associations have to be read again for that to show (D-075).
+        setOrganizations(await client.listOrganizations());
 
         return;
       }
@@ -1254,8 +1257,23 @@ export function PanelProvider({ children }: { children: ReactNode }) {
           createdAt: new Date(),
         },
       ]);
+
+      // And the same in the demo, or the two screens would disagree in a meeting:
+      // the association would still say nobody can speak for it right after the
+      // councillor invited somebody.
+      const target = input.organizationId;
+
+      if (input.role === 'org_editor' && target !== undefined && target !== null) {
+        persist({
+          organizations: organizations.map((organization) =>
+            organization.id === target && organization.status === 'invited'
+              ? { ...organization, status: 'active' }
+              : organization,
+          ),
+        });
+      }
     },
-    [client],
+    [client, organizations, persist],
   );
 
   const revokeStaff = useCallback(

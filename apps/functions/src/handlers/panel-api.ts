@@ -125,6 +125,39 @@ const activityPatchSchema = z.object({
 const reasonSchema = z.object({ reason: z.string().min(1) });
 
 /**
+ * An association stops being merely "invited" once somebody can speak for it.
+ *
+ * The status is what the panel shows the technician, and until this existed it
+ * said «Invitada» for ever: `create` writes `invited` and nothing moved it on.
+ * Granting a login to its responsable is the moment that stops being true, so it
+ * is the moment the row is corrected.
+ *
+ * Swallowed on purpose. The membership is already granted and the account
+ * already exists by the time this runs; failing the whole request over a label
+ * would leave a person with access and the town hall with an error, which is the
+ * worse of the two outcomes. A suspended association is left alone — reactivating
+ * one is a decision, not a side effect of inviting somebody.
+ */
+async function markOrganizationActive(
+  panel: PanelContext,
+  granted: { role: string; organizationId: string | null },
+): Promise<void> {
+  if (granted.role !== 'org_editor' || granted.organizationId === null) return;
+
+  try {
+    const organization = await panel.organizations.get(granted.organizationId);
+
+    if (organization === null || organization.status !== 'invited') return;
+
+    await panel.organizations.setStatus(granted.organizationId, 'active');
+  } catch {
+    // The label stays as it was. Nothing downstream reads it: what decides
+    // whether this association publishes without review is `isTrusted`, and
+    // whether it is suspended (D-075).
+  }
+}
+
+/**
  * A poster on its way to the bucket: the same shape the poster reader takes, so
  * the panel sends what it already has whichever of the two it is doing.
  */
@@ -680,6 +713,8 @@ const ROUTES: readonly Route<RequestContext>[] = [
       const input = body(event, newMembershipSchema);
       const granted = await panel.memberships.grant(panel.actor, definedOnly(input));
 
+      await markOrganizationActive(panel, granted);
+
       await panel.audit.record({
         action: `membership.grant.${granted.role}`,
         entity: 'membership',
@@ -720,6 +755,8 @@ const ROUTES: readonly Route<RequestContext>[] = [
         panel.actor,
         definedOnly({ ...input, authUserId }),
       );
+
+      await markOrganizationActive(panel, granted);
 
       await panel.audit.record({
         action: `membership.invite.${granted.role}`,

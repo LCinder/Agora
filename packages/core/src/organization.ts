@@ -37,9 +37,24 @@ export const organizationSchema = z.object({
 
 export type Organization = z.infer<typeof organizationSchema>;
 
-/** Whether an association may publish straight away, skipping the review queue. */
+/**
+ * Whether an association may publish straight away, skipping the review queue.
+ *
+ * Trusted, and not suspended. It used to require `status === 'active'`, and that
+ * was a trap: an association created from the panel starts as `invited`, nothing
+ * moved it to `active` on its own, and the only route there was pressing «Dar de
+ * baja» and then «Reactivar». So a town hall ticked "De confianza", the tick
+ * stayed ticked, and the association's events kept landing in the review queue —
+ * the one lever the product is sold on, silently doing nothing. It never showed
+ * up in the demo because the seed files write `active` by hand.
+ *
+ * Gating on `active` bought nothing anyway. An `invited` association has no
+ * account attached yet, so nobody can publish through it whatever this says;
+ * what the town hall actually needs is a way to stop one that is misbehaving,
+ * and that is `disabled`.
+ */
 export function publishesWithoutReview(
   organization: Pick<Organization, 'isTrusted' | 'status'>,
 ): boolean {
-  return organization.status === 'active' && organization.isTrusted;
+  return organization.status !== 'disabled' && organization.isTrusted;
 }

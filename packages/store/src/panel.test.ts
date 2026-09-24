@@ -268,6 +268,73 @@ describe.skipIf(local === null)('the panel', () => {
       // And back to how it was, so the tests below see an untrusted association.
       await createOrganizationStore(client, TABLE, admin).setTrusted(HERMANDAD, false);
     });
+
+    /**
+     * The regression this suite never caught, end to end.
+     *
+     * An association created from the panel is `invited`, and `publishesWithoutReview`
+     * used to demand `active` — which nothing set. So the town hall ticked "De
+     * confianza", the tick stuck, and the events kept queueing. It hid here
+     * because every fixture association is written as `active` by hand, and in the
+     * demo because the seed files are too (D-075).
+     */
+    it('publish without review straight after being created and trusted', async () => {
+      const organizations = createOrganizationStore(client, TABLE, admin);
+
+      const coral = await organizations.create({
+        id: 'org-coral-nueva',
+        name: 'Coral de La Zubia',
+        type: 'cultural',
+        contactEmail: null,
+      });
+
+      expect(coral.status).toBe('invited');
+
+      await organizations.setTrusted(coral.id, true);
+
+      const created = await createStaffStore(client, TABLE, {
+        authUserId: 'auth-coral-nueva',
+        municipalityId: ZUBIA,
+        role: 'org_editor',
+        organizationId: coral.id,
+      }).createEvent({
+        id: 'evt-coral-nueva',
+        title: 'Concierto de la coral',
+        categoryId: 'cat-fiestas',
+        startAt: new Date('2027-04-10T19:00:00.000Z'),
+        location: { name: 'Teatro', latitude: null, longitude: null },
+      });
+
+      expect(created.status).toBe('published');
+    });
+
+    it('stop publishing the moment the town hall suspends them, trusted or not', async () => {
+      const organizations = createOrganizationStore(client, TABLE, admin);
+
+      await organizations.setTrusted(PENA, true);
+      await organizations.setStatus(PENA, 'disabled');
+
+      const created = await createStaffStore(client, TABLE, {
+        authUserId: 'auth-pena-suspended',
+        municipalityId: ZUBIA,
+        role: 'org_editor',
+        organizationId: PENA,
+      }).createEvent({
+        id: 'evt-pena-suspended',
+        title: 'Velada de la peña',
+        categoryId: 'cat-fiestas',
+        startAt: new Date('2027-04-11T21:00:00.000Z'),
+        location: { name: 'Sede', latitude: null, longitude: null },
+      });
+
+      // Suspension wins over trust, so the town hall does not have to remember
+      // to untick two things to stop one association.
+      expect(created.status).toBe('pending_review');
+
+      // And back to how the fixtures had it, for the tests below.
+      await organizations.setStatus(PENA, 'active');
+      await organizations.setTrusted(PENA, false);
+    });
   });
 
   // -------------------------------------------------------------------------

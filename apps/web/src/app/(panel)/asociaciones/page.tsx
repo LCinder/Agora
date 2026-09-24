@@ -1,6 +1,7 @@
 'use client';
 
 import { ORGANIZATION_TYPES, type OrganizationType } from '@agora/core';
+import Link from 'next/link';
 import { useState } from 'react';
 
 import {
@@ -36,8 +37,16 @@ const TYPE_LABELS: Record<OrganizationType, string> = {
   other: 'Otra',
 };
 
+/**
+ * What the state means, said as what it is.
+ *
+ * `invited` used to read «Invitada», which told the technician an invitation had
+ * gone out. None had: darla de alta writes a row and nothing else, and the
+ * invitation is a separate step on Usuarios. The label now says which step is
+ * missing.
+ */
 const STATUS_LABELS = {
-  invited: 'Invitada',
+  invited: 'Pendiente de invitar',
   active: 'Activa',
   disabled: 'De baja',
 } as const;
@@ -108,6 +117,20 @@ export default function OrganizationsPage() {
 
       <Card className="mb-6">
         <h2 className="text-lg font-semibold">Dar de alta una asociación</h2>
+        {/* The two steps, said out loud. Creating the association writes it into
+            this list and sends nothing to anybody; what gives its responsable a
+            way in is an invitation, which lives on Usuarios because that is where
+            every account of this municipality is handled. A technician who is not
+            told this dares de alta the peña, waits for an email that was never
+            sent, and calls us. */}
+        <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+          Esto la añade a la lista de abajo. Para que puedan entrar a subir sus eventos, invita
+          después a su responsable en{' '}
+          <Link href="/usuarios" className="font-semibold underline">
+            Usuarios
+          </Link>
+          , con permisos de «Responsable de asociación». Ese es el paso que envía el correo.
+        </p>
         <form
           className="mt-4 grid gap-4 sm:grid-cols-2"
           onSubmit={(submitEvent) => {
@@ -132,9 +155,13 @@ export default function OrganizationsPage() {
             </Select>
           </Field>
 
+          {/* It is a contact, not a channel. Nothing is sent to this address:
+              today the only email the product sends is the invitation on
+              Usuarios, and the hint used to promise one on approval that does
+              not exist. See D-075. */}
           <Field
             label="Correo de contacto"
-            hint="A quien se le avisa cuando apruebas o rechazas uno de sus eventos."
+            hint="Para tenerlo apuntado. Todavía no se envía ningún correo automático a esta dirección."
           >
             <Input
               type="email"
@@ -178,6 +205,18 @@ export default function OrganizationsPage() {
                     {organization.contactEmail === null ? null : (
                       <p className="text-sm text-neutral-500">{organization.contactEmail}</p>
                     )}
+                    {/* The next step, on the row that needs it. Ticking "De
+                        confianza" on an association nobody can log into does
+                        nothing visible, and this is where that gets noticed. */}
+                    {organization.status === 'invited' ? (
+                      <p className="mt-1 text-sm text-amber-800 dark:text-amber-400">
+                        Nadie puede subir eventos por ella todavía.{' '}
+                        <Link href="/usuarios" className="font-semibold underline">
+                          Invita a su responsable
+                        </Link>
+                        .
+                      </p>
+                    ) : null}
                   </div>
 
                   <div className="flex flex-wrap items-center gap-4">

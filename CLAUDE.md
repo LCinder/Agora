@@ -226,7 +226,7 @@ Las asociaciones del municipio suben sus propios eventos; el ayuntamiento los re
 
 **Historias de usuario**
 
-- Como personal municipal, quiero dar de alta asociaciones e invitar a su responsable por email o enlace.
+- Como personal municipal, quiero dar de alta asociaciones e invitar a su responsable por email o enlace. `[Son dos pasos y así están hechos: dar de alta la asociación en Asociaciones, e invitar a su responsable en Usuarios. El correo de la invitación lo envía Cognito; dar de alta no envía nada. Ver D-075.]`
 - Como responsable de una asociación, quiero crear eventos de mi asociación desde el móvil o el ordenador sin formación previa.
 - Como personal municipal, quiero una bandeja de eventos pendientes para aprobarlos o rechazarlos con un motivo.
 - Como personal municipal, quiero poder marcar una asociación como "de confianza" para que sus eventos se publiquen sin revisión.
@@ -237,7 +237,7 @@ Las asociaciones del municipio suben sus propios eventos; el ayuntamiento los re
 
 - Una asociación solo puede crear y editar eventos propios y solo en su municipio.
 - Los eventos de asociaciones sin confianza quedan en estado `pending_review` y no son visibles para vecinos hasta su aprobación.
-- Al aprobar o rechazar, el responsable de la asociación recibe un email.
+- Al aprobar o rechazar, el responsable de la asociación recibe un email. `[PENDIENTE: no implementado. Hoy el motivo del rechazo se le muestra en su panel, junto al evento; no hay envío de correo en el producto salvo la invitación de Cognito al dar acceso a una persona. Requiere SES, dominio verificado y salir del sandbox. Ver D-075.]`
 - Si una asociación edita un evento ya publicado (sin confianza), el cambio vuelve a revisión pero la versión publicada sigue visible.
 - El panel para asociaciones funciona bien en móvil (web responsive; no requiere instalar nada).
 
