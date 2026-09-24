@@ -93,11 +93,15 @@ export function PanelNav() {
                 key={link.href}
                 href={link.href}
                 aria-current={active ? 'page' : undefined}
-                className={`rounded-md px-3 py-2 text-sm font-medium transition ${
+                className={`rounded-md px-3 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 ${
                   active
-                    ? 'bg-black/5 text-black dark:bg-white/10 dark:text-white'
+                    ? 'text-black dark:text-white'
                     : 'text-neutral-600 hover:bg-black/5 dark:text-neutral-300 dark:hover:bg-white/10'
                 }`}
+                /* El municipio se reconoce en su propio panel. Un 12 % de su
+                   color es fondo suficiente para marcar dónde estás sin pelearse
+                   con el contador de pendientes, que va a color pleno. */
+                style={active ? { backgroundColor: `${brand}1F` } : undefined}
               >
                 {link.label}
                 {link.href === '/revision' && pending > 0 ? (

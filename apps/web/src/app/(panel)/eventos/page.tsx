@@ -9,6 +9,7 @@ import {
   Button,
   ButtonLink,
   Card,
+  CategoryChip,
   Empty,
   Field,
   IconButton,
@@ -116,6 +117,7 @@ export default function EventsPage() {
         <div className="grid gap-3">
           {filtered.map((event) => {
             const organization = organizations.find((entry) => entry.id === event.organizationId);
+            const category = categories.find((entry) => entry.id === event.categoryId);
 
             return (
               <Card key={event.id}>
@@ -125,11 +127,19 @@ export default function EventsPage() {
                     <p className="text-sm text-neutral-600 dark:text-neutral-400">
                       {formatWhen(event, context)} · {event.location.name}
                     </p>
-                    <p className="mt-1 text-xs text-neutral-500">
-                      {organization ? organization.name : 'Ayuntamiento'}
-                      {programmeSizes.has(event.id)
-                        ? ` · ${String(programmeSizes.get(event.id))} actividades`
-                        : ''}
+                    <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-neutral-500">
+                      {category === undefined ? null : (
+                        <>
+                          <CategoryChip name={category.name} colour={category.color} />
+                          <span aria-hidden>·</span>
+                        </>
+                      )}
+                      <span>
+                        {organization ? organization.name : 'Ayuntamiento'}
+                        {programmeSizes.has(event.id)
+                          ? ` · ${String(programmeSizes.get(event.id))} actividades`
+                          : ''}
+                      </span>
                     </p>
                   </div>
                   <div className="flex items-center gap-3">

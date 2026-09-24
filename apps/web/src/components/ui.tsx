@@ -313,6 +313,32 @@ export function Checkbox({
   );
 }
 
+/**
+ * Which category an event belongs to, in its own colour.
+ *
+ * The colour is the one the app paints that category with and the one the
+ * dossier prints, so a technician who has seen the calendar on a phone
+ * recognises the row without reading it. That is the whole justification: the
+ * colour is the category, not decoration. The name is written beside it because
+ * nothing in this panel may depend on colour alone.
+ *
+ * A dot rather than a filled chip on purpose. Eleven filled chips down a list
+ * turn the page into a paint sample and start competing with the status badge,
+ * which is the thing that actually needs to be noticed.
+ */
+export function CategoryChip({ name, colour }: { name: string; colour: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs text-neutral-600">
+      <span
+        aria-hidden
+        className="size-2 shrink-0 rounded-full"
+        style={{ backgroundColor: colour }}
+      />
+      {name}
+    </span>
+  );
+}
+
 const STATUS_LABELS = {
   draft: 'Borrador',
   pending_review: 'Pendiente de revisión',

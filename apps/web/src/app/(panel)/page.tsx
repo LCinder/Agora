@@ -4,7 +4,15 @@ import { ListChecks, Pencil, Plus } from 'lucide-react';
 import { formatWhen, groupEvents, isAwaitingReview, residentVisibleEvents } from '@agora/core';
 
 import { Figure, Rule } from '../../components/report';
-import { ButtonLink, Card, Empty, IconLink, PageHeader, StatusBadge } from '../../components/ui';
+import {
+  ButtonLink,
+  Card,
+  CategoryChip,
+  Empty,
+  IconLink,
+  PageHeader,
+  StatusBadge,
+} from '../../components/ui';
 import { DEMO_ACTIVE_DEVICES } from '../../lib/demo';
 import { usePanel } from '../../lib/panel-store';
 
@@ -15,7 +23,8 @@ import { usePanel } from '../../lib/panel-store';
  * this working. Everything else is one click away.
  */
 export default function PanelHome() {
-  const { activities, events, loading, municipality, organizationId, role, stats } = usePanel();
+  const { activities, categories, events, loading, municipality, organizationId, role, stats } =
+    usePanel();
 
   if (loading || !municipality) {
     return <p className="text-sm text-neutral-500">Cargando…</p>;
@@ -134,26 +143,35 @@ export default function PanelHome() {
           <div className="grid gap-3">
             {[...groups.today, ...groups.thisWeekend, ...groups.upcoming]
               .slice(0, 6)
-              .map((event) => (
-                <Card key={event.id}>
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="font-medium">{event.title}</p>
-                      <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                        {formatWhen(event, context)} · {event.location.name}
-                      </p>
+              .map((event) => {
+                const category = categories.find((entry) => entry.id === event.categoryId);
+
+                return (
+                  <Card key={event.id}>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-medium">{event.title}</p>
+                        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                          {formatWhen(event, context)} · {event.location.name}
+                        </p>
+                        {category === undefined ? null : (
+                          <p className="mt-1">
+                            <CategoryChip name={category.name} colour={category.color} />
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <StatusBadge status={event.status} />
+                        <IconLink
+                          icon={Pencil}
+                          label="Editar este evento"
+                          href={`/eventos/editar?id=${event.id}`}
+                        />
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <StatusBadge status={event.status} />
-                      <IconLink
-                        icon={Pencil}
-                        label="Editar este evento"
-                        href={`/eventos/editar?id=${event.id}`}
-                      />
-                    </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
           </div>
         )}
       </section>
