@@ -247,24 +247,6 @@ export function StatusBadge({ status }: { status: keyof typeof STATUS_LABELS }) 
   );
 }
 
-export function StatTile({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string | number;
-  hint?: string;
-}) {
-  return (
-    <Card>
-      <p className="text-sm text-neutral-600 dark:text-neutral-400">{label}</p>
-      <p className="mt-1 font-display text-3xl font-semibold tabular-nums">{value}</p>
-      {hint ? <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{hint}</p> : null}
-    </Card>
-  );
-}
-
 export function Empty({ children }: { children: ReactNode }) {
   return (
     <Card>

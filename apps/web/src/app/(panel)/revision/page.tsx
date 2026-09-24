@@ -13,6 +13,7 @@ import {
 import Link from 'next/link';
 import { useState } from 'react';
 
+import { Rule } from '../../../components/report';
 import { Button, Card, Empty, Field, PageHeader, TextArea } from '../../../components/ui';
 import { usePanel } from '../../../lib/panel-store';
 
@@ -164,7 +165,9 @@ export default function ReviewPage() {
 
       {pendingActivities.length === 0 ? null : (
         <section className="mt-8">
-          <h2 className="mb-1 text-lg font-semibold">Actividades dentro de un evento</h2>
+          <h2 className="font-display mb-1 text-lg font-semibold">
+            Actividades dentro de un evento
+          </h2>
           <p className="mb-3 text-sm text-neutral-600 dark:text-neutral-400">
             Líneas del programa de un evento ya publicado. Hasta que las apruebes, los vecinos ven
             el programa como estaba.
@@ -261,8 +264,9 @@ export default function ReviewPage() {
         </section>
       )}
 
-      <section className="mt-8">
-        <h2 className="mb-3 text-lg font-semibold">Asociaciones de confianza</h2>
+      <section className="mt-10">
+        <Rule className="mb-5" />
+        <h2 className="font-display mb-3 text-lg font-semibold">Asociaciones de confianza</h2>
         <p className="mb-3 text-sm text-neutral-600 dark:text-neutral-400">
           Sus eventos se publican sin pasar por esta bandeja. Es la forma de que la cola no crezca.
         </p>

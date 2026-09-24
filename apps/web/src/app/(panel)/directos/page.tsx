@@ -112,7 +112,7 @@ export default function LivePage() {
       />
 
       <Card className="mb-6">
-        <h2 className="text-lg font-semibold">Preparar un directo</h2>
+        <h2 className="font-display text-lg font-semibold">Preparar un directo</h2>
         <form
           className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto]"
           onSubmit={(submitEvent) => {

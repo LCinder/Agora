@@ -140,7 +140,7 @@ function EditEventView() {
           </div>
         ) : (
           <Card className="h-fit">
-            <h2 className="text-lg font-semibold">Avisos</h2>
+            <h2 className="font-display text-lg font-semibold">Avisos</h2>
             <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
               Los avisos a los vecinos los envía el ayuntamiento. Si cambia la hora o el lugar,
               edítalo aquí y ellos lo avisarán.
@@ -149,7 +149,7 @@ function EditEventView() {
         )}
 
         <Card className="h-fit">
-          <h2 className="text-lg font-semibold">Avisos enviados</h2>
+          <h2 className="font-display text-lg font-semibold">Avisos enviados</h2>
           {eventNotices.length === 0 ? (
             <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
               Todavía no se ha enviado ninguno.
@@ -209,7 +209,7 @@ function FeaturedComposer({
   if (!published) {
     return (
       <Card className="h-fit">
-        <h2 className="text-lg font-semibold">Destacar en todo el municipio</h2>
+        <h2 className="font-display text-lg font-semibold">Destacar en todo el municipio</h2>
         <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
           Solo se puede destacar un evento publicado. Publícalo arriba y vuelve aquí.
         </p>
@@ -219,7 +219,7 @@ function FeaturedComposer({
 
   return (
     <Card>
-      <h2 className="text-lg font-semibold">Destacar en todo el municipio</h2>
+      <h2 className="font-display text-lg font-semibold">Destacar en todo el municipio</h2>
       <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
         {following === null
           ? 'Llega a todos los vecinos con la aplicación, no solo a quien ha dicho que asistirá.'
@@ -292,7 +292,7 @@ function NoticeComposer({
 
   return (
     <Card>
-      <h2 className="text-lg font-semibold">Enviar un aviso</h2>
+      <h2 className="font-display text-lg font-semibold">Enviar un aviso</h2>
       <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
         Llega solo a los {interested} vecinos que han dicho que asistirán a este evento, o a alguna
         de sus actividades.

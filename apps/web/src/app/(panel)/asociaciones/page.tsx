@@ -107,7 +107,7 @@ export default function OrganizationsPage() {
       />
 
       <Card className="mb-6">
-        <h2 className="text-lg font-semibold">Dar de alta una asociación</h2>
+        <h2 className="font-display text-lg font-semibold">Dar de alta una asociación</h2>
         <form
           className="mt-4 grid gap-4 sm:grid-cols-2"
           onSubmit={(submitEvent) => {

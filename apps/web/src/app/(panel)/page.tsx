@@ -3,7 +3,8 @@
 import { formatWhen, groupEvents, isAwaitingReview, residentVisibleEvents } from '@agora/core';
 import Link from 'next/link';
 
-import { ButtonLink, Card, Empty, PageHeader, StatTile, StatusBadge } from '../../components/ui';
+import { Figure, Rule } from '../../components/report';
+import { ButtonLink, Card, Empty, PageHeader, StatusBadge } from '../../components/ui';
 import { DEMO_ACTIVE_DEVICES } from '../../lib/demo';
 import { usePanel } from '../../lib/panel-store';
 
@@ -54,30 +55,37 @@ export default function PanelHome() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Eventos publicados" value={published.length} />
-        <StatTile
+      {/* Cifras, no tarjetas: aqui no se actua sobre ninguna. Lo que si se
+          toca — lo que espera revision, lo que viene — esta debajo y si lleva
+          su borde. Ver design.md. */}
+      {/* En dos columnas los dos primeros abren fila, asi que los dos pierden
+          la regla de arriba; `Figure` solo se la quita al primero, que es lo
+          correcto en la columna unica de Datos. */}
+      <dl className="grid gap-x-10 sm:grid-cols-2 sm:[&>*:nth-child(2)]:border-t-0">
+        <Figure label="Eventos publicados" value={String(published.length)} />
+        <Figure
           label="Hoy y este finde"
-          value={groups.today.length + groups.thisWeekend.length}
+          value={String(groups.today.length + groups.thisWeekend.length)}
         />
-        <StatTile
+        <Figure
           label={municipal ? 'Pendientes de revisión' : 'Esperando aprobación'}
-          value={pending.length}
           hint={municipal ? 'De asociaciones' : 'Del ayuntamiento'}
+          value={String(pending.length)}
         />
         {municipal ? (
-          <StatTile
+          <Figure
             label="Dispositivos activos"
-            value={(stats?.devices.following ?? DEMO_ACTIVE_DEVICES).toLocaleString('es-ES')}
             hint="Vecinos con la app, sin registrarse"
+            value={(stats?.devices.following ?? DEMO_ACTIVE_DEVICES).toLocaleString('es-ES')}
           />
         ) : (
-          <StatTile label="Mis eventos" value={ours.length} />
+          <Figure label="Mis eventos" value={String(ours.length)} />
         )}
-      </div>
+      </dl>
 
-      <section className="mt-8">
-        <h2 className="mb-3 text-lg font-semibold">
+      <section className="mt-10">
+        <Rule className="mb-5" />
+        <h2 className="font-display mb-3 text-lg font-semibold">
           {municipal ? 'Pendiente de revisión' : 'Esperando aprobación del ayuntamiento'}
         </h2>
         {pending.length === 0 ? (
@@ -111,9 +119,10 @@ export default function PanelHome() {
         )}
       </section>
 
-      <section className="mt-8">
+      <section className="mt-10">
+        <Rule className="mb-5" />
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
+          <h2 className="font-display text-lg font-semibold">
             {municipal ? 'Próximos eventos' : 'Mis próximos eventos'}
           </h2>
           <p className="text-sm text-neutral-600 dark:text-neutral-400">
