@@ -106,7 +106,7 @@ export default function PanelHome() {
         ) : (
           <div className="grid gap-3">
             {pending.map((event) => (
-              <Card key={event.id}>
+              <Card key={event.id} tone="waiting">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="font-medium">{event.title}</p>

@@ -14,7 +14,15 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 import { Rule } from '../../../components/report';
-import { Button, Card, Empty, Field, PageHeader, TextArea } from '../../../components/ui';
+import {
+  Button,
+  Card,
+  CategoryChip,
+  Empty,
+  Field,
+  PageHeader,
+  TextArea,
+} from '../../../components/ui';
 import { usePanel } from '../../../lib/panel-store';
 
 /**
@@ -26,6 +34,7 @@ import { usePanel } from '../../../lib/panel-store';
  */
 export default function ReviewPage() {
   const {
+    categories,
     activities,
     approveActivity,
     approveEvent,
@@ -37,6 +46,8 @@ export default function ReviewPage() {
     rejectEvent,
     role,
   } = usePanel();
+
+  const categoryOf = (id: string) => categories.find((each) => each.id === id);
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [reason, setReason] = useState('');
 
@@ -91,15 +102,21 @@ export default function ReviewPage() {
         <div className="grid gap-3">
           {pending.map((event) => {
             const organization = organizations.find((entry) => entry.id === event.organizationId);
+            const category = categoryOf(event.categoryId);
 
             return (
-              <Card key={event.id}>
+              <Card key={event.id} tone="waiting">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0">
                     <p className="font-medium">{event.title}</p>
                     <p className="text-sm text-neutral-600 dark:text-neutral-400">
                       {formatWhen(event, context)} · {event.location.name}
                     </p>
+                    {category === undefined ? null : (
+                      <p className="mt-1">
+                        <CategoryChip name={category.name} colour={category.color} />
+                      </p>
+                    )}
                     <p className="mt-1 text-sm">
                       Enviado por{' '}
                       <span className="font-medium">{organization?.name ?? 'una asociación'}</span>
@@ -179,7 +196,7 @@ export default function ReviewPage() {
               const key = `activity-${activity.id}`;
 
               return (
-                <Card key={activity.id}>
+                <Card key={activity.id} tone="waiting">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="min-w-0">
                       <p className="font-medium">{activity.title}</p>
