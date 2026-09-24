@@ -194,7 +194,6 @@ describe('drawing a poster', () => {
     const result = await drawPoster({
       ...KEYS,
       description: 'concurso de tortillas en la plaza',
-      mode: 'background',
       event: { title: 'Concurso de tortillas', municipalityName: 'La Zubia' },
     });
 
@@ -208,20 +207,24 @@ describe('drawing a poster', () => {
     expect(String(fetcher.mock.calls[1]?.[0])).toContain('api.cloudflare.com');
   });
 
-  it('asks for no text in the image in background mode, and for exact text in the other', async () => {
-    for (const [mode, expected] of [
-      ['background', 'NO debe contener ningún texto'],
-      ['complete', 'SÍ lleva el texto dentro de la imagen'],
-    ] as const) {
-      const fetcher = stubFetch(
-        geminiAnswers(BRIEF),
-        new Response(JSON.stringify({ result: { image: 'Zm90bw==' } }), { status: 200 }),
-      );
+  it('forbids text in the drawing whatever the brief says', async () => {
+    // The brief deliberately asks for lettering. The rule used to live only in
+    // the instructions for the model that writes the prompt, so a brief like
+    // this one reached FLUX intact and came back covered in shapes that look
+    // like writing.
+    const fetcher = stubFetch(
+      geminiAnswers({ imagePrompt: 'A poster with the title written large', altText: 'Un cartel' }),
+      new Response(JSON.stringify({ result: { image: 'Zm90bw==' } }), { status: 200 }),
+    );
 
-      await drawPoster({ ...KEYS, description: 'algo', mode, event: {} });
+    await drawPoster({ ...KEYS, description: 'algo', event: {} });
 
-      expect(String(fetcher.mock.calls[0]?.[1]?.body)).toContain(expected);
-    }
+    // What Gemini is told...
+    expect(String(fetcher.mock.calls[0]?.[1]?.body)).toContain('NO debe contener ningún texto');
+
+    // ...and, separately, what FLUX is given, which is the only thing that
+    // actually decides what gets drawn.
+    expect(String(fetcher.mock.calls[1]?.[1]?.body)).toContain('no text, no letters');
   });
 
   it('does not call the text model when the drawing credentials are missing', async () => {
@@ -231,7 +234,6 @@ describe('drawing a poster', () => {
       geminiKey: 'test-key',
       cloudflare: { accountId: undefined, apiToken: 'token' },
       description: 'algo',
-      mode: 'background',
       event: {},
     });
 
@@ -242,9 +244,10 @@ describe('drawing a poster', () => {
   it('reports a spent image quota as such', async () => {
     stubFetch(geminiAnswers(BRIEF), new Response('', { status: 429 }));
 
-    expect(
-      await drawPoster({ ...KEYS, description: 'algo', mode: 'background', event: {} }),
-    ).toEqual({ ok: false, failure: 'rate_limited' });
+    expect(await drawPoster({ ...KEYS, description: 'algo', event: {} })).toEqual({
+      ok: false,
+      failure: 'rate_limited',
+    });
   });
 
   it('says so when the service answers without an image', async () => {
@@ -255,9 +258,10 @@ describe('drawing a poster', () => {
       }),
     );
 
-    expect(
-      await drawPoster({ ...KEYS, description: 'algo', mode: 'background', event: {} }),
-    ).toEqual({ ok: false, failure: 'no_image' });
+    expect(await drawPoster({ ...KEYS, description: 'algo', event: {} })).toEqual({
+      ok: false,
+      failure: 'no_image',
+    });
   });
 });
 
@@ -338,7 +342,6 @@ describe('when the brief does not arrive in time', () => {
     const result = await drawPoster({
       ...KEYS,
       description: 'concurso de tortillas en la plaza',
-      mode: 'background',
       event: { title: 'Concurso de tortillas', locationName: 'Plaza de la Iglesia' },
     });
 
@@ -354,8 +357,9 @@ describe('when the brief does not arrive in time', () => {
 
     expect(drawn).toContain('Concurso de tortillas');
     expect(drawn).toContain('Plaza de la Iglesia');
-    // Background mode still forbids text in the image.
-    expect(drawn).toContain('sin ningún texto');
+    // And the fallback is bound by the same rule, which is the case that used
+    // to leak: a brief written here never carried the no-text instruction.
+    expect(drawn).toContain('no text, no letters');
   });
 
   it('still refuses when the key is the problem', async () => {
@@ -364,7 +368,6 @@ describe('when the brief does not arrive in time', () => {
     const result = await drawPoster({
       ...KEYS,
       description: 'concurso de tortillas',
-      mode: 'background',
       event: { title: 'Concurso de tortillas' },
     });
 

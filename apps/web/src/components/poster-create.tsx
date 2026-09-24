@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { usePanel } from '../lib/panel-store';
 import { composePoster } from '../lib/poster-canvas';
 import { type PosterDrawing, callPoster, posterError } from '../lib/poster-contract';
-import { Button, Field, Select, TextArea } from './ui';
+import { Button, Field, TextArea } from './ui';
 
 /**
  * Draw the poster.
@@ -23,18 +23,11 @@ export type PosterSubject = {
   locationName: string;
 };
 
-type Mode = 'background' | 'complete';
-
 type State =
   | { status: 'idle' }
   | { status: 'drawing' }
-  | { status: 'done'; mode: Mode; image: string; altText: string; prompt: string }
+  | { status: 'done'; image: string; altText: string; prompt: string }
   | { status: 'error'; message: string };
-
-const MODE_LABELS: Record<Mode, string> = {
-  background: 'Fondo dibujado y texto compuesto (recomendado)',
-  complete: 'Cartel entero dibujado, texto incluido',
-};
 
 export function PosterCreate({
   subject,
@@ -45,7 +38,6 @@ export function PosterCreate({
 }) {
   const { municipality } = usePanel();
   const [description, setDescription] = useState('');
-  const [mode, setMode] = useState<Mode>('background');
   const [state, setState] = useState<State>({ status: 'idle' });
   const [used, setUsed] = useState(false);
 
@@ -77,7 +69,6 @@ export function PosterCreate({
     try {
       const response = await callPoster('draw', {
         description: description.trim(),
-        mode,
         event: {
           title: subject.title,
           dateLabel,
@@ -100,22 +91,22 @@ export function PosterCreate({
       const drawing = payload as PosterDrawing;
       const drawn = `data:${drawing.image.mimeType};base64,${drawing.image.data}`;
 
-      const image =
-        mode === 'background'
-          ? await composePoster(drawn, {
-              title: subject.title,
-              dateLabel,
-              timeLabel,
-              locationName: subject.locationName,
-              municipalityName: municipality?.name ?? '',
-              logoUrl: municipality?.branding.logoUrl ?? null,
-              primaryColor: municipality?.branding.primaryColor ?? '#4F46E5',
-            })
-          : drawn;
+      // Always composed here. The model draws the picture and nothing else —
+      // it cannot spell, and lettering it invents on a municipal poster reads as
+      // a fake. The title, the date and the place come from the form, so they
+      // are right by construction.
+      const image = await composePoster(drawn, {
+        title: subject.title,
+        dateLabel,
+        timeLabel,
+        locationName: subject.locationName,
+        municipalityName: municipality?.name ?? '',
+        logoUrl: municipality?.branding.logoUrl ?? null,
+        primaryColor: municipality?.branding.primaryColor ?? '#4F46E5',
+      });
 
       setState({
         status: 'done',
-        mode,
         image,
         altText: drawing.altText,
         prompt: drawing.imagePrompt,
@@ -153,23 +144,6 @@ export function PosterCreate({
           />
         </Field>
 
-        <Field
-          label="Cómo se hace"
-          hint={
-            mode === 'background'
-              ? 'El título, la fecha y el lugar los escribe el panel con los datos del formulario, así que salen siempre bien.'
-              : 'El texto lo escribe la IA dentro de la imagen. Repásalo con atención antes de publicar: puede equivocarse en fechas y tildes.'
-          }
-        >
-          <Select value={mode} onChange={(event) => setMode(event.target.value as Mode)}>
-            {Object.entries(MODE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
-        </Field>
-
         <div>
           <Button
             onClick={() => void draw()}
@@ -191,13 +165,6 @@ export function PosterCreate({
             alt={state.altText}
             className="w-full max-w-sm rounded-lg border border-black/10 dark:border-white/10"
           />
-
-          {state.mode === 'complete' ? (
-            <p className="mt-3 text-sm text-amber-800 dark:text-amber-400">
-              Léelo entero antes de usarlo. El texto lo ha escrito la IA y las fechas son lo que más
-              se le suele torcer.
-            </p>
-          ) : null}
 
           <div className="mt-4 flex flex-wrap gap-3">
             <Button

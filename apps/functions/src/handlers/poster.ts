@@ -36,7 +36,7 @@ import { readSecret } from '../lib/secrets';
  */
 const drawRequestSchema = z.object({
   description: z.string().min(3).max(2000),
-  mode: z.enum(['background', 'complete']),
+
   event: z
     .object({
       title: z.string().optional(),

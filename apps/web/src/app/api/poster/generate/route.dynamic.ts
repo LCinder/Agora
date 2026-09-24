@@ -14,7 +14,7 @@ import { z } from 'zod';
  */
 const requestSchema = z.object({
   description: z.string().min(3).max(2000),
-  mode: z.enum(['background', 'complete']),
+
   // Every field has a default, so the whole object has one too: the panel sends
   // what it knows about the event, which early on is nothing.
   event: z

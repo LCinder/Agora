@@ -35,6 +35,29 @@ import {
 const IMAGE_MODEL = '@cf/black-forest-labs/flux-1-schnell';
 const IMAGE_STEPS = 4;
 
+/**
+ * Nailed to the end of every prompt FLUX is given, whatever Gemini wrote.
+ *
+ * The rule against text used to live only in the instructions for the model that
+ * *writes* the prompt. FLUX never sees those — it sees `imagePrompt` and nothing
+ * else — so the moment Gemini forgot to carry the rule across, or the brief came
+ * from `briefWithoutAModel` after Gemini timed out, the drawing came back with
+ * lettering in it. And FLUX cannot spell: what it draws is shapes that look like
+ * writing, which on a municipal poster is worse than a blank wall, because it
+ * reads as a cheap fake rather than as a picture.
+ *
+ * The panel writes the real title, date and place over the image afterwards,
+ * from the form, so nothing is lost by forbidding it here.
+ *
+ * In English because the image model is given its prompt in English (see the
+ * system prompt), and negatives are stated as positives — "clean surfaces",
+ * "empty walls" — because diffusion models respond to what a scene contains far
+ * better than to what it does not.
+ */
+const NO_TEXT_CLAUSE =
+  ', no text, no letters, no numbers, no words, no signage, no banners, no logos, ' +
+  'no watermarks, clean blank surfaces, empty walls, purely pictorial illustration';
+
 export const posterBriefSchema = z.object({
   imagePrompt: z.string().min(1),
   altText: z.string(),
@@ -45,13 +68,6 @@ export type PosterBrief = z.infer<typeof posterBriefSchema>;
 export type PosterDrawing = PosterBrief & {
   image: { mimeType: string; data: string };
 };
-
-/**
- * `background` draws an illustration with no text in it, for the panel to lay the
- * event details over. `complete` asks the model for the finished poster, text
- * included — quicker, and the text is the model's to get wrong.
- */
-export type PosterMode = 'background' | 'complete';
 
 export interface PosterSubject {
   title?: string;
@@ -95,9 +111,7 @@ Reglas:
 - Nada de marcas comerciales, ni logotipos reales, ni caras de personas reconocibles.
 - No inventes datos del evento que no te hayan dado.`;
 
-const BACKGROUND_RULE = `El cartel NO debe contener ningún texto, ni letras, ni números, ni carteles dentro de la imagen: el texto se compone después por encima. Pide expresamente una composición con una zona inferior despejada y de tono uniforme donde el texto se pueda leer sin estorbar al motivo principal.`;
-
-const COMPLETE_RULE = `El cartel SÍ lleva el texto dentro de la imagen. Indica al modelo el texto exacto que debe escribir, entrecomillado y sin cambiar ni una tilde, y pídele tipografía grande, legible y bien contrastada, con el título como elemento dominante.`;
+const NO_TEXT_RULE = `El cartel NO debe contener ningún texto, ni letras, ni números, ni carteles dentro de la imagen: el texto se compone después por encima. Pide expresamente una composición con una zona inferior despejada y de tono uniforme donde el texto se pueda leer sin estorbar al motivo principal.`;
 
 /**
  * Failures worth drawing anyway.
@@ -138,10 +152,7 @@ function briefWithoutAModel(input: DrawPosterInput): PosterBrief {
       `Ilustración de cartel para "${subject}"` +
       (place === undefined ? '' : `, en ${place}`) +
       ', ambiente de fiesta popular española, luz cálida de tarde, colores vivos, ' +
-      'composición limpia con espacio libre en el centro' +
-      // The same rule the model is given, because the panel lays the event
-      // details over a background and text drawn into it would collide.
-      (input.mode === 'background' ? ', sin ningún texto ni letras en la imagen' : ''),
+      'composición limpia con una zona inferior despejada donde componer el texto',
     altText: `Imagen ilustrativa para ${subject}`,
   };
 }
@@ -150,7 +161,6 @@ export interface DrawPosterInput {
   geminiKey: string | undefined;
   cloudflare: { accountId: string | undefined; apiToken: string | undefined };
   description: string;
-  mode: PosterMode;
   event: PosterSubject;
 }
 
@@ -184,7 +194,7 @@ export async function drawPoster(input: DrawPosterInput): Promise<PosterResult<P
     schema: BRIEF_SCHEMA as unknown as Record<string, unknown>,
     parts: [
       {
-        text: `${input.mode === 'background' ? BACKGROUND_RULE : COMPLETE_RULE}
+        text: `${NO_TEXT_RULE}
 
 Descripción del técnico:
 ${input.description}
@@ -212,7 +222,7 @@ ${details === '' ? 'Todavía no hay datos del evento.' : `Datos del evento:\n${d
       {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${apiToken}` },
-        body: JSON.stringify({ prompt: wording.imagePrompt, steps: IMAGE_STEPS }),
+        body: JSON.stringify({ prompt: wording.imagePrompt + NO_TEXT_CLAUSE, steps: IMAGE_STEPS }),
         signal: AbortSignal.timeout(remainingFor(deadline)),
       },
     );
