@@ -100,7 +100,7 @@ export default async function PublicEventPage({ params }: PageProps) {
 
       <dl className="mt-6 grid gap-3 text-base">
         <div>
-          <dt className="text-sm text-neutral-500">Cuándo</dt>
+          <dt className="text-sm text-neutral-600">Cuándo</dt>
           <dd>
             {formatLongDate(event.startAt, context)}
             {event.allDay ? null : (
@@ -114,7 +114,7 @@ export default async function PublicEventPage({ params }: PageProps) {
         </div>
 
         <div>
-          <dt className="text-sm text-neutral-500">Dónde</dt>
+          <dt className="text-sm text-neutral-600">Dónde</dt>
           <dd>
             {mapUrl ? (
               <a href={mapUrl} className="underline" rel="noreferrer noopener" target="_blank">
@@ -127,12 +127,12 @@ export default async function PublicEventPage({ params }: PageProps) {
         </div>
 
         <div>
-          <dt className="text-sm text-neutral-500">Organiza</dt>
+          <dt className="text-sm text-neutral-600">Organiza</dt>
           <dd>{organization ? organization.name : `Ayuntamiento de ${municipality.name}`}</dd>
         </div>
 
         <div>
-          <dt className="text-sm text-neutral-500">Precio</dt>
+          <dt className="text-sm text-neutral-600">Precio</dt>
           <dd>{event.isFree ? 'Entrada gratuita' : (event.priceInfo ?? 'Consultar')}</dd>
         </div>
       </dl>
@@ -144,13 +144,13 @@ export default async function PublicEventPage({ params }: PageProps) {
       <div className="mt-10 rounded-xl p-5 text-white" style={{ backgroundColor: brand }}>
         <p className="text-lg font-semibold">Toda la agenda de {municipality.name} en el móvil</p>
         <p className="mt-1 text-sm opacity-90">
-          Di «Asistiré» y te recordamos lo que vayas a ir a ver, y te avisamos si cambia de hora o se
-          cancela.
+          Di «Asistiré» y te recordamos lo que vayas a ir a ver, y te avisamos si cambia de hora o
+          se cancela.
         </p>
         <p className="mt-4 text-sm font-semibold underline">Descargar la app</p>
       </div>
 
-      <p className="mt-8 text-xs text-neutral-500">Versión de demostración con datos de ejemplo.</p>
+      <p className="mt-8 text-xs text-neutral-600">Versión de demostración con datos de ejemplo.</p>
     </main>
   );
 }

@@ -70,7 +70,7 @@ export default function OrganizationsPage() {
   const [error, setError] = useState<string | null>(null);
 
   if (loading || !municipality) {
-    return <p className="text-sm text-neutral-500">Cargando…</p>;
+    return <p className="text-sm text-neutral-600">Cargando…</p>;
   }
 
   if (role === 'org_editor') {
@@ -116,7 +116,7 @@ export default function OrganizationsPage() {
       />
 
       <Card className="mb-6">
-        <h2 className="text-lg font-semibold">Dar de alta una asociación</h2>
+<h2 className="font-display text-lg font-semibold">Dar de alta una asociación</h2>
         {/* The two steps, said out loud. Creating the association writes it into
             this list and sends nothing to anybody; what gives its responsable a
             way in is an invitation, which lives on Usuarios because that is where
@@ -203,7 +203,7 @@ export default function OrganizationsPage() {
                       {waiting > 0 ? ` · ${waiting} esperando revisión` : ''}
                     </p>
                     {organization.contactEmail === null ? null : (
-                      <p className="text-sm text-neutral-500">{organization.contactEmail}</p>
+                      <p className="text-sm text-neutral-600">{organization.contactEmail}</p>
                     )}
                     {/* The next step, on the row that needs it. Ticking "De
                         confianza" on an association nobody can log into does

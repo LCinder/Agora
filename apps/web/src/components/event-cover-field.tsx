@@ -72,7 +72,7 @@ export function EventCoverField({
 
       <div className="flex flex-wrap items-start gap-4">
         {shown === null ? (
-          <div className="flex h-32 w-24 shrink-0 items-center justify-center rounded-lg border border-dashed border-black/20 text-xs text-neutral-500">
+          <div className="flex h-32 w-24 shrink-0 items-center justify-center rounded-lg border border-dashed border-black/20 text-xs text-neutral-600">
             Sin cartel
           </div>
         ) : (
@@ -116,7 +116,7 @@ export function EventCoverField({
             )}
           </div>
 
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-neutral-600">
             JPG, PNG o WEBP. Se guarda al darle a guardar el evento, como todo lo demás.
           </p>
         </div>

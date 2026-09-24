@@ -70,7 +70,7 @@ export default function LivePage() {
   }, [load]);
 
   if (loading || !municipality) {
-    return <p className="text-sm text-neutral-500">Cargando…</p>;
+    return <p className="text-sm text-neutral-600">Cargando…</p>;
   }
 
   if (role === 'org_editor') {
@@ -112,7 +112,7 @@ export default function LivePage() {
       />
 
       <Card className="mb-6">
-        <h2 className="text-lg font-semibold">Preparar un directo</h2>
+        <h2 className="font-display text-lg font-semibold">Preparar un directo</h2>
         <form
           className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto]"
           onSubmit={(submitEvent) => {

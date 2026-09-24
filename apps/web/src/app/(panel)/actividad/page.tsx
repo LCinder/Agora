@@ -87,7 +87,7 @@ export default function ActivityPage() {
   }, [refresh]);
 
   if (loading || !municipality) {
-    return <p className="text-sm text-neutral-500">Cargando…</p>;
+    return <p className="text-sm text-neutral-600">Cargando…</p>;
   }
 
   if (role !== 'municipal_admin') {
@@ -121,7 +121,7 @@ export default function ActivityPage() {
       {failed ? (
         <Empty>No se ha podido leer el registro. Vuelve a intentarlo en un momento.</Empty>
       ) : entries === null ? (
-        <p className="text-sm text-neutral-500">Cargando…</p>
+        <p className="text-sm text-neutral-600">Cargando…</p>
       ) : entries.length === 0 ? (
         <Empty>Todavía no hay nada registrado en este municipio.</Empty>
       ) : (
@@ -155,7 +155,7 @@ export default function ActivityPage() {
                   <td className="px-5 py-3 font-mono text-xs">{entry.actorId}</td>
                   <td className="px-5 py-3">
                     {describe(entry.action)}{' '}
-                    <span className="font-mono text-xs text-neutral-500">{entry.entityId}</span>
+                    <span className="font-mono text-xs text-neutral-600">{entry.entityId}</span>
                   </td>
                 </tr>
               ))}
